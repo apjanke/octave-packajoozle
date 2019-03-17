@@ -41,13 +41,13 @@ function configure_make (desc, packdir, verbose)
     endif
 
     if (! exist (mkoctfile_program, "file"))
-      __gripe_missing_component__ ("pkg", "mkoctfile");
+      __gripe_missing_component__ ("pkj", "mkoctfile");
     endif
     if (! exist (octave_config_program, "file"))
-      __gripe_missing_component__ ("pkg", "octave-config");
+      __gripe_missing_component__ ("pkj", "octave-config");
     endif
     if (! exist (octave_binary, "file"))
-      __gripe_missing_component__ ("pkg", "octave");
+      __gripe_missing_component__ ("pkj", "octave");
     endif
 
     if (verbose)
@@ -79,7 +79,7 @@ function configure_make (desc, packdir, verbose)
       if (status != 0)
         rmdir (desc.dir, "s");
         disp (output);
-        error ("pkg: error running the configure script for %s.", desc.name);
+        error ("pkj: error running the configure script for %s.", desc.name);
       endif
     endif
 
@@ -96,7 +96,7 @@ function configure_make (desc, packdir, verbose)
       if (status != 0)
         rmdir (desc.dir, "s");
         disp (output);
-        error ("pkg: error running `make' for the %s package.", desc.name);
+        error ("pkj: error running `make' for the %s package.", desc.name);
       endif
     endif
   endif
@@ -104,7 +104,7 @@ function configure_make (desc, packdir, verbose)
 endfunction
 
 ## Executes a shell command.
-## In the end it calls system(), but in the case of MS Windows it will first
+## In the end it calls system(), but in the case of Windows it will first
 ## check if sh.exe works.
 ##
 ## If VERBOSE is true, it will prints the output to STDOUT in real time and
@@ -125,7 +125,7 @@ function [status, output] = shell (cmd, verbose)
     if (have_sh)
       cmd = ['sh.exe -c "' cmd '"'];
     else
-      error ("pkg: unable to find the command shell.");
+      error ("pkj: unable to find the command shell.");
     endif
   endif
   ## if verbose, we want to display the output in real time.  To do this, we

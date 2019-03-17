@@ -91,7 +91,7 @@ function pkg_idx_struct = parse_pkg_idx (packdir)
   index_file = fullfile (packdir, "packinfo", "INDEX");
 
   if (! exist (index_file, "file"))
-    error ("could not find any INDEX file in directory %s, try 'pkg rebuild all' to generate missing INDEX files", packdir);
+    error ("could not find any INDEX file in directory %s, try 'pkj rebuild all' to generate missing INDEX files", packdir);
   endif
 
 

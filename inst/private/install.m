@@ -27,10 +27,10 @@ function install (files, handle_deps, prefix, archprefix, verbose,
 
   ## Check that the directory in prefix exist.  If it doesn't: create it!
   if (! isfolder (prefix))
-    warning ("creating installation directory %s", prefix);
+    warning ("pkj: creating installation directory %s", prefix);
     [status, msg] = mkdir (prefix);
     if (status != 1)
-      error ("could not create installation directory: %s", msg);
+      error ("pkj: could not create installation directory: %s", msg);
     endif
   endif
 
@@ -52,7 +52,7 @@ function install (files, handle_deps, prefix, archprefix, verbose,
     ## Warn about non existent files.
     for i = 1:length (files)
       if (isempty (glob (files{i})))
-        warning ("file %s does not exist", files{i});
+        warning ("pkj: file %s does not exist", files{i});
       endif
     endfor
 
@@ -71,7 +71,7 @@ function install (files, handle_deps, prefix, archprefix, verbose,
         endif
         [status, msg] = mkdir (tmpdir);
         if (status != 1)
-          error ("couldn't create temporary directory: %s", msg);
+          error ("pkj: couldn't create temporary directory: %s", msg);
         endif
 
         ## Uncompress the package.
@@ -89,11 +89,11 @@ function install (files, handle_deps, prefix, archprefix, verbose,
         ## Get the name of the directories produced by tar.
         [dirlist, err, msg] = readdir (tmpdir);
         if (err)
-          error ("couldn't read directory produced by tar: %s", msg);
+          error ("pkj: couldn't read directory produced by tar: %s", msg);
         endif
 
         if (length (dirlist) > 3)
-          error ("bundles of packages are not allowed");
+          error ("pkj: bundles of packages are not allowed");
         endif
       endif
 
@@ -245,7 +245,7 @@ function install (files, handle_deps, prefix, archprefix, verbose,
   for i = length (descriptions):-1:1
     if (dirempty (descriptions{i}.dir, {"packinfo", "doc"})
         && dirempty (getarchdir (descriptions{i})))
-      warning ("package %s is empty\n", descriptions{i}.name);
+      warning ("pkj: package %s is empty\n", descriptions{i}.name);
       rmdir (descriptions{i}.dir, "s");
       rmdir (getarchdir (descriptions{i}), "s");
       descriptions(i) = [];
@@ -274,9 +274,9 @@ function install (files, handle_deps, prefix, archprefix, verbose,
       rmdir (descriptions{i}.dir, "s");
     endfor
     if (global_install)
-      printf ("error: couldn't append to %s\n", global_list);
+      printf ("pkj: error: couldn't append to %s\n", global_list);
     else
-      printf ("error: couldn't append to %s\n", local_list);
+      printf ("pkj: error: couldn't append to %s\n", local_list);
     endif
     rethrow (lasterror ());
   end_try_catch
@@ -285,7 +285,7 @@ function install (files, handle_deps, prefix, archprefix, verbose,
   for i = 1:length (tmpdirs)
     [status, msg] = rmdir (tmpdirs{i}, "s");
     if (status != 1 && isfolder (tmpdirs{i}))
-      warning ("couldn't clean up after my self: %s\n", msg);
+      warning ("pkj: couldn't clean up after my self: %s\n", msg);
     endif
   endfor
 
@@ -331,7 +331,7 @@ function verify_directory (dir)
   needed_files = {"COPYING", "DESCRIPTION"};
   for f = needed_files
     if (! exist (fullfile (dir, f{1}), "file"))
-      error ("package is missing file: %s", f{1});
+      error ("pkj: package is missing file: %s", f{1});
     endif
   endfor
 
@@ -359,7 +359,7 @@ function prepare_installation (desc, packdir)
     [status, msg] = mkdir (inst_dir);
     if (status != 1)
       rmdir (desc.dir, "s");
-      error ("the 'inst' directory did not exist and could not be created: %s",
+      error ("pkj: the 'inst' directory did not exist and could not be created: %s",
              msg);
     endif
   endif
@@ -383,7 +383,7 @@ function copy_built_files (desc, packdir, verbose)
   if (exist (files, "file"))
     [fid, msg] = fopen (files, "r");
     if (fid < 0)
-      error ("couldn't open %s: %s", files, msg);
+      error ("pkj: couldn't open %s: %s", files, msg);
     endif
     filenames = char (fread (fid))';
     fclose (fid);
@@ -433,7 +433,7 @@ function copy_built_files (desc, packdir, verbose)
         [status, output] = copyfile (archindependent, instdir);
         if (status != 1)
           rmdir (desc.dir, "s");
-          error ("Couldn't copy files from 'src' to 'inst': %s", output);
+          error ("pkj: Couldn't copy files from 'src' to 'inst': %s", output);
         endif
       endif
       if (! all (isspace ([archdependent{:}])))
@@ -448,7 +448,7 @@ function copy_built_files (desc, packdir, verbose)
         [status, output] = copyfile (archdependent, archdir);
         if (status != 1)
           rmdir (desc.dir, "s");
-          error ("Couldn't copy files from 'src' to 'inst': %s", output);
+          error ("pkj: Couldn't copy files from 'src' to 'inst': %s", output);
         endif
       endif
   endif
@@ -487,7 +487,7 @@ function copy_files (desc, packdir, global_install)
   if (! isfolder (desc.dir))
     [status, output] = mkdir (desc.dir);
     if (status != 1)
-      error ("couldn't create installation directory %s : %s",
+      error ("pkj: couldn't create installation directory %s : %s",
       desc.dir, output);
     endif
   endif
@@ -500,7 +500,7 @@ function copy_files (desc, packdir, global_install)
     [status, output] = copyfile (fullfile (instdir, "*"), desc.dir);
     if (status != 1)
       rmdir (desc.dir, "s");
-      error ("couldn't copy files to the installation directory");
+      error ("pkj: couldn't copy files to the installation directory");
     endif
     if (isfolder (fullfile (desc.dir, getarch ()))
         && ! strcmp (canonicalize_file_name (fullfile (desc.dir, getarch ())),
@@ -516,28 +516,28 @@ function copy_files (desc, packdir, global_install)
               [status, output] = mkdir (octm3);
               if (status != 1)
                 rmdir (desc.dir, "s");
-                error ("couldn't create installation directory %s : %s",
+                error ("pkj: couldn't create installation directory %s : %s",
                        octm3, output);
               endif
             endif
             [status, output] = mkdir (octm2);
             if (status != 1)
               rmdir (desc.dir, "s");
-              error ("couldn't create installation directory %s : %s",
+              error ("pkj: couldn't create installation directory %s : %s",
                      octm2, output);
             endif
           endif
           [status, output] = mkdir (octm1);
           if (status != 1)
             rmdir (desc.dir, "s");
-            error ("couldn't create installation directory %s : %s",
+            error ("pkj: couldn't create installation directory %s : %s",
                    octm1, output);
           endif
         endif
         [status, output] = mkdir (octfiledir);
         if (status != 1)
           rmdir (desc.dir, "s");
-          error ("couldn't create installation directory %s : %s",
+          error ("pkj: couldn't create installation directory %s : %s",
           octfiledir, output);
         endif
       endif
@@ -548,7 +548,7 @@ function copy_files (desc, packdir, global_install)
       if (status != 1)
         rmdir (desc.dir, "s");
         rmdir (octfiledir, "s");
-        error ("couldn't copy files to the installation directory");
+        error ("pkj: couldn't copy files to the installation directory");
       endif
     endif
 
@@ -560,7 +560,7 @@ function copy_files (desc, packdir, global_install)
   if (status != 1)
     rmdir (desc.dir, "s");
     rmdir (octfiledir, "s");
-    error ("couldn't create packinfo directory: %s", msg);
+    error ("pkj: couldn't create packinfo directory: %s", msg);
   endif
 
   packinfo_copy_file ("DESCRIPTION", "required", packdir, packinfo, desc, octfiledir);
@@ -614,7 +614,7 @@ function packinfo_copy_file (filename, requirement, packdir, packinfo, desc, oct
     if (status != 1)
       rmdir (desc.dir, "s");
       rmdir (octfiledir, "s");
-      error ("Couldn't copy %s file: %s", filename, output);
+      error ("pkj: Couldn't copy %s file: %s", filename, output);
     endif
   endif
 
@@ -630,7 +630,7 @@ function write_index (desc, dir, index_file, global_install)
   ## Get names of functions in dir
   [files, err, msg] = readdir (dir);
   if (err)
-    error ("couldn't read directory %s: %s", dir, msg);
+    error ("pkj: couldn't read directory %s: %s", dir, msg);
   endif
 
   ## Get classes in dir
@@ -641,7 +641,7 @@ function write_index (desc, dir, index_file, global_install)
     if (isfolder (class_dir))
       [files2, err, msg] = readdir (class_dir);
       if (err)
-        error ("couldn't read directory %s: %s", class_dir, msg);
+        error ("pkj: couldn't read directory %s: %s", class_dir, msg);
       endif
       files2 = strcat (class_name, filesep (), files2);
       files = [files; files2];
@@ -653,7 +653,7 @@ function write_index (desc, dir, index_file, global_install)
   if (isfolder (tmpdir))
     [files2, err, msg] = readdir (tmpdir);
     if (err)
-      error ("couldn't read directory %s: %s", tmpdir, msg);
+      error ("pkj: couldn't read directory %s: %s", tmpdir, msg);
     endif
     files = [files; files2];
   endif
@@ -671,17 +671,17 @@ function write_index (desc, dir, index_file, global_install)
 
   ## Does desc have a categories field?
   if (! isfield (desc, "categories"))
-    error ("the DESCRIPTION file must have a Categories field, when no INDEX file is given");
+    error ("pkj: the DESCRIPTION file must have a Categories field, when no INDEX file is given");
   endif
   categories = strtrim (strsplit (desc.categories, ","));
   if (length (categories) < 1)
-    error ("the Category field is empty");
+    error ("pkj: the Category field is empty");
   endif
 
   ## Write INDEX.
   fid = fopen (index_file, "w");
   if (fid == -1)
-    error ("couldn't open %s for writing", index_file);
+    error ("pkj: couldn't open %s for writing", index_file);
   endif
   fprintf (fid, "%s >> %s\n", desc.name, desc.title);
   fprintf (fid, "%s\n", categories{1});

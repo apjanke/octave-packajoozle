@@ -30,7 +30,7 @@ function descriptions = rebuild (prefix, archprefix, list, files, verbose)
     else
       [dirlist, err, msg] = readdir (prefix);
       if (err)
-        error ("couldn't read directory %s: %s", prefix, msg);
+        error ("pkj: couldn't read directory %s: %s", prefix, msg);
       endif
       ## the two first entries of dirlist are "." and ".."
       dirlist([1,2]) = [];
@@ -50,7 +50,7 @@ function descriptions = rebuild (prefix, archprefix, list, files, verbose)
   for k = 1:length (dirlist)
     descfile = fullfile (prefix, dirlist{k}, "packinfo", "DESCRIPTION");
     if (verbose)
-      printf ("recreating package description from %s\n", dirlist{k});
+      printf ("pkj: recreating package description from %s\n", dirlist{k});
     endif
     if (exist (descfile, "file"))
       desc = get_description (descfile);
@@ -58,7 +58,7 @@ function descriptions = rebuild (prefix, archprefix, list, files, verbose)
       desc.archprefix = fullfile (archprefix, [desc.name "-" desc.version]);
       descriptions{end + 1} = desc;
     elseif (verbose)
-      warning ("directory %s is not a valid package", dirlist{k});
+      warning ("pkj: directory %s is not a valid package", dirlist{k});
     endif
   endfor
 

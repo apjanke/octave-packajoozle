@@ -29,9 +29,9 @@ function [ver, url] = get_forge_pkg (name)
 
   ## Verify that name is valid.
   if (! (ischar (name) && rows (name) == 1 && ndims (name) == 2))
-    error ("get_forge_pkg: package NAME must be a string");
+    error ("pkj: package NAME must be a string");
   elseif (! all (isalnum (name) | name == "-" | name == "." | name == "_"))
-    error ("get_forge_pkg: invalid package NAME: %s", name);
+    error ("pkj: invalid package NAME: %s", name);
   endif
 
   name = tolower (name);
@@ -46,7 +46,7 @@ function [ver, url] = get_forge_pkg (name)
     pat = "<tdclass=""package_table"">PackageVersion:</td><td>([\\d.]*)</td>";
     t = regexp (html, pat, "tokens");
     if (isempty (t) || isempty (t{1}))
-      error ("get_forge_pkg: could not read version number from package's page");
+      error ("pkj: could not read version number from package's page");
     else
       ver = t{1}{1};
       if (nargout > 1)
@@ -55,7 +55,7 @@ function [ver, url] = get_forge_pkg (name)
         url = ["https://packages.octave.org/download/" pkg_file];
         ## Verify that the package string exists on the page.
         if (isempty (strfind (html, pkg_file)))
-          warning ("get_forge_pkg: download URL not verified");
+          warning ("pkj: download URL not verified");
         endif
       endif
     endif
@@ -63,11 +63,11 @@ function [ver, url] = get_forge_pkg (name)
     ## Try get the list of all packages.
     [html, succ] = urlread ("https://packages.octave.org/list_packages.php");
     if (! succ)
-      error ("get_forge_pkg: could not read URL, please verify internet connection");
+      error ("pkj: could not read URL, please verify internet connection");
     endif
     t = strsplit (html);
     if (any (strcmp (t, name)))
-      error ("get_forge_pkg: package NAME exists, but index page not available");
+      error ("pkj: package NAME exists, but index page not available");
     endif
     ## Try a simplistic method to determine similar names.
     function d = fdist (x)
@@ -81,7 +81,7 @@ function [ver, url] = get_forge_pkg (name)
     endfunction
     dist = cellfun ("fdist", t);
     [~, i] = min (dist);
-    error ("get_forge_pkg: package not found: ""%s"".  Maybe you meant ""%s?""",
+    error ("pkj: package not found: ""%s"".  Maybe you meant ""%s?""",
            name, t{i});
   endif
 

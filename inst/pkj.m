@@ -19,9 +19,9 @@
 ## <https://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn  {} {} pkg @var{command} @var{pkg_name}
-## @deftypefnx {} {} pkg @var{command} @var{option} @var{pkg_name}
-## @deftypefnx {} {[@var{out1}, @dots{}] =} pkg (@var{command}, @dots{} )
+## @deftypefn  {} {} pkj @var{command} @var{pkg_name}
+## @deftypefnx {} {} pk @var{command} @var{option} @var{pkg_name}
+## @deftypefnx {} {[@var{out1}, @dots{}] =} pkj (@var{command}, @dots{} )
 ## Manage or query packages (groups of add-on functions) for Octave.
 ##
 ## Different actions are available depending on the value of @var{command}
@@ -35,7 +35,7 @@
 ## Install named packages.  For example,
 ##
 ## @example
-## pkg install image-1.0.0.tar.gz
+## pkj install image-1.0.0.tar.gz
 ## @end example
 ##
 ## @noindent
@@ -43,7 +43,7 @@
 ## file containing the package can be an url, e.g.
 ##
 ## @example
-## pkg install 'http://somewebsite.org/image-1.0.0.tar.gz'
+## pkj install 'http://somewebsite.org/image-1.0.0.tar.gz'
 ## @end example
 ##
 ## @noindent
@@ -103,13 +103,13 @@
 ## @end example
 ##
 ## @noindent
-## To update a single package use @code{pkg install -forge}
+## To update a single package use @code{pkj install -forge}
 ##
 ## @item uninstall
 ## Uninstall named packages.  For example,
 ##
 ## @example
-## pkg uninstall image
+## pkj uninstall image
 ## @end example
 ##
 ## @noindent
@@ -136,7 +136,7 @@
 ## Show the list of currently installed packages.  For example,
 ##
 ## @example
-## pkg list
+## pkj list
 ## @end example
 ##
 ## @noindent
@@ -145,23 +145,23 @@
 ## reporting to a particular package.  For example:
 ##
 ## @example
-## pkg list image
+## pkj list image
 ## @end example
 ##
-## If a single return argument is requested then @code{pkg} returns a cell
+## If a single return argument is requested then @code{pkj} returns a cell
 ## array where each element is a structure with information on a single
 ## package.
 ##
 ## @example
-## installed_packages = pkg ("list")
+## installed_packages = pkj ("list")
 ## @end example
 ##
-## If two output arguments are requested @code{pkg} splits the list of
+## If two output arguments are requested @code{pkj} splits the list of
 ## installed packages into those which were installed by the current user,
 ## and those which were installed by the system administrator.
 ##
 ## @example
-## [user_packages, system_packages] = pkg ("list")
+## [user_packages, system_packages] = pkj ("list")
 ## @end example
 ##
 ## The @qcode{"-forge"} option lists packages available at the Octave Forge
@@ -169,7 +169,7 @@
 ## For example:
 ##
 ## @example
-## oct_forge_pkgs = pkg ("list", "-forge")
+## oct_forge_pkgs = pkj ("list", "-forge")
 ## @end example
 ##
 ## @item describe
@@ -178,7 +178,7 @@
 ## example,
 ##
 ## @example
-## pkg describe -verbose
+## pkj describe -verbose
 ## @end example
 ##
 ## @noindent
@@ -187,7 +187,7 @@
 ##
 ## @example
 ## ## describe control and signal packages
-## pkg describe control signal
+## pkj describe control signal
 ## @end example
 ##
 ## If one output is requested a cell of structure containing the
@@ -195,15 +195,15 @@
 ## output rather than printed on screen:
 ##
 ## @example
-## desc = pkg ("describe", "secs1d", "image")
+## desc = pkj ("describe", "secs1d", "image")
 ## @end example
 ##
 ## @noindent
-## If any of the requested packages is not installed, @code{pkg} returns an
+## If any of the requested packages is not installed, @code{pkj} returns an
 ## error, unless a second output is requested:
 ##
 ## @example
-## [desc, flag] = pkg ("describe", "secs1d", "image")
+## [desc, flag] = pkj ("describe", "secs1d", "image")
 ## @end example
 ##
 ## @noindent
@@ -215,7 +215,7 @@
 ## Set the installation prefix directory.  For example,
 ##
 ## @example
-## pkg prefix ~/my_octave_packages
+## pkj prefix ~/my_octave_packages
 ## @end example
 ##
 ## @noindent
@@ -226,14 +226,14 @@
 ## output argument.  For example:
 ##
 ## @example
-## pfx = pkg ("prefix")
+## pfx = pkj ("prefix")
 ## @end example
 ##
 ## The location in which to install the architecture dependent files can be
 ## independently specified with an addition argument.  For example:
 ##
 ## @example
-## pkg prefix ~/my_octave_packages ~/my_arch_dep_pkgs
+## pkj prefix ~/my_octave_packages ~/my_arch_dep_pkgs
 ## @end example
 ##
 ## @item local_list
@@ -242,13 +242,13 @@
 ## available only to the current user.  For example:
 ##
 ## @example
-## pkg local_list ~/.octave_packages
+## pkj local_list ~/.octave_packages
 ## @end example
 ##
 ## It is possible to get the current value of local_list with the following
 ##
 ## @example
-## pkg local_list
+## pkj local_list
 ## @end example
 ##
 ## @item global_list
@@ -257,22 +257,22 @@
 ## available to all users.  For example:
 ##
 ## @example
-## pkg global_list /usr/share/octave/octave_packages
+## pkj global_list /usr/share/octave/octave_packages
 ## @end example
 ##
 ## It is possible to get the current value of global_list with the following
 ##
 ## @example
-## pkg global_list
+## pkj global_list
 ## @end example
 ##
 ## @item build
 ## Build a binary form of a package or packages.  The binary file produced
 ## will itself be an Octave package that can be installed normally with
-## @code{pkg}.  The form of the command to build a binary package is
+## @code{pkj}.  The form of the command to build a binary package is
 ##
 ## @example
-## pkg build builddir image-1.0.0.tar.gz @dots{}
+## pkj build builddir image-1.0.0.tar.gz @dots{}
 ## @end example
 ##
 ## @noindent
@@ -289,7 +289,7 @@
 ## @seealso{ver, news}
 ## @end deftypefn
 
-function [local_packages, global_packages] = pkg (varargin)
+function [local_packages, global_packages] = pkj (varargin)
 
   ## Installation prefix (FIXME: what should these be on windows?)
   persistent user_prefix = false;
@@ -334,19 +334,19 @@ function [local_packages, global_packages] = pkg (varargin)
       ## TODO completely remove these warnings after some releases.
       case "-noauto"
         warning ("Octave:deprecated-option",
-                 ["pkg: autoload is no longer supported.  The -noauto "...
+                 ["pkj: autoload is no longer supported.  The -noauto "...
                   "option is no longer required."]);
       case "-auto"
         warning ("Octave:deprecated-option",
-                 ["pkg: autoload is no longer supported.  Add a "...
-                  "'pkg load ...' command to octaverc instead."]);
+                 ["pkj: autoload is no longer supported.  Add a "...
+                  "'pkj load ...' command to octaverc instead."]);
       case "-verbose"
         verbose = true;
         ## Send verbose output to pager immediately.  Change setting locally.
         page_output_immediately (true, "local");
       case "-forge"
         if (! __octave_config_info__ ("CURL_LIBS"))
-          error ("pkg: can't download from Octave Forge without the cURL library");
+          error ("pkj: can't download from Octave Forge without the cURL library");
         endif
         octave_forge = true;
       case "-local"
@@ -361,7 +361,7 @@ function [local_packages, global_packages] = pkg (varargin)
         endif
       case available_actions
         if (! strcmp (action, "none"))
-          error ("pkg: more than one action specified");
+          error ("pkj: more than one action specified");
         endif
         action = varargin{i};
       otherwise
@@ -370,7 +370,7 @@ function [local_packages, global_packages] = pkg (varargin)
   endfor
 
   if (octave_forge && ! any (strcmp (action, {"install", "list"})))
-    error ("pkg: '-forge' can only be used with install or list");
+    error ("pkj: '-forge' can only be used with install or list");
   endif
 
   ## Take action
@@ -396,7 +396,7 @@ function [local_packages, global_packages] = pkg (varargin)
 
     case "install"
       if (isempty (files))
-        error ("pkg: install action requires at least one filename");
+        error ("pkj: install action requires at least one filename");
       endif
 
       local_files = {};
@@ -411,7 +411,7 @@ function [local_packages, global_packages] = pkg (varargin)
           succ = [succ{:}];
           if (! all (succ))
             i = find (! succ, 1);
-            error ("pkg: could not download file %s from url %s",
+            error ("pkj: could not download file %s from url %s",
                    local_files{i}, urls{i});
           endif
         else
@@ -421,7 +421,7 @@ function [local_packages, global_packages] = pkg (varargin)
           if (any (not_local_files))
             [success, msg] = mkdir (tmp_dir);
             if (success != 1)
-              error ("pkg: failed to create temporary directory: %s", msg);
+              error ("pkj: failed to create temporary directory: %s", msg);
             endif
 
             for file = files(not_local_files)
@@ -433,7 +433,7 @@ function [local_packages, global_packages] = pkg (varargin)
               if (looks_like_url)
                 [~, success, msg] = urlwrite (file, local_files{end});
                 if (success != 1)
-                  error ("pkg: failed downloading '%s': %s", file, msg);
+                  error ("pkj: failed downloading '%s': %s", file, msg);
                 endif
                 ## Verify that download is a tarball,
                 ## to protect against ISP DNS hijacking.
@@ -445,7 +445,7 @@ function [local_packages, global_packages] = pkg (varargin)
                                      local_files{end}));
                   if (! ok)
                     if (strfind (file_descr, "HTML"))
-                      error (["pkg: Invalid package file downloaded from " ...
+                      error (["pkj: Invalid package file downloaded from " ...
                               "%s\n" ...
                               "File is HTML, not a tar archive."], ...
                              file);
@@ -458,13 +458,13 @@ function [local_packages, global_packages] = pkg (varargin)
               else
                 looks_like_pkg_name = regexp (file, '^[\w-]+$');
                 if (looks_like_pkg_name)
-                  error (["pkg: file not found: %s.\n" ...
+                  error (["pkj: file not found: %s.\n" ...
                           "This looks like an Octave Forge package name." ...
                           "  Did you mean:\n" ...
                           "       pkg install -forge %s"], ...
                          file, file);
                 else
-                  error ("pkg: file not found: %s", file);
+                  error ("pkj: file not found: %s", file);
                 endif
               endif
               files{strcmp (files, file)} = local_files{end};
@@ -484,19 +484,19 @@ function [local_packages, global_packages] = pkg (varargin)
 
     case "uninstall"
       if (isempty (files))
-        error ("pkg: uninstall action requires at least one package name");
+        error ("pkj: uninstall action requires at least one package name");
       endif
       uninstall (files, deps, verbose, local_list, global_list, global_install);
 
     case "load"
       if (isempty (files))
-        error ("pkg: load action requires at least one package name");
+        error ("pkj: load action requires at least one package name");
       endif
       load_packages (files, deps, local_list, global_list);
 
     case "unload"
       if (isempty (files))
-        error ("pkg: unload action requires at least one package name");
+        error ("pkj: unload action requires at least one package name");
       endif
       unload_packages (files, deps, local_list, global_list);
 
@@ -515,7 +515,7 @@ function [local_packages, global_packages] = pkg (varargin)
           archprefix = make_absolute_filename (tilde_expand (files{2}));
         endif
       else
-        error ("pkg: prefix action requires a directory input, or an output argument");
+        error ("pkj: prefix action requires a directory input, or an output argument");
       endif
 
     case "local_list"
@@ -530,12 +530,12 @@ function [local_packages, global_packages] = pkg (varargin)
             ## Force file to be created
             fclose (fopen (local_list, "wt"));
           catch
-            error ("pkg: cannot create file %s", local_list);
+            error ("pkj: cannot create file %s", local_list);
           end_try_catch
         endif
         local_list = canonicalize_file_name (local_list);
       else
-        error ("pkg: specify a local_list file, or request an output argument");
+        error ("pkj: specify a local_list file, or request an output argument");
       endif
 
     case "global_list"
@@ -550,12 +550,12 @@ function [local_packages, global_packages] = pkg (varargin)
             ## Force file to be created
             fclose (fopen (files{1}, "wt"));
           catch
-            error ("pkg: cannot create file %s", global_list);
+            error ("pkj: cannot create file %s", global_list);
           end_try_catch
         endif
         global_list = canonicalize_file_name (global_list);
       else
-        error ("pkg: specify a global_list file, or request an output argument");
+        error ("pkj: specify a global_list file, or request an output argument");
       endif
 
     case "rebuild"
@@ -579,7 +579,7 @@ function [local_packages, global_packages] = pkg (varargin)
 
     case "build"
       if (numel (files) < 2)
-        error ("pkg: build action requires build directory and at least one filename");
+        error ("pkj: build action requires build directory and at least one filename");
       endif
       build (files{1}, files(2:end), verbose);
 
@@ -603,7 +603,7 @@ function [local_packages, global_packages] = pkg (varargin)
         for i = 1:numel (files)
           idx = find (strcmp (files{i}, installed_names), 1);
           if (isempty (idx))
-            warning ("pkg: package %s is not installed - skipping update",
+            warning ("pkj: package %s is not installed - skipping update",
                      files{i});
           else
             update_lst = [ update_lst, installed_pkgs_lst(idx) ];
@@ -618,17 +618,17 @@ function [local_packages, global_packages] = pkg (varargin)
         try
           forge_pkg_version = get_forge_pkg (installed_pkg_name);
         catch
-          warning ("pkg: package %s not found on Octave Forge - skipping update\n",
+          warning ("pkj: package %s not found on Octave Forge - skipping update\n",
                    installed_pkg_name);
           forge_pkg_version = "0";
         end_try_catch
         if (compare_versions (forge_pkg_version, installed_pkg_version, ">"))
-          feval (@pkg, "install", "-forge", installed_pkg_name);
+          feval (@pkj, "install", "-forge", installed_pkg_name);
         endif
       endfor
 
     otherwise
-      error ("pkg: invalid action.  See 'help pkg' for available actions");
+      error ("pkj: invalid action.  See 'help pkj' for available actions");
   endswitch
 
 endfunction

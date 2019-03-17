@@ -59,16 +59,16 @@ function uninstall (pkgnames, handle_deps, verbose, local_list,
       endfor
       if (length (delete_idx) != length (pkgnames))
         ## FIXME: We should have a better error message.
-        warning ("some of the packages you want to uninstall are not installed");
+        warning ("pkj: some of the packages you want to uninstall are not installed");
       endif
     else
       ## FIXME: We should have a better error message.
-      warning ("some of the packages you want to uninstall are not installed");
+      warning ("pkj: some of the packages you want to uninstall are not installed");
     endif
   endif
 
   if (isempty (delete_idx))
-    warning ("no packages will be uninstalled");
+    warning ("pkj: no packages will be uninstalled");
   else
 
     ## Compute the packages that will remain installed.
@@ -93,7 +93,7 @@ function uninstall (pkgnames, handle_deps, verbose, local_list,
       endfor
 
       if (! isempty (error_text))
-        error ("the following dependencies where unsatisfied:\n  %s", error_text);
+        error ("pkj: the following dependencies where unsatisfied:\n  %s", error_text);
       endif
     endif
 
@@ -117,17 +117,17 @@ function uninstall (pkgnames, handle_deps, verbose, local_list,
       if (isfolder (desc.dir))
         [status, msg] = rmdir (desc.dir, "s");
         if (status != 1 && isfolder (desc.dir))
-          error ("couldn't delete directory %s: %s", desc.dir, msg);
+          error ("pkj: couldn't delete directory %s: %s", desc.dir, msg);
         endif
         [status, msg] = rmdir (getarchdir (desc), "s");
         if (status != 1 && isfolder (getarchdir (desc)))
-          error ("couldn't delete directory %s: %s", getarchdir (desc), msg);
+          error ("pkj: couldn't delete directory %s: %s", getarchdir (desc), msg);
         endif
         if (dirempty (desc.archprefix))
           rmdir (desc.archprefix, "s");
         endif
       else
-        warning ("directory %s previously lost", desc.dir);
+        warning ("pkj: directory %s previously lost", desc.dir);
       endif
     endfor
 

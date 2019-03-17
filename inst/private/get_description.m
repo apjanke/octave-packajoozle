@@ -27,7 +27,7 @@ function desc = get_description (filename)
 
   [fid, msg] = fopen (filename, "r");
   if (fid == -1)
-    error ("the DESCRIPTION file %s could not be read: %s", filename, msg);
+    error ("pkj: the DESCRIPTION file %s could not be read: %s", filename, msg);
   endif
 
   desc = struct ();
@@ -45,18 +45,18 @@ function desc = get_description (filename)
       ## Keyword/value pair
       colon = find (line == ":");
       if (length (colon) == 0)
-        warning ("pkg: skipping invalid line in DESCRIPTION file");
+        warning ("pkj: skipping invalid line in DESCRIPTION file");
       else
         colon = colon(1);
         keyword = tolower (strtrim (line(1:colon-1)));
         value = strtrim (line (colon+1:end));
         if (length (value) == 0)
             fclose (fid);
-            error ("The keyword '%s' of the package '%s' has an empty value",
+            error ("pkj: The keyword '%s' of the package '%s' has an empty value",
                     keyword, desc.name);
         endif
         if (isfield (desc, keyword))
-          warning ('pkg: duplicate keyword "%s" in DESCRIPTION, ignoring',
+          warning ('pkj: duplicate keyword "%s" in DESCRIPTION, ignoring',
                    keyword);
         else
           desc.(keyword) = value;
@@ -72,12 +72,12 @@ function desc = get_description (filename)
                    "author", "maintainer", "description"};
   for f = needed_fields
     if (! isfield (desc, f{1}))
-      error ("description is missing needed field %s", f{1});
+      error ("pkj: description is missing needed field %s", f{1});
     endif
   endfor
 
   if (! is_valid_pkg_version_string (desc.version))
-    error ("invalid version string '%s'", desc.version);
+    error ("pkj: invalid version string '%s'", desc.version);
   endif
 
   if (isfield (desc, "depends"))

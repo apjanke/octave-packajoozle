@@ -42,7 +42,7 @@ function build (builddir, tarballs, verbose)
     warning ("creating build directory %s", builddir);
     [status, msg] = mkdir (builddir);
     if (status != 1)
-      error ("could not create installation directory: %s", msg);
+      error ("pkj: could not create installation directory: %s", msg);
     endif
   endif
 

@@ -44,7 +44,7 @@ function unload_packages (files, handle_deps, local_list, global_list)
   for i = 1:length (files)
     idx = strcmp (pnames, files{i});
     if (! any (idx))
-      error ("package %s is not installed", files{i});
+      error ("pkj: package %s is not installed", files{i});
     endif
     dirs{end+1} = pdirs{idx};
     desc{end+1} = installed_pkgs_lst{idx};

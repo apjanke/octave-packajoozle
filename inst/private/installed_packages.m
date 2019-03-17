@@ -93,9 +93,9 @@ function [out1, out2] = installed_packages (local_list, global_list, pkgname = {
     num_packages = numel (installed_pkgs_lst);
     if (num_packages == 0)
       if (isempty (pkgname))
-        printf ("no packages installed.\n");
+        printf ("pkj: no packages installed.\n");
       else
-        printf ("package %s is not installed.\n", pkgname{1});
+        printf ("pkj: package %s is not installed.\n", pkgname{1});
       endif
       return;
     endif

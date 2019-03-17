@@ -38,7 +38,7 @@ function load_packages (files, handle_deps, local_list, global_list)
   for i = 1:length (files)
     idx2 = find (strcmp (pnames, files{i}));
     if (! any (idx2))
-      error ("package %s is not installed", files{i});
+      error ("pkj: package %s is not installed", files{i});
     endif
     idx(end + 1) = idx2;
   endfor
