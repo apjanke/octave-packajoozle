@@ -8,7 +8,7 @@ I don’t plan on submitting this back up for inclusion in Octave.
 
 ## New features
 
-Compared to Octave’s `pkg`, Packajoozle’s `pkj` provides:
+Compared to Octave’s `pkg`, Packajoozle’s `pkj` also provides:
 
 * Versioned Forge package installation
   * Installation of a selected version instead of just the latest
