@@ -70,6 +70,15 @@ classdef Util
       endif
       fprintf ("urlwrite: Downloaded %s to %s\n", url, localfile);
     endfunction
+
+    function out = urlread (url)
+      [out, ok, msg] = urlread (url);
+      if ! ok
+        error ("urlread: Failed downloading URL:\n  URL: %s\n  Error: %s", ...
+          url, msg);
+      endif
+    endfunction
+
   endmethods
 
 endclassdef
