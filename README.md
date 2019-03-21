@@ -16,7 +16,7 @@ Compared to Octave’s `pkg`, Packajoozle’s `pkj` also provides:
 * More metadata available from Octave Forge
 * Capturing of package build logs
 
-## Installation and usage
+## Installation
 
 * Clone the repo.
   * `git clone https://github.com/apjanke/octave-packajoozle`
