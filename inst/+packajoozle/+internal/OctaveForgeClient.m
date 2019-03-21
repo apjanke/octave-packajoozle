@@ -167,8 +167,9 @@ classdef OctaveForgeClient
 
     function out = list_versions_for_package (this, pkg_name)
       meta = this.list_all_releases;
-      ix = strcmp (meta.package, pkg_name);
-      vers = meta.version(ix);
+      ix = strcmp (names (meta), pkg_name);
+      vers = versions (meta);
+      vers = vers(ix);
       out = vers;
     endfunction
     
