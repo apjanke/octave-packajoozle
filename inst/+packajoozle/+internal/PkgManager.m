@@ -244,7 +244,7 @@ classdef PkgManager
         rm_rf_safe (target.dir);
         out.success = false;
         out.error_message = sprintf ("failed recording package in package list: %s", err.message);        
-        fprintf ("PkgManager: Failed updating package index file: %s", err.message);
+        fprintf ("pkj: Failed updating package index file: %s", err.message);
         return
       end_try_catch
 
@@ -262,7 +262,7 @@ classdef PkgManager
     function require_deps_installed_from_desc (this, desc)
       bad_deps = this.get_unsatisfied_deps_from_desc (desc);
       if ! isempty (bad_deps)
-        error ("PkgManager: unsatisified dependencies: %s", ...
+        error ("pkj: unsatisified dependencies: %s", ...
           strjoin (dispstrs (bad_deps), ", "));
       endif
     endfunction
@@ -293,12 +293,12 @@ classdef PkgManager
       untar (file, tmp_dir);
       kids = packajoozle.internal.Util.readdir (tmp_dir);
       if numel (kids) > 1
-        error ("PkgManager: Multiple top-level directories found in pkg file: %s", file);
+        error ("pkj: Multiple top-level directories found in pkg file: %s", file);
       endif
       subdir = fullfile (tmp_dir, kids{1});
       descr_file = fullfile (subdir, "DESCRIPTION");
       if ! exist (descr_file, "file")
-        error ("PkgManager: Pkg file does not contain a DESCRIPTION file: %s", file);
+        error ("pkj: Pkg file does not contain a DESCRIPTION file: %s", file);
       endif
       descr_txt = fileread (descr_file);
       out = this.parse_pkg_description_file (descr_txt);
@@ -327,18 +327,18 @@ classdef PkgManager
           ## Keyword/value pair
           colon = find (line == ":");
           if (length (colon) == 0)
-            warning ("pkg: skipping invalid line %d in DESCRIPTION file: '%s'", i, line);
+            warning ("pkj: skipping invalid line %d in DESCRIPTION file: '%s'", i, line);
           else
             colon = colon(1);
             keyword = tolower (strtrim (line(1:colon-1)));
             value = strtrim (line (colon+1:end));
             if (length (value) == 0)
                 fclose (fid);
-                error ("PkgManager: The keyword '%s' of the package '%s' has an empty value",
+                error ("pkj: The keyword '%s' of the package '%s' has an empty value",
                         keyword, desc.name);
             endif
             if (isfield (desc, keyword))
-              warning ("PkgManager: duplicate keyword '%s' in DESCRIPTION, ignoring",
+              warning ("pkj: duplicate keyword '%s' in DESCRIPTION, ignoring",
                        keyword);
             else
               desc.(keyword) = value;
@@ -352,12 +352,12 @@ classdef PkgManager
                        "author", "maintainer", "description"};
       for f = needed_fields
         if (! isfield (desc, f{1}))
-          error ("PkgManager: DESCRIPTION is missing needed field %s", f{1});
+          error ("pkj: DESCRIPTION is missing needed field %s", f{1});
         endif
       endfor
 
       if (! this.is_valid_pkg_version_string (desc.version))
-        error ("PkgManager: invalid version string '%s'", desc.version);
+        error ("pkj: invalid version string '%s'", desc.version);
       endif
 
       if (isfield (desc, "depends"))
@@ -385,7 +385,7 @@ classdef PkgManager
             out = [out inst_dirs(i).get_package_list_descs];
           endfor
         otherwise
-          error ("Invalid format: %s", format);
+          error ("PkgManager.all_installed_packages: invalid format: '%s'", format);
       endswitch
     endfunction
     
@@ -439,7 +439,7 @@ classdef PkgManager
           cd (orig_pwd);
         catch err
           cd (orig_pwd);
-          error ("Error while running on_uninstall hook for %s: %s", ...
+          error ("pkj: error while running on_uninstall hook for %s: %s", ...
             char (pkgver), err.message);
         end_try_catch
       endif
@@ -462,7 +462,7 @@ classdef PkgManager
 endclassdef
 
 function say (varargin)
-  fprintf ("%s: %s\n", "PkgManager", sprintf (varargin{:}));
+  fprintf ("%s: %s\n", "pkj", sprintf (varargin{:}));
   flush_diary
 endfunction
 
@@ -474,7 +474,7 @@ function rm_rf_safe (path)
   try
     packajoozle.internal.Util.rm_rf (path);
   catch err
-    warning ("failed deleting directory: %s", err.message);
+    warning ("pkj: failed deleting directory: %s", err.message);
   end_try_catch
 endfunction
 
@@ -505,11 +505,11 @@ function deps_cell = fix_depends (depends)
       if (! isempty (nm.ver))
         operator = nm.op;
         if (! any (strcmp (operator, {">", ">=", "<=", "<", "=="})))
-          error ("PkgManager: unsupported operator in dependency: %s", operator);
+          error ("pkj: unsupported operator in dependency: %s", operator);
         endif
         pkgman = packajoozle.internal.PkgManager;
         if (! pkgman.is_valid_pkg_version_string (nm.ver))
-          error ("PkgManager: invalid version string in dependency: '%s'", nm.ver);
+          error ("pkj: invalid version string in dependency: '%s'", nm.ver);
         endif
       else
         ## If no version is specified for the dependency
@@ -523,7 +523,7 @@ function deps_cell = fix_depends (depends)
                              "operator", operator,
                              "version", nm.ver);
     else
-      error ("PkgManager: incorrect syntax for dependency '%s' in the DESCRIPTION file\n",
+      error ("pkj: incorrect syntax for dependency '%s' in the DESCRIPTION file\n",
              dep);
     endif
   endfor
@@ -568,7 +568,7 @@ function verify_directory (dir)
   needed_files = {"COPYING", "DESCRIPTION"};
   for f = needed_files
     if (! exist (fullfile (dir, f{1}), "file"))
-      error ("package is missing file: %s", f{1});
+      error ("pkj: package is missing file: %s", f{1});
     endif
   endfor
 
@@ -596,7 +596,7 @@ function prepare_installation (desc, build_dir)
     [status, msg] = mkdir (inst_dir);
     if (status != 1)
       rmdir (desc.dir, "s");
-      error ("the 'inst' directory did not exist and could not be created: %s",
+      error ("pkj: the 'inst' directory did not exist and could not be created: %s",
              msg);
     endif
   endif
@@ -663,7 +663,7 @@ function copy_built_files (desc, build_dir, verbose)
         [status, output] = copyfile (archindependent, instdir);
         if (status != 1)
           rmdir (desc.dir, "s");
-          error ("Couldn't copy files from 'src' to 'inst': %s", output);
+          error ("pkj: couldn't copy files from 'src' to 'inst': %s", output);
         endif
       endif
       if (! all (isspace ([archdependent{:}])))
@@ -678,7 +678,7 @@ function copy_built_files (desc, build_dir, verbose)
         [status, output] = copyfile (archdependent, archdir);
         if (status != 1)
           rmdir (desc.dir, "s");
-          error ("Couldn't copy files from 'src' to 'inst': %s", output);
+          error ("pkj: couldn't copy files from 'src' to 'inst': %s", output);
         endif
       endif
   endif
@@ -725,7 +725,7 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
   if (! isfolder (install_dir))
     [status, output] = mkdir (install_dir);
     if (status != 1)
-      error ("couldn't create installation directory %s : %s",
+      error ("pkj: couldn't create installation directory %s : %s",
       install_dir, output);
     endif
   endif
@@ -737,7 +737,7 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
     [status, output] = copyfile (fullfile (instdir, "*"), desc.dir);
     if (status != 1)
       rmdir (desc.dir, "s");
-      error ("couldn't copy files to the installation directory");
+      error ("pkj: couldn't copy files to the installation directory");
     endif
     if (isfolder (fullfile (desc.dir, getarch ()))
         && ! strcmp (canonicalize_file_name (fullfile (desc.dir, getarch ())),
@@ -753,28 +753,28 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
               [status, output] = mkdir (octm3);
               if (status != 1)
                 rmdir (desc.dir, "s");
-                error ("couldn't create installation directory %s : %s",
+                error ("pkj: couldn't create installation directory %s : %s",
                        octm3, output);
               endif
             endif
             [status, output] = mkdir (octm2);
             if (status != 1)
               rmdir (desc.dir, "s");
-              error ("couldn't create installation directory %s : %s",
+              error ("pkj: couldn't create installation directory %s : %s",
                      octm2, output);
             endif
           endif
           [status, output] = mkdir (octm1);
           if (status != 1)
             rmdir (desc.dir, "s");
-            error ("couldn't create installation directory %s : %s",
+            error ("pkj: couldn't create installation directory %s : %s",
                    octm1, output);
           endif
         endif
         [status, output] = mkdir (octfiledir);
         if (status != 1)
           rmdir (desc.dir, "s");
-          error ("couldn't create installation directory %s : %s",
+          error ("pkj: couldn't create installation directory %s : %s",
           octfiledir, output);
         endif
       endif
@@ -785,7 +785,7 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
       if (status != 1)
         rmdir (desc.dir, "s");
         rmdir (octfiledir, "s");
-        error ("couldn't copy files to the installation directory");
+        error ("pkj: couldn't copy files to the installation directory");
       endif
     endif
 
@@ -882,11 +882,11 @@ function generate_index (desc, dir, index_file)
 
   ## Does desc have a categories field?
   if (! isfield (desc, "categories"))
-    error ("PkgManager: the DESCRIPTION file must have a Categories field, when no INDEX file is given");
+    error ("pkj: the DESCRIPTION file must have a Categories field, when no INDEX file is given");
   endif
   categories = strtrim (strsplit (desc.categories, ","));
   if (length (categories) < 1)
-    error ("PkgManager: the Category field in DESCRIPTION is empty");
+    error ("pkj: the Category field in DESCRIPTION is empty");
   endif
 
   ## Write INDEX.
@@ -1080,7 +1080,7 @@ function out = configure_make (desc, build_dir, verbose)
         rmdir (desc.dir, "s");
         disp (output);
         out.success = false;
-        out.error_message = sprintf("pkg: error running the configure script for %s.", desc.name);
+        out.error_message = sprintf("pkj: error running the configure script for %s.", desc.name);
         return
       endif
     endif
@@ -1100,7 +1100,7 @@ function out = configure_make (desc, build_dir, verbose)
         rmdir (desc.dir, "s");
         disp (output);
         out.success = false;
-        out.error_message = sprintf("pkg: error running `make' for the %s package.", desc.name);
+        out.error_message = sprintf("pkj: error running `make' for the %s package.", desc.name);
         return
       endif
     endif
@@ -1129,7 +1129,7 @@ function [status, output] = shell (cmd, verbose)
     if (have_sh)
       cmd = ['sh.exe -c "' cmd '"'];
     else
-      error ("pkg: unable to find the command shell.");
+      error ("pkj: unable to find the command shell.");
     endif
   endif
   if isunix
