@@ -70,6 +70,10 @@ classdef PkgVerReq
       endfor
     endfunction
 
+    function out = dispstr (this)
+      out = strjoin (dispstrs (this), ", ");
+    endfunction
+
     function out = char (this)
       if ! isscalar (this)
         error ("%s: char() only works on scalar %s objects; this is %s", ...
