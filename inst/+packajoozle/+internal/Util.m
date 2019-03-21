@@ -105,8 +105,12 @@ classdef Util
     function rm_rf (path)
       if exist (path, "file")
         delete (path);
+        # TODO: Error checking. delete () only raises a warning if it fails
       elseif exist (path, "dir")
-        rmdir (path, "s");
+        [ok, msg, msgid] = rmdir (path, "s");
+        if ! ok
+          error ("rm_rf: Failed deleting %s: %s", path, msg);
+        endif
       else
         % NOP
       endif

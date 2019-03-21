@@ -60,43 +60,46 @@ classdef PkgInstaller
       valid = numel (regexp (str, '[^0-9a-zA-Z\.\+\-\~]')) == 0;
     endfunction
 
-    function out = pkg_install_forge_pkg (this, varargin)
-      %INSTALL Replacement for `pkg -forge install`
-      %
-      % Returns a result code instead of throwing errors in the case of some
-      % package installation failures. You need to check the return status.
-      %
-      % This is a replacement for `pkg -forge install` that does the same thing, except
-      % it also:
-      %   * Captures build logs
-      args = cellstr (varargin);
-      install_args = [{"install" "-forge"} args];
-      say ("%s", strjoin (install_args, ' '));
-      result = pkg_install_forge (install_args{:});
-      out = result;
+    function out = resolve_installdir (this, inst_dir)
+      if isempty (inst_dir)
+        inst_dir = "user";
+      endif
+      if ischar (inst_dir)
+        switch inst_dir
+          case "user"
+            inst_dir = packajoozle.internal.InstallDir.get_user_installdir;
+          case "global"
+            inst_dir = packajoozle.internal.InstallDir.get_user_installdir;
+          otherwise
+            error ("PkgInstaller: Invalid install_dir string: '%s'", inst_dir);
+        endswitch
+      endif
+      mustBeA (inst_dir, "packajoozle.internal.InstallDir");
     endfunction
 
-    function out = install_forge_pkg (this, pkg)
-      % pkgs may be a package name, or a packajoozle.internal.PkgVerSpec.
+    function out = install_forge_pkg (this, pkg, inst_dir)
+      if nargin < 3; inst_dir = []; endif
+      inst_dir = this.resolve_installdir (inst_dir);
+
+      % pkgs may be a package name, or a PkgVer.
       % If just a name is given, the latest version of the package is installed.
       if ischar (pkg)
         pkg = this.forge.resolve_latest_version (pkg);
       endif
-      mustBeA (pkg, "packajoozle.internal.PkgVerSpec");
+      mustBeA (pkg, "packajoozle.internal.PkgVer");
       
       dist_tgz = this.forge.download_cached_pkg_distribution (pkg);
-
+      this.install_pkg_from_file (dist_tgz, )
       # Do the installation
     endfunction
 
     function out = install_pkg_from_file (this, file, inst_dir, verbose = true)
-      if (! isfolder (prefix))
-        packajoozle.internal.Util.mkdir (prefix);
-      endif
+      if nargin < 3; inst_dir = []; endif
+      inst_dir = this.resolve_installdir (inst_dir);
 
       # Remove existing installation of same pkg/ver
       info = this.get_pkg_description_from_file (file);
-      pkgver = packajoozle.internal.PkgVerSpec (info.name, info.version);
+      pkgver = packajoozle.internal.PkgVer (info.name, info.version);
       if inst_dir.is_installed (pkgver)
         error ("PkgInstaller: already installed: %s", char (pkgver));
       endif
@@ -104,7 +107,7 @@ classdef PkgInstaller
 
       build_dir = tempname (tempdir, "packajoozle-build-");
       packajoozle.internal.Util.mkdir (build_dir);
-      RAII.build_dir = onCleanup (@() packajoozle.internal.Util.rm_rf (build_dir));
+      RAII.build_dir = onCleanup (@() rm_rf_safe (build_dir));
       files = unpack (file, build_dir);
       dirlist = packajoozle.internal.Util.readdir (build_dir);
       if numel (dirlist) > 1
@@ -117,14 +120,14 @@ classdef PkgInstaller
       desc_file = fullfile (build_dir, "DESCRIPTION");
       desc = this.parse_pkg_description_file (fileread (desc_file));
 
-      target = inst_dir.install_paths_for_pkg (pkgver);
-
       this.require_deps_installed_from_desc (desc);
 
       # Build the package
 
       prepare_installation (desc, build_dir);
       rslt = configure_make (desc, build_dir, verbose);
+      out.success = true;
+      out.error_message = [];
       out.log_dir = rslt.log_dir;
       if ! rslt.success
         out.success = false;
@@ -138,11 +141,25 @@ classdef PkgInstaller
 
       # Install the built package
 
+      target = inst_dir.install_paths_for_pkg (pkgver);
+      packajoozle.internal.Util.mkdir (target.dir);
+      packajoozle.internal.Util.mkdir (target.arch_dir);
       copy_files (target, build_dir);
       create_pkgadddel (desc, build_dir, "PKG_ADD", target);
       create_pkgadddel (desc, build_dir, "PKG_DEL", target);
       finish_installation (desc, build_dir);
       generate_lookfor_cache (desc, target);
+
+      # Check the installation
+      if dirempty (target.dir, {"packinfo", "doc"}) ...
+        && dirempty (target.arch_dir)
+        warning ("empty package installation: %s\n", desc.name);
+        rm_rf_safe (target.arch_dir);
+        rm_rf_safe (target.dir);
+        out.success = false;
+        out.error_message = sprintf ("empty package installation: %s", desc.name);
+        return
+      endif
 
       fprintf ("Installed %s to %s / %s\n", desc.name, target.dir, target.arch_dir);
 
@@ -270,6 +287,14 @@ endfunction
 
 function out = chomp (str)
   out = regexprep (str, "\r?\n$", "");
+endfunction
+
+function rm_rf_safe (path)
+  try
+    packajoozle.internal.Util.rm_rf (path);
+  catch err
+    warning ("failed deleting directory: %s", err.message);
+  end_try_catch
 endfunction
 
 % ======================================================
@@ -416,7 +441,7 @@ function out = pkg_install_forge (varargin)
     for i = 1:numel (files)
       pkg_name = files{i};
       ver = forge.get_current_pkg_version (pkg_name);
-      pkg_ver = packajoozle.internal.PkgVerSpec (pkg_name, ver);
+      pkg_ver = packajoozle.internal.PkgVer (pkg_name, ver);
       local_files{i} = forge.download_cached_pkg_distribution (pkg_ver);
     endfor
     rslt = install_private_impl (local_files, deps, prefix, archprefix, verbose, local_list,
@@ -434,12 +459,6 @@ endfunction
 
 % ======================================================
 % My special functions
-
-function [url, local_file] = get_cached_forge_download (pkg_name)
-  pkgtool = testify.internal.ForgePkgTool.instance;
-  [url, ~] = get_forge_download (pkg_name);
-  local_file = pkgtool.download_pkg_file (pkg_name);
-endfunction
 
 
 % ======================================================
@@ -1228,19 +1247,22 @@ function archprefix = getarchprefix (desc, global_install)
 endfunction
 
 
-function finish_installation (desc, packdir)
+function finish_installation (desc, build_dir, target)
 
   ## Is there a post-install to call?
-  if (exist (fullfile (packdir, "post_install.m"), "file"))
-    wd = pwd ();
+  if (exist (fullfile (build_dir, "post_install.m"), "file"))
+    orig_pwd = pwd ();
     try
-      cd (packdir);
+      cd (build_dir);
+      # Pack input in form expected by post_install (based on pkg's behavior)
+      desc2.dir = target.dir;
+      desc2.archprefix = fileparts (target.arch_dir);
       post_install (desc);
-      cd (wd);
+      cd (orig_pwd);
     catch err
-      cd (wd);
-      rmdir (desc.dir, "s");
-      rmdir (getarchdir (desc), "s");
+      cd (orig_pwd);
+      rm_rf_safe (target.dir, "s");
+      rm_rf_safe (target.arch_dir, "s");
       rethrow (err);
     end_try_catch
   endif
@@ -1249,12 +1271,10 @@ endfunction
 
 
 function generate_lookfor_cache (desc, target)
-
   dirs = strtrim (ostrsplit (genpath (target.dir), pathsep ()));
   for i = 1 : length (dirs)
     doc_cache_create (fullfile (dirs{i}, "doc-cache"), dirs{i});
   endfor
-
 endfunction
 
 % ======================================================
