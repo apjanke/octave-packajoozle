@@ -157,7 +157,6 @@ classdef InstallDir
       desc.dir = target.dir;
       desc.archprefix = target.arch_dir;
       list = this.get_package_list;
-      keyboard
       if isempty (list)
         new_list = desc;
       else

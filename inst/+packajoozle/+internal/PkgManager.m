@@ -151,7 +151,7 @@ classdef PkgManager
       orig_desc = this.parse_pkg_description_file (fileread (desc_file));
       desc = orig_desc;
       # For back-compatibility with old pkg code
-      desc.dir = target.dir
+      desc.dir = target.dir;
       desc.archprefix = target.arch_dir;
       this.require_deps_installed_from_desc (desc);
 
