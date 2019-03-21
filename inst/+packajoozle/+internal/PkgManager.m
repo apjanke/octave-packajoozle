@@ -351,11 +351,21 @@ classdef PkgManager
     function out = all_installed_packages (this, format = "pkgver")
       # Returns list as PkgVers
       inst_dirs = this.world.get_all_installdirs;
-      out = inst_dirs(1).get_package_list;
-      for i = 2:numel (inst_dirs)
-        out = packajoozle.internal.Util.objcat (out, ...
-          inst_dirs(i).get_package_list;
-      endfor
+      switch format
+        case "pkgver"
+          out = inst_dirs(1).get_package_list;
+          for i = 2:numel (inst_dirs)
+            out = packajoozle.internal.Util.objcat (out, ...
+              inst_dirs(i).get_package_list);
+          endfor
+        case "desc"
+          out = inst_dirs(1).get_package_list_descs;
+          for i = 2:numel (inst_dirs)
+            out = [out inst_dirs(i).get_package_list_descs];
+          endfor
+        otherwise
+          error ("Invalid format: %s", format);
+      endswitch
     endfunction
     
     function uninstall_all_versions (this, pkg_name)
