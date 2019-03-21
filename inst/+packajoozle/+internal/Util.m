@@ -38,7 +38,13 @@ classdef Util
       endif
     endfunction
 
-
+    function fid = fopen (file, varargin)
+      [fid, msg] = fopen (file, varargin{:});
+      if fid < 0
+        error ("fopen: could not open file %s: %s", file, msg);
+      endif
+    endfunction
+    
     function filewrite (out_file, txt)
       [fid, msg] = fopen (out_file, 'w');
       if fid < 0
@@ -123,6 +129,14 @@ classdef Util
 
       arch = _arch;
     endfunction
+
+    function copyfile (source, destination)
+      [ok, msg] = copyfile (source, destination);
+      if ! ok
+        error ("couldn't copy file %s to %s: %s", source, destination, msg);
+      endif
+    endfunction
+    
 
   endmethods
 

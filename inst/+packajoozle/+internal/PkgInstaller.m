@@ -116,10 +116,14 @@ classdef PkgInstaller
 
       # Inspect the package
 
+      target = inst_dir.install_paths_for_pkg (pkgver);
       verify_directory (build_dir);
       desc_file = fullfile (build_dir, "DESCRIPTION");
-      desc = this.parse_pkg_description_file (fileread (desc_file));
-
+      orig_desc = this.parse_pkg_description_file (fileread (desc_file));
+      desc = orig_desc;
+      # For back-compatibility with old pkg code
+      desc.dir = target.dir
+      desc.archprefix = target.arch_dir;
       this.require_deps_installed_from_desc (desc);
 
       # Build the package
@@ -141,16 +145,16 @@ classdef PkgInstaller
 
       # Install the built package
 
-      target = inst_dir.install_paths_for_pkg (pkgver);
       packajoozle.internal.Util.mkdir (target.dir);
       packajoozle.internal.Util.mkdir (target.arch_dir);
-      copy_files (target, build_dir);
+      copy_files_from_build_to_inst (desc, target, build_dir);
       create_pkgadddel (desc, build_dir, "PKG_ADD", target);
       create_pkgadddel (desc, build_dir, "PKG_DEL", target);
       finish_installation (desc, build_dir);
       generate_lookfor_cache (desc, target);
 
       # Check the installation
+
       if dirempty (target.dir, {"packinfo", "doc"}) ...
         && dirempty (target.arch_dir)
         warning ("empty package installation: %s\n", desc.name);
@@ -161,7 +165,26 @@ classdef PkgInstaller
         return
       endif
 
-      fprintf ("Installed %s to %s / %s\n", desc.name, target.dir, target.arch_dir);
+      # Save package metadata to installdir indexes
+
+      try
+        inst_dir.record_installed_package (desc, target);
+      catch
+        rm_rf_safe (target.arch_dir);
+        rm_rf_safe (target.dir);
+        out.success = false;
+        out.error_message = sprintf ("failed recording package in package list: %s", err.message);        
+      end_try_catch
+
+      # Give notifications to user
+
+      printf ("Installed %s to %s / %s\n", desc.name, target.dir, target.arch_dir);
+      news_file = fullfile (target.dir, "packinfo", "NEWS");
+      if exist (new_file, "file")
+        printf (["For information about changes from previous versions " ...
+                 "of the %s package, run 'news %s'.\n"],
+                desc.name, desc.name);
+      endif        
 
     endfunction
 
@@ -192,7 +215,6 @@ classdef PkgInstaller
         endif
       endfor
     endfunction
-    
 
     function out = get_pkg_description_from_pkg_file (this, file)
       tmp_dir = tempname (tempdir, "packajoozle-work-");
@@ -348,115 +370,6 @@ function deps_cell = fix_depends (depends)
 
 endfunction
 
-function out = pkg_install_forge (varargin)
-  % Parse inputs
-
-  forge = packajoozle.internal.OctaveForgeClient;
-
-  ## Installation prefix (FIXME: what should these be on windows?)
-  persistent user_prefix = false;
-  persistent prefix = false;
-  persistent archprefix = -1;
-  % I had to hack this to make it work with Octave.app -apjanke
-  persistent local_list = pkg ('local_list');
-  persistent global_list = pkg ('global_list');
-
-  ## If user is superuser set global_istall to true
-  ## FIXME: is it OK to set this always true on windows?
-  global_install = ((ispc () && ! isunix ()) || (geteuid () == 0));
-
-  if (isbool (prefix))
-    [prefix, archprefix] = default_prefix (global_install);
-    prefix = tilde_expand (prefix);
-    archprefix = tilde_expand (archprefix);
-  endif
-
-  mlock ();
-
-  confirm_recursive_rmdir (false, "local");
-
-  # valid actions in alphabetical order
-  available_actions = {"build", "describe", "global_list",  "install", ...
-                       "list", "load", "local_list", "prefix", "rebuild", ...
-                       "uninstall", "unload", "update"};
-
-  ## Parse input arguments
-  if (isempty (varargin) || ! iscellstr (varargin))
-    print_usage ();
-  endif
-  files = {};
-  deps = true;
-  action = "none";
-  verbose = false;
-  octave_forge = false;
-  for i = 1:numel (varargin)
-    switch (varargin{i})
-      case "-nodeps"
-        deps = false;
-      case "-verbose"
-        verbose = true;
-        ## Send verbose output to pager immediately.  Change setting locally.
-        page_output_immediately (true, "local");
-      case "-forge"
-        if (! __octave_config_info__ ("CURL_LIBS"))
-          error ("pkg: can't download from Octave Forge without the cURL library");
-        endif
-        octave_forge = true;
-      case "-local"
-        global_install = false;
-        if (! user_prefix)
-          [prefix, archprefix] = default_prefix (global_install);
-        endif
-      case "-global"
-        global_install = true;
-        if (! user_prefix)
-          [prefix, archprefix] = default_prefix (global_install);
-        endif
-      case available_actions
-        if (! strcmp (action, "none"))
-          error ("pkg: more than one action specified");
-        endif
-        action = varargin{i};
-      otherwise
-        files{end+1} = varargin{i};
-    endswitch
-  endfor
-
-  if ! isequal (action, "install")
-    error ("This implementation only supports the 'install' action; not '%s'", action);
-  endif
-  if ! octave_forge
-    error ("This implementation only supports -forge actions");
-  endif
-
-  % Take action  
-  if (isempty (files))
-    error ("pkg: install action requires at least one filename");
-  endif
-
-  local_files = {};
-  tmp_dir = tempname ();
-  unwind_protect
-    local_files = cell (size (files));
-    for i = 1:numel (files)
-      pkg_name = files{i};
-      ver = forge.get_current_pkg_version (pkg_name);
-      pkg_ver = packajoozle.internal.PkgVer (pkg_name, ver);
-      local_files{i} = forge.download_cached_pkg_distribution (pkg_ver);
-    endfor
-    rslt = install_private_impl (local_files, deps, prefix, archprefix, verbose, local_list,
-             global_list, global_install);
-    out.log_dirs = rslt.log_dirs;
-    out.success = rslt.success;
-    out.error_message = rslt.error_message;
-    out.exception = rslt.exception;
-  unwind_protect_cleanup
-    if (exist (tmp_dir, "file"))
-      rmdir (tmp_dir, "s");
-    endif
-  end_unwind_protect
-endfunction
-
 % ======================================================
 % My special functions
 
@@ -464,315 +377,6 @@ endfunction
 % ======================================================
 %
 % Functions copied from Octave's pkg/private/install.m
-
-
-function out = install_private_impl (files, handle_deps, prefix, archprefix, verbose,
-                  local_list, global_list, global_install)
-  % INSTALL_PRIVATE_IMPL
-  %
-  % Returns struct with fields:
-  %   success (boolean)
-  %   log_dirs (cellstr)
-  %   error_message (char)
-  %   exception (MException)
-  %
-  % log_dirs is populated and valid even if success is false.
-  %
-  % May still throw an error in some cases for lower-level or early errors.
-
-  out = struct;
-  out.success = true;
-  out.log_dirs = {};
-  out.error_message = '';
-  out.exception = [];
-
-  ## Check that the directory in prefix exist.  If it doesn't: create it!
-  if (! isfolder (prefix))
-    warning ("creating installation directory %s", prefix);
-    [status, msg] = mkdir (prefix);
-    if (status != 1)
-      error ("could not create installation directory %s: %s", prefix, msg);
-    endif
-  endif
-
-  ## Get the list of installed packages.
-  [local_packages, global_packages] = installed_packages (local_list,
-                                                          global_list);
-
-  installed_pkgs_lst = {local_packages{:}, global_packages{:}};
-
-  if (global_install)
-    packages = global_packages;
-  else
-    packages = local_packages;
-  endif
-
-  ## Uncompress the packages and read the DESCRIPTION files.
-  tmpdirs = packdirs = descriptions = {};
-  try
-    ## Warn about non existent files.
-    for i = 1:length (files)
-      if (isempty (glob (files{i})))
-        error ("pkg: file %s does not exist", files{i});
-      endif
-    endfor
-
-    ## Unpack the package files and read the DESCRIPTION files.
-    files = glob (files);
-    packages_to_uninstall = [];
-    for i = 1:length (files)
-      tgz = files{i};
-
-      if (exist (tgz, "file"))
-        ## Create a temporary directory.
-        tmpdir = tempname ();
-        tmpdirs{end+1} = tmpdir;
-        if (verbose)
-          printf ("mkdir (%s)\n", tmpdir);
-        endif
-        [status, msg] = mkdir (tmpdir);
-        if (status != 1)
-          error ("couldn't create temporary directory: %s", msg);
-        endif
-
-        ## Uncompress the package.
-        [~, ~, ext] = fileparts (tgz);
-        if (strcmpi (ext, ".zip"))
-          func_uncompress = @unzip;
-        else
-          func_uncompress = @untar;
-        endif
-        if (verbose)
-          printf ("%s (%s, %s)\n", func2str (func_uncompress), tgz, tmpdir);
-        endif
-        func_uncompress (tgz, tmpdir);
-
-        ## Get the name of the directories produced by tar.
-        [dirlist, err, msg] = readdir (tmpdir);
-        if (err)
-          error ("couldn't read directory produced by tar: %s", msg);
-        endif
-
-        if (length (dirlist) > 3)
-          error ("bundles of packages are not allowed");
-        endif
-      endif
-
-      ## The filename pointed to an uncompressed package to begin with.
-      if (isfolder (tgz))
-        dirlist = {".", "..", tgz};
-      endif
-
-      if (exist (tgz, "file") || isfolder (tgz))
-        ## The two first entries of dirlist are "." and "..".
-        if (exist (tgz, "file"))
-          packdir = fullfile (tmpdir, dirlist{3});
-        else
-          packdir = fullfile (pwd (), dirlist{3});
-        endif
-        packdirs{end+1} = packdir;
-
-        ## Make sure the package contains necessary files.
-        verify_directory (packdir);
-
-        ## Read the DESCRIPTION file.
-        filename = fullfile (packdir, "DESCRIPTION");
-        desc = get_description (filename);
-
-        ## Set default installation directory.
-        desc.dir = fullfile (prefix, [desc.name "-" desc.version]);
-
-        ## Set default architectire dependent installation directory.
-        desc.archprefix = fullfile (archprefix, [desc.name "-" desc.version]);
-
-        ## Save desc.
-        descriptions{end+1} = desc;
-
-        ## Are any of the new packages already installed?
-        ## If so we'll remove the old version.
-        for j = 1:length (packages)
-          if (strcmp (packages{j}.name, desc.name))
-            packages_to_uninstall(end+1) = j;
-          endif
-        endfor
-      endif
-    endfor
-  catch
-    ## Something went wrong, delete tmpdirs.
-    for i = 1:length (tmpdirs)
-      rmdir (tmpdirs{i}, "s");
-    endfor
-    rethrow (lasterror ());
-  end_try_catch
-
-  ## Check dependencies.
-  if (handle_deps)
-    ok = true;
-    error_text = "";
-    for i = 1:length (descriptions)
-      desc = descriptions{i};
-      idx2 = setdiff (1:length (descriptions), i);
-      if (global_install)
-        ## Global installation is not allowed to have dependencies on locally
-        ## installed packages.
-        idx1 = setdiff (1:length (global_packages), packages_to_uninstall);
-        pseudo_installed_packages = {global_packages{idx1}, ...
-                                     descriptions{idx2}};
-      else
-        idx1 = setdiff (1:length (local_packages), packages_to_uninstall);
-        pseudo_installed_packages = {local_packages{idx1}, ...
-                                     global_packages{:}, ...
-                                     descriptions{idx2}};
-      endif
-      bad_deps = get_unsatisfied_deps (desc, pseudo_installed_packages);
-      ## Are there any unsatisfied dependencies?
-      if (! isempty (bad_deps))
-        ok = false;
-        for i = 1:length (bad_deps)
-          dep = bad_deps{i};
-          error_text = [error_text " " desc.name " needs " ...
-                        dep.package " " dep.operator " " dep.version "\n"];
-        endfor
-      endif
-    endfor
-
-    ## Did we find any unsatisfied dependencies?
-    if (! ok)
-      out.success = false;
-      out.error_message = sprintf ("the following dependencies were unsatisfied:\n  %s", error_text);
-      return
-    endif
-  endif
-
-  ## Prepare each package for installation.
-  try
-    for i = 1:length (descriptions)
-      desc = descriptions{i};
-      pdir = packdirs{i};
-      prepare_installation (desc, pdir);
-      rslt = configure_make (desc, pdir, verbose);
-      out.log_dirs{end+1} = rslt.log_dir;
-      if ! rslt.success
-        out.success = false;
-        out.error_message = rslt.error_message;
-        out.exception = rslt.exception;
-        return;
-      endif
-      copy_built_files (desc, pdir, verbose);
-    endfor
-  catch
-    ## Something went wrong, delete tmpdirs.
-    % TODO: This no longer works with our non-exception-based error handling
-    % Convert all this tmpdir cleanup code to onCleanup or unwind_protect
-    % instead of catch blocks.
-    for i = 1:length (tmpdirs)
-      rmdir (tmpdirs{i}, "s");
-    endfor
-    rethrow (lasterror ());
-  end_try_catch
-
-  ## Uninstall the packages that will be replaced.
-  try
-    for i = packages_to_uninstall
-      if (global_install)
-        uninstall ({global_packages{i}.name}, false, verbose, local_list,
-                   global_list, global_install);
-      else
-        uninstall ({local_packages{i}.name}, false, verbose, local_list,
-                   global_list, global_install);
-      endif
-    endfor
-  catch
-    ## Something went wrong, delete tmpdirs.
-    for i = 1:length (tmpdirs)
-      rmdir (tmpdirs{i}, "s");
-    endfor
-    rethrow (lasterror ());
-  end_try_catch
-
-  ## Install each package.
-  try
-    for i = 1:length (descriptions)
-      desc = descriptions{i};
-      pdir = packdirs{i};
-      copy_files (desc, pdir);
-      create_pkgadddel (desc, pdir, "PKG_ADD", global_install);
-      create_pkgadddel (desc, pdir, "PKG_DEL", global_install);
-      finish_installation (desc, pdir, global_install);
-      generate_lookfor_cache (desc);
-    endfor
-  catch
-    ## Something went wrong, delete tmpdirs.
-    for i = 1:length (tmpdirs)
-      rmdir (tmpdirs{i}, "s");
-    endfor
-    for i = 1:length (descriptions)
-      rmdir (descriptions{i}.dir, "s");
-      rmdir (getarchdir (descriptions{i}), "s");
-    endfor
-    rethrow (lasterror ());
-  end_try_catch
-
-  ## Check if the installed directory is empty.  If it is remove it
-  ## from the list.
-  for i = length (descriptions):-1:1
-    if (dirempty (descriptions{i}.dir, {"packinfo", "doc"})
-        && dirempty (getarchdir (descriptions{i})))
-      warning ("package %s is empty\n", descriptions{i}.name);
-      rmdir (descriptions{i}.dir, "s");
-      rmdir (getarchdir (descriptions{i}), "s");
-      descriptions(i) = [];
-    endif
-  endfor
-
-  ## Add the packages to the package list.
-  try
-    if (global_install)
-      idx = setdiff (1:length (global_packages), packages_to_uninstall);
-      global_packages = save_order ({global_packages{idx}, descriptions{:}});
-      save (global_list, "global_packages");
-      installed_pkgs_lst = {local_packages{:}, global_packages{:}};
-    else
-      idx = setdiff (1:length (local_packages), packages_to_uninstall);
-      local_packages = save_order ({local_packages{idx}, descriptions{:}});
-      save (local_list, "local_packages");
-      installed_pkgs_lst = {local_packages{:}, global_packages{:}};
-    endif
-  catch
-    ## Something went wrong, delete tmpdirs.
-    for i = 1:length (tmpdirs)
-      rmdir (tmpdirs{i}, "s");
-    endfor
-    for i = 1:length (descriptions)
-      rmdir (descriptions{i}.dir, "s");
-    endfor
-    if (global_install)
-      printf ("error: couldn't append to %s\n", global_list);
-    else
-      printf ("error: couldn't append to %s\n", local_list);
-    endif
-    rethrow (lasterror ());
-  end_try_catch
-
-  ## All is well, let's clean up.
-  for i = 1:length (tmpdirs)
-    [status, msg] = rmdir (tmpdirs{i}, "s");
-    if (status != 1 && isfolder (tmpdirs{i}))
-      warning ("couldn't clean up after my self: %s\n", msg);
-    endif
-  endfor
-
-  ## If there is a NEWS file, mention it.
-  ## Check if desc exists too because it's possible to get to this point
-  ## without creating it such as giving an invalid filename for the package
-  if (exist ("desc", "var")
-      && exist (fullfile (desc.dir, "packinfo", "NEWS"), "file"))
-    printf (["For information about changes from previous versions " ...
-             "of the %s package, run 'news %s'.\n"],
-            desc.name, desc.name);
-  endif
-
-endfunction
 
 
 function pkg = extract_pkg (nm, pat)
@@ -811,13 +415,13 @@ function verify_directory (dir)
 endfunction
 
 
-function prepare_installation (desc, packdir)
+function prepare_installation (desc, build_dir)
 
   ## Is there a pre_install to call?
-  if (exist (fullfile (packdir, "pre_install.m"), "file"))
+  if (exist (fullfile (build_dir, "pre_install.m"), "file"))
     wd = pwd ();
     try
-      cd (packdir);
+      cd (build_dir);
       pre_install (desc);
       cd (wd);
     catch
@@ -827,7 +431,7 @@ function prepare_installation (desc, packdir)
   endif
 
   ## If the directory "inst" doesn't exist, we create it.
-  inst_dir = fullfile (packdir, "inst");
+  inst_dir = fullfile (build_dir, "inst");
   if (! isfolder (inst_dir))
     [status, msg] = mkdir (inst_dir);
     if (status != 1)
@@ -840,18 +444,18 @@ function prepare_installation (desc, packdir)
 endfunction
 
 
-function copy_built_files (desc, packdir, verbose)
+function copy_built_files (desc, build_dir, verbose)
   % Copies built files from src/ to inst/ within a build dir
 
-  src = fullfile (packdir, "src");
+  src = fullfile (build_dir, "src");
   if (! isfolder (src))
     return
   endif
 
   ## Copy files to "inst" and "inst/arch" (this is instead of 'make install').
   files = fullfile (src, "FILES");
-  instdir = fullfile (packdir, "inst");
-  archdir = fullfile (packdir, "inst", getarch ());
+  instdir = fullfile (build_dir, "inst");
+  archdir = fullfile (build_dir, "inst", getarch ());
 
   ## Get filenames.
   if (exist (files, "file"))
@@ -930,7 +534,7 @@ function copy_built_files (desc, packdir, verbose)
 endfunction
 
 
-function dep = is_architecture_dependent (nm)
+function dep = is_architecture_dependent (file)
   persistent archdepsuffix = {".oct",".mex",".a",".lib",".so",".so.*",".dll","dylib"};
 
   dep = false;
@@ -942,9 +546,9 @@ function dep = is_architecture_dependent (nm)
     else
       isglob = false;
     endif
-    pos = strfind (nm, ext);
+    pos = strfind (file, ext);
     if (pos)
-      if (! isglob && (length (nm) - pos(end) != length (ext) - 1))
+      if (! isglob && (length (file) - pos(end) != length (ext) - 1))
         continue;
       endif
       dep = true;
@@ -955,8 +559,11 @@ function dep = is_architecture_dependent (nm)
 endfunction
 
 
-function copy_files (desc, install_dir, packdir)
-  % Copy built files from the build dir (packdir) to the final install_dir
+function copy_files_from_build_to_inst (desc, target, build_dir)
+  % Copy built files from the build dir (build_dir) to the final install_dir
+
+  install_dir = target.dir;
+  octfiledir = target.arch_dir;
 
   ## Create the installation directory.
   if (! isfolder (install_dir))
@@ -967,10 +574,9 @@ function copy_files (desc, install_dir, packdir)
     endif
   endif
 
-  octfiledir = getarchdir (desc);
 
   ## Copy the files from "inst" to installdir.
-  instdir = fullfile (packdir, "inst");
+  instdir = fullfile (build_dir, "inst");
   if (! dirempty (instdir))
     [status, output] = copyfile (fullfile (instdir, "*"), desc.dir);
     if (status != 1)
@@ -1030,47 +636,36 @@ function copy_files (desc, install_dir, packdir)
   endif
 
   ## Create the "packinfo" directory.
-  packinfo = fullfile (desc.dir, "packinfo");
-  [status, msg] = mkdir (packinfo);
-  if (status != 1)
-    rmdir (desc.dir, "s");
-    rmdir (octfiledir, "s");
-    error ("couldn't create packinfo directory: %s", msg);
-  endif
+  packinfo_dir = fullfile (desc.dir, "packinfo");
+  packajoozle.internal.Util.mkdir (packinfo_dir);
 
-  packinfo_copy_file ("DESCRIPTION", "required", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("COPYING", "required", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("CITATION", "optional", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("NEWS", "optional", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("ONEWS", "optional", packdir, packinfo, desc, octfiledir);
-  packinfo_copy_file ("ChangeLog", "optional", packdir, packinfo, desc, octfiledir);
+  packinfo_copy_file ("DESCRIPTION", "required", build_dir, packinfo_dir);
+  packinfo_copy_file ("COPYING", "required", build_dir, packinfo_dir);
+  packinfo_copy_file ("CITATION", "optional", build_dir, packinfo_dir);
+  packinfo_copy_file ("NEWS", "optional", build_dir, packinfo_dir);
+  packinfo_copy_file ("ONEWS", "optional", build_dir, packinfo_dir);
+  packinfo_copy_file ("ChangeLog", "optional", build_dir, packinfo_dir);
 
   ## Is there an INDEX file to copy or should we generate one?
-  index_file = fullfile (packdir, "INDEX");
+  index_file = fullfile (build_dir, "INDEX");
   if (exist (index_file, "file"))
-    packinfo_copy_file ("INDEX", "required", packdir, packinfo, desc, octfiledir);
+    packinfo_copy_file ("INDEX", "required", build_dir, packinfo_dir);
   else
-    try
-      write_index (desc, fullfile (packdir, "inst"), fullfile (packinfo, "INDEX"));
-    catch
-      rmdir (desc.dir, "s");
-      rmdir (octfiledir, "s");
-      rethrow (lasterror ());
-    end_try_catch
+    generate_index (desc, fullfile (build_dir, "inst"), fullfile (packinfo, "INDEX"));
   endif
 
   ## Is there an 'on_uninstall.m' to install?
-  packinfo_copy_file ("on_uninstall.m", "optional", packdir, packinfo, desc, octfiledir);
+  packinfo_copy_file ("on_uninstall.m", "optional", build_dir, packinfo_dir);
 
   ## Is there a doc/ directory that needs to be installed?
-  docdir = fullfile (packdir, "doc");
+  docdir = fullfile (build_dir, "doc");
   if (isfolder (docdir) && ! dirempty (docdir))
     [status, output] = copyfile (docdir, desc.dir);
   endif
 
   ## Is there a bin/ directory that needs to be installed?
   ## FIXME: Need to treat architecture dependent files in bin/
-  bindir = fullfile (packdir, "bin");
+  bindir = fullfile (build_dir, "bin");
   if (isfolder (bindir) && ! dirempty (bindir))
     [status, output] = copyfile (bindir, desc.dir);
   endif
@@ -1078,18 +673,13 @@ function copy_files (desc, install_dir, packdir)
 endfunction
 
 
-function packinfo_copy_file (filename, requirement, packdir, packinfo, desc, octfiledir)
+function packinfo_copy_file (filename, requirement, build_dir, packinfo_dir)
 
-  filepath = fullfile (packdir, filename);
+  filepath = fullfile (build_dir, filename);
   if (! exist (filepath, "file") && strcmpi (requirement, "optional"))
     ## do nothing, it's still OK
   else
-    [status, output] = copyfile (filepath, packinfo);
-    if (status != 1)
-      rmdir (desc.dir, "s");
-      rmdir (octfiledir, "s");
-      error ("Couldn't copy %s file: %s", filename, output);
-    endif
+    packajoozle.internal.Util.copyfile (filepath, packinfo_dir);
   endif
 
 endfunction
@@ -1099,13 +689,10 @@ endfunction
 ##   'desc'  describes the package.
 ##   'dir'   is the 'inst' directory in temporary directory.
 ##   'index_file' is the name (including path) of resulting INDEX file.
-function write_index (desc, dir, index_file)
+function generate_index (desc, dir, index_file)
 
   ## Get names of functions in dir
-  [files, err, msg] = readdir (dir);
-  if (err)
-    error ("couldn't read directory %s: %s", dir, msg);
-  endif
+  files = packajoozle.internal.Util.readdir (dir);
 
   ## Get classes in dir
   class_idx = find (strncmp (files, '@', 1));
@@ -1113,22 +700,16 @@ function write_index (desc, dir, index_file)
     class_name = files {class_idx(k)};
     class_dir = fullfile (dir, class_name);
     if (isfolder (class_dir))
-      [files2, err, msg] = readdir (class_dir);
-      if (err)
-        error ("couldn't read directory %s: %s", class_dir, msg);
-      endif
+      files2 = packajoozle.internal.Util.readdir (class_dir);
       files2 = strcat (class_name, filesep (), files2);
       files = [files; files2];
     endif
   endfor
 
   ## Check for architecture dependent files.
-  tmpdir = getarchdir (desc);
+  arch_dir = desc.arch_dir;
   if (isfolder (tmpdir))
-    [files2, err, msg] = readdir (tmpdir);
-    if (err)
-      error ("couldn't read directory %s: %s", tmpdir, msg);
-    endif
+    files2 = packajoozle.internal.Util.readdir (arch_dir);
     files = [files; files2];
   endif
 
@@ -1145,18 +726,15 @@ function write_index (desc, dir, index_file)
 
   ## Does desc have a categories field?
   if (! isfield (desc, "categories"))
-    error ("the DESCRIPTION file must have a Categories field, when no INDEX file is given");
+    error ("PkgInstaller: the DESCRIPTION file must have a Categories field, when no INDEX file is given");
   endif
   categories = strtrim (strsplit (desc.categories, ","));
   if (length (categories) < 1)
-    error ("the Category field is empty");
+    error ("PkgInstaller: the Category field in DESCRIPTION is empty");
   endif
 
   ## Write INDEX.
-  fid = fopen (index_file, "w");
-  if (fid == -1)
-    error ("couldn't open %s for writing", index_file);
-  endif
+  fid = packajoozle.internal.Util.fopen (index_file);
   fprintf (fid, "%s >> %s\n", desc.name, desc.title);
   fprintf (fid, "%s\n", categories{1});
   fprintf (fid, "  %s\n", functions{:});
@@ -1165,16 +743,16 @@ function write_index (desc, dir, index_file)
 endfunction
 
 
-function create_pkgadddel (desc, packdir, nm, install_dirs)
+function create_pkgadddel (desc, build_dir, nm, target)
 
-  inst_dir = install_dirs.dir;
+  inst_dir = target.dir;
   instpkg = fullfile (inst_dir, nm);
   instfid = fopen (instpkg, "at"); # append to support PKG_ADD at inst/
   ## If it exists, most of the PKG_* file should go into the
   ## architecture dependent directory so that the autoload/mfilename
   ## commands work as expected.  The only part that doesn't is the
   ## part in the main directory.
-  archdir = install_dirs.arch_dir;
+  archdir = target.arch_dir;
   if isfolder (archdir) && ! isequal (inst_dir, archdir)
     archpkg = fullfile (archdir, nm);
     archfid = fopen (archpkg, "at");
@@ -1185,16 +763,16 @@ function create_pkgadddel (desc, packdir, nm, install_dirs)
 
   if (archfid >= 0 && instfid >= 0)
     ## Search all dot-m files for PKG commands.
-    lst = glob (fullfile (packdir, "inst", "*.m"));
+    lst = glob (fullfile (build_dir, "inst", "*.m"));
     for i = 1:length (lst)
       nam = lst{i};
       fwrite (instfid, extract_pkg (nam, ['^[#%][#%]* *' nm ': *(.*)$']));
     endfor
 
     ## Search all C++ source files for PKG commands.
-    cc_lst = glob (fullfile (packdir, "src", "*.cc"));
-    cpp_lst = glob (fullfile (packdir, "src", "*.cpp"));
-    cxx_lst = glob (fullfile (packdir, "src", "*.cxx"));
+    cc_lst = glob (fullfile (build_dir, "src", "*.cc"));
+    cpp_lst = glob (fullfile (build_dir, "src", "*.cpp"));
+    cxx_lst = glob (fullfile (build_dir, "src", "*.cxx"));
     lst = [cc_lst; cpp_lst; cxx_lst];
     for i = 1:length (lst)
       nam = lst{i};
@@ -1203,9 +781,9 @@ function create_pkgadddel (desc, packdir, nm, install_dirs)
     endfor
 
     ## Add developer included PKG commands.
-    packdirnm = fullfile (packdir, nm);
-    if (exist (packdirnm, "file"))
-      fid = fopen (packdirnm, "rt");
+    build_dirnm = fullfile (build_dir, nm);
+    if (exist (build_dirnm, "file"))
+      fid = fopen (build_dirnm, "rt");
       if (fid >= 0)
         while (! feof (fid))
           ln = fgets (fid);
@@ -1231,17 +809,6 @@ function create_pkgadddel (desc, packdir, nm, install_dirs)
         unlink (archpkg);
       endif
     endif
-  endif
-
-endfunction
-
-
-function archprefix = getarchprefix (desc, global_install)
-
-  if (global_install)
-    [~, archprefix] = default_prefix (global_install, desc);
-  else
-    archprefix = desc.dir;
   endif
 
 endfunction
@@ -1282,7 +849,7 @@ endfunction
 % Other functions copied from Octave's pkg/private
 
 
-function out = configure_make (desc, packdir, verbose)
+function out = configure_make (desc, build_dir, verbose)
   % Returns struct with fields:
   %  success (boolean)
   %  log_dir (char)
@@ -1292,17 +859,17 @@ function out = configure_make (desc, packdir, verbose)
   % log_dir will still be populated and valid even if success is false.
 
   timestamp = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
-  tmp_dir_name = ['octave-testify-ForgePkgInstaller-' timestamp];
-  log_dir = fullfile (tempdir, tmp_dir_name);
-  mkdir (log_dir);
+  tmp_dir_name = ['octave-packajoozle-PkgInstaller-' timestamp];
+  log_dir = fullfile (tempdir, 'octave-packajoozle', tmp_dir_name);
+  packajoozle.internal.Util.mkdir (log_dir);
   out.log_dir = log_dir;
   out.success = true;
   out.error_message = '';
   out.exception = [];
   
   ## Perform ./configure, make, make install in "src".
-  if (isfolder (fullfile (packdir, "src")))
-    src = fullfile (packdir, "src");
+  if (isfolder (fullfile (build_dir, "src")))
+    src = fullfile (build_dir, "src");
     octave_bindir = __octave_config_info__ ("bindir");
     ver = version ();
     ext = __octave_config_info__ ("EXEEXT");
@@ -1414,90 +981,6 @@ function [status, output] = shell (cmd, verbose)
   endif
   ## TODO: Figure out how to capture stderr on Windows
   [status, output] = system (cmd);
-endfunction
-
-
-function [prefix, archprefix] = default_prefix (global_install, desc)
-  if (global_install)
-    prefix = fullfile (OCTAVE_HOME (), "share", "octave", "packages");
-    if (nargin == 2)
-      archprefix = fullfile (__octave_config_info__ ("libdir"), "octave",
-                             "packages", [desc.name "-" desc.version]);
-    else
-      archprefix = fullfile (__octave_config_info__ ("libdir"), "octave",
-                             "packages");
-    endif
-  else
-    % This is hacked to respect 'pkg prefix'; I dunno why it's not working internally.
-    [prefix, archprefix] = pkg ('prefix');
-  endif
-endfunction
-
-function [url, local_file] = get_forge_download (name)
-  [ver, url] = get_forge_pkg (name);
-  local_file = [name "-" ver ".tar.gz"];
-endfunction
-
-function [ver, url] = get_forge_pkg (name)
-
-  ## Verify that name is valid.
-  if (! (ischar (name) && rows (name) == 1 && ndims (name) == 2))
-    error ("get_forge_pkg: package NAME must be a string");
-  elseif (! all (isalnum (name) | name == "-" | name == "." | name == "_"))
-    error ("get_forge_pkg: invalid package NAME: %s", name);
-  endif
-
-  name = tolower (name);
-
-  ## Try to download package's index page.
-  [html, succ] = urlread (sprintf ("https://packages.octave.org/%s/index.html",
-                                   name));
-  if (succ)
-    ## Remove blanks for simpler matching.
-    html(isspace(html)) = [];
-    ## Good.  Let's grep for the version.
-    pat = "<tdclass=""package_table"">PackageVersion:</td><td>([\\d.]*)</td>";
-    t = regexp (html, pat, "tokens");
-    if (isempty (t) || isempty (t{1}))
-      error ("get_forge_pkg: could not read version number from package's page");
-    else
-      ver = t{1}{1};
-      if (nargout > 1)
-        ## Build download string.
-        pkg_file = sprintf ("%s-%s.tar.gz", name, ver);
-        url = ["https://packages.octave.org/download/" pkg_file];
-        ## Verify that the package string exists on the page.
-        if (isempty (strfind (html, pkg_file)))
-          warning ("get_forge_pkg: download URL not verified");
-        endif
-      endif
-    endif
-  else
-    ## Try get the list of all packages.
-    [html, succ] = urlread ("https://packages.octave.org/list_packages.php");
-    if (! succ)
-      error ("get_forge_pkg: could not read URL, please verify internet connection");
-    endif
-    t = strsplit (html);
-    if (any (strcmp (t, name)))
-      error ("get_forge_pkg: package NAME exists, but index page not available");
-    endif
-    ## Try a simplistic method to determine similar names.
-    function d = fdist (x)
-      len1 = length (name);
-      len2 = length (x);
-      if (len1 <= len2)
-        d = sum (abs (name(1:len1) - x(1:len1))) + sum (x(len1+1:end));
-      else
-        d = sum (abs (name(1:len2) - x(1:len2))) + sum (name(len2+1:end));
-      endif
-    endfunction
-    dist = cellfun ("fdist", t);
-    [~, i] = min (dist);
-    error ("get_forge_pkg: package not found: ""%s"".  Maybe you meant ""%s?""",
-           name, t{i});
-  endif
-
 endfunction
 
 function [out1, out2] = installed_packages (local_list, global_list, pkgname = {})
@@ -1637,45 +1120,6 @@ function tf = dirempty (path, ignore_files)
   kids = packajoozle.internal.Util.readdir (path);
   found = setdiff (kids, ignore_files);
   tf = ! isempty (found);
-endfunction
-
-function newdesc = save_order (desc)
-
-  newdesc = {};
-  for i = 1 : length (desc)
-    deps = desc{i}.depends;
-    if (isempty (deps)
-        || (length (deps) == 1 && strcmp (deps{1}.package, "octave")))
-      newdesc{end + 1} = desc{i};
-    else
-      tmpdesc = {};
-      for k = 1 : length (deps)
-        for j = 1 : length (desc)
-          if (strcmp (desc{j}.name, deps{k}.package))
-            tmpdesc{end+1} = desc{j};
-            break;
-          endif
-        endfor
-      endfor
-      if (! isempty (tmpdesc))
-        newdesc = {newdesc{:}, save_order(tmpdesc){:}, desc{i}};
-      else
-        newdesc{end+1} = desc{i};
-      endif
-    endif
-  endfor
-
-  ## Eliminate the duplicates.
-  idx = [];
-  for i = 1 : length (newdesc)
-    for j = (i + 1) : length (newdesc)
-      if (strcmp (newdesc{i}.name, newdesc{j}.name))
-        idx(end + 1) = j;
-      endif
-    endfor
-  endfor
-  newdesc(idx) = [];
-
 endfunction
 
 function uninstall (pkgnames, handle_deps, verbose, local_list,

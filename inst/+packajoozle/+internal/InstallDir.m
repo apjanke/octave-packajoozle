@@ -36,32 +36,40 @@ classdef InstallDir
     prefix
     % The architecture-dependent directory. May be the same as prefix.
     arch_prefix
+    % Where pkg's metadata files are held
+    meta_dir
+    % The variable to save in the "octave_packages" file
+    package_list_var_name = "octave_packages"
   endproperties
 
   methods (Static)
 
     function out = get_user_installdir ()
       [prefix, arch_prefix] = pkg ("prefix");
-      out = packajoozle.internal.InstallDir (prefix, arch_prefix, "user");
+      meta_dir = fileparts (pkg ("local_list"));
+      out = packajoozle.internal.InstallDir (meta_dir, prefix, arch_prefix, "user");
+      out.package_list_var_name = "local_packages";
     endfunction
 
     function out = get_global_installdir ()
       [prefix, arch_prefix] = pkg ("prefix", "-global");
+      meta_dir = fileparts (pkg ("global_list"));
       out = packajoozle.internal.InstallDir (prefix, arch_prefix, "global");
+      out.package_list_var_name = "global_packages";
     endfunction
-    
+
   endmethods
 
   methods
 
-    function this = InstallDir (prefix, arch_prefix, tag)
+    function this = InstallDir (meta_dir, prefix, arch_prefix, tag)
       if nargin == 0
         return
       endif
-      if nargin < 2 || isempty (arch_prefix)
+      if nargin < 3 || isempty (arch_prefix)
         arch_prefix = prefix;
       endif
-      if nargin < 3 || isempty (tag)
+      if nargin < 4 || isempty (tag)
         tag = "unlabelled";
       endif
       this.tag = tag;
@@ -74,11 +82,12 @@ classdef InstallDir
       out = isfolder (inst_dir);
     endfunction
 
-    function out = install_path_for_pkg (this, pkgver)
+    function out = install_paths_for_pkg (this, pkgver)
       ver = char (pkgver.version);
-      out.dir = fullfile (this.prefix, pkgver.name, ver);
+      name_ver = [pkgver.name "-" ver];
+      out.dir = fullfile (this.prefix, name_ver);
       arch = packajoozle.internal.Util.get_system_arch;
-      out.arch_dir = fullfile (this.arch_prefix, arch, pkgver.name, ver);
+      out.arch_dir = fullfile (this.arch_prefix, arch, name_ver);
     endfunction
 
     function out = disp (this)
@@ -100,8 +109,61 @@ classdef InstallDir
       endfor
     endfunction
 
-            
+    function out = get_package_list (this)
+      pkg_list_file = fullfile (this.meta_dir, "octave_packages");
+      out = load (pkg_list_file);
+      out = out.(this.package_list_var_name);
+    endfunction
     
+    function record_installed_package (this, desc, target)
+      pkg_list_file = fullfile (this.meta_dir, "octave_packages");
+      desc.dir = target.dir;
+      desc.archprefix = target.arch_dir;
+      list = this.get_package_list;
+      new_list = normalize_desc_save_order ([list desc]);
+      s = struct (this.package_list_var_name, new_list);
+      save (pkg_list_file, "-struct", "s");
+    endfunction
   endmethods
 
 endclassdef
+
+function out = normalize_desc_save_order (descs)
+  newdesc = {};
+  for i = 1 : length (desc)
+    deps = desc{i}.depends;
+    if (isempty (deps)
+        || (length (deps) == 1 && strcmp (deps{1}.package, "octave")))
+      newdesc{end + 1} = desc{i};
+    else
+      tmpdesc = {};
+      for k = 1 : length (deps)
+        for j = 1 : length (desc)
+          if (strcmp (desc{j}.name, deps{k}.package))
+            tmpdesc{end+1} = desc{j};
+            break;
+          endif
+        endfor
+      endfor
+      if (! isempty (tmpdesc))
+        newdesc = {newdesc{:}, save_order(tmpdesc){:}, desc{i}};
+      else
+        newdesc{end+1} = desc{i};
+      endif
+    endif
+  endfor
+
+  ## Eliminate the duplicates.
+  ## TODO: This currently ignores versions. When we add multi-version
+  ## support, it should respect versions.
+  idx = [];
+  for i = 1 : length (newdesc)
+    for j = (i + 1) : length (newdesc)
+      if (strcmp (newdesc{i}.name, newdesc{j}.name))
+        idx(end + 1) = j;
+      endif
+    endfor
+  endfor
+  newdesc(idx) = [];
+endfunction
+
