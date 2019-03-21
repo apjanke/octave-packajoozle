@@ -197,7 +197,7 @@ classdef PkgManager
 
       try
         inst_dir.record_installed_package (desc, target);
-      catch
+      catch err
         rm_rf_safe (target.arch_dir);
         rm_rf_safe (target.dir);
         out.success = false;
@@ -208,7 +208,7 @@ classdef PkgManager
 
       printf ("Installed %s to %s / %s\n", desc.name, target.dir, target.arch_dir);
       news_file = fullfile (target.dir, "packinfo", "NEWS");
-      if exist (new_file, "file")
+      if exist (news_file, "file")
         printf (["For information about changes from previous versions " ...
                  "of the %s package, run 'news %s'.\n"],
                 desc.name, desc.name);
