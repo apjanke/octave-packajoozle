@@ -29,7 +29,8 @@ classdef PkgManager
 
   properties
     forge = packajoozle.internal.OctaveForgeClient
-    default_installdir = "user"
+    world = packajoozle.internal.InstallDirWorld.default
+    default_installdir_tag = "user"
     verbose = false
   endproperties
 
@@ -86,10 +87,10 @@ classdef PkgManager
 
     function out = resolve_installdir (this, inst_dir)
       if isempty (inst_dir)
-        inst_dir = this.default_installdir;
+        inst_dir = this.default_installdir_tag;
       endif
       if ischar (inst_dir)
-        out = packajoozle.internal.InstallDir.get_installdir_by_tag (inst_dir);
+        out = this.world.get_installdir_by_tag (inst_dir);
       else
         mustBeA (inst_dir, "packajoozle.internal.InstallDir");
         out = inst_dir;
@@ -336,7 +337,7 @@ classdef PkgManager
 
     function out = all_installed_packages (this)
       # Returns list as PkgVers
-      inst_dirs = packajoozle.internal.InstallDir.get_all_installdirs;
+      inst_dirs = this.world.get_all_installdirs;
       out = inst_dirs(1).installed_packages;
       for i = 2:numel (inst_dirs)
         out = packajoozle.internal.Util.objcat (out, inst_dirs(i).installed_packages);

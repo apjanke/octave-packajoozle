@@ -38,7 +38,7 @@ classdef InstallDirWorld
       meta_dir = fileparts (pkg ("local_list"));
       user_dir = packajoozle.internal.InstallDir (meta_dir, prefix, arch_prefix, "user");
       user_dir.package_list_var_name = "local_packages";
-      out.register ("user", user_dir);
+      out = out.register_installdir ("user", user_dir);
 
       [prefix, arch_prefix] = pkg ("prefix", "-global");
       meta_dir = fileparts (pkg ("global_list"));
@@ -47,7 +47,7 @@ classdef InstallDirWorld
       # this will break. Probably need to probe the package index file to see
       # what's there
       global_dir.package_list_var_name = "global_packages";
-      out.register ("global", global_dir);
+      out = out.register_installdir ("global", global_dir);
     endfunction
   endmethods
 
@@ -59,7 +59,7 @@ classdef InstallDirWorld
       endif
     endfunction
 
-    function this = register_inst_dir (this, tag, inst_dir)
+    function this = register_installdir (this, tag, inst_dir)
       mustBeA (inst_dir, "packajoozle.internal.InstallDir");
       this.inst_dir_map.(tag) = inst_dir;
     endfunction
@@ -68,8 +68,17 @@ classdef InstallDirWorld
       out = fieldnames (this.inst_dir_map);
     endfunction
 
-    function out = get_inst_dir (this, tag)
+    function out = get_installdir_by_tag (this, tag)
       out = this.inst_dir_map.(tag);
+    endfunction
+
+    function out = get_all_installdirs (this)
+      c = struct2cell (this.inst_dir_map);
+      if isempty (c)
+        out = [];
+      else
+        out = packajoozle.internal.Util.objcat (c{:});
+      endif
     endfunction
 
   endmethods

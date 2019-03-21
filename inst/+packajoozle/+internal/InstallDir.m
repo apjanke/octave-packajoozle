@@ -44,45 +44,6 @@ classdef InstallDir
     pkg_list_file
   endproperties
 
-  methods (Static)
-
-    #TODO: Finish moving this to InstallDirWorld
-    function out = get_installdir_by_tag (tag)
-      switch tag
-        case "user"
-          out = packajoozle.internal.InstallDir.get_user_installdir;
-        case "global"
-          out = packajoozle.internal.InstallDir.get_user_installdir;
-        otherwise
-          error ("InstallDir: unknown installdir tag: '%s'", tag);
-      end
-    endfunction
-
-    function out = get_user_installdir ()
-      [prefix, arch_prefix] = pkg ("prefix");
-      meta_dir = fileparts (pkg ("local_list"));
-      out = packajoozle.internal.InstallDir (meta_dir, prefix, arch_prefix, "user");
-      out.package_list_var_name = "local_packages";
-    endfunction
-
-    function out = get_global_installdir ()
-      [prefix, arch_prefix] = pkg ("prefix", "-global");
-      meta_dir = fileparts (pkg ("global_list"));
-      out = packajoozle.internal.InstallDir (prefix, arch_prefix, "global");
-      #TODO: If global install location has been aliased to user install location,
-      # this will break. Probably need to probe the package index file to see
-      # what's there
-      out.package_list_var_name = "global_packages";
-    endfunction
-
-    function out = get_all_installdirs ()
-      out = packajoozle.internal.Util.objcat(...
-        packajoozle.internal.InstallDir.get_user_installdir, ...
-        packajoozle.internal.InstallDir.get_global_installdir);
-    endfunction
-
-  endmethods
-
   methods
 
     function this = InstallDir (meta_dir, prefix, arch_prefix, tag)
@@ -182,9 +143,8 @@ classdef InstallDir
     endfunction
 
     function save_pkg_list_to_file (this, list)
-      s = struct (this.package_list_var_name, list);
       packajoozle.internal.Util.mkdir (this.meta_dir);
-      save (this.pkg_list_file, "s");
+      save (this.pkg_list_file, this.package_list_var_name);
       printf ("Saved package list to: %s\n", this.pkg_list_file);
     endfunction
 
