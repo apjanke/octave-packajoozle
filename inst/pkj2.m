@@ -168,7 +168,7 @@ function opts = parse_inputs (args_in)
   opts.command = args{1};
   args(1) = [];
   if ! ismember (opts.command, valid_commands)
-    error ("pkj2: invalid command: %s", opts.command);
+    error ("pkj: invalid command: %s", opts.command);
   endif
 
   for i = 1:numel (args)
@@ -177,7 +177,7 @@ function opts = parse_inputs (args_in)
       opts.(opt) = true;
     else
       if args{i}(1) == "-"
-        error ("pkj2: invalid option: %s", args{i});
+        error ("pkj: invalid option: %s", args{i});
       endif
       opts.targets{end+1} = args{i};
     endif
