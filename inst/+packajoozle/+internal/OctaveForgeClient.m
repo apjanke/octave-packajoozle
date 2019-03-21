@@ -1,4 +1,4 @@
-## Copyright (C)  
+## Copyright (C) 2019 Andrew Janke
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
 ## distribution downloads from Octave Forge.
 ##
 ## @end deftypefn
-
-## Author:  
 
 classdef OctaveForgeClient
 
