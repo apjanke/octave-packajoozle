@@ -32,6 +32,10 @@
 
 classdef Version
 
+  properties (Constant)
+    version_regexp_pat = '[\d\.]+(?=\+\S*)?'
+  endproperties
+
   properties
     % The full string that represents this version
 		string = ""

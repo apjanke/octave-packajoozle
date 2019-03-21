@@ -37,14 +37,36 @@ classdef VerFilter
     operator
   endproperties
 
+  methods (Static)
+    function out = parse_ver_filter (str)
+      ver_pat = packajoozle.internal.Version.version_regexp_pat;
+      if ! isempty (regexp (str, '^[\d\.]+$'))
+        out = packajoozle.internal.VerFilter (str);
+        return
+      endif
+      [ix, tok] = regexp (str, ['^\s*(<|<=|=|==|\!=|~=|>|>=)\s*(' ver_pat ')'], ...
+        "match", "tokens");
+      if isempty (ix)
+        error ("VerFilter: invalid version filter string: '%s'", str);
+      endif
+      tok = tok{1};
+      out = packajoozle.internal.VerFilter (tok{2}, tok{1});
+    endfunction
+  endmethods
+
   methods
 
-    function this = VerFilter (version, operator)
+    function this = VerFilter (version, operator = "==")
       if nargin == 0
         return
       endif
       version = packajoozle.internal.Version (version);
       mustBeCharVec (operator);
+      if isequal (operator, "=")
+        operator = "==";
+      elseif isequal (operator, "~=")
+        operator = "!=";
+      endif
       if (! ismember (operator, packajoozle.internal.VerFilter.valid_operators))
         error ("VerFilter: invalid operator: %s", operator);
       endif

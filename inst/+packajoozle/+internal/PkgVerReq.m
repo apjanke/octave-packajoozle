@@ -46,7 +46,10 @@ classdef PkgVerReq
       if nargin < 2
         ver_filters = packajoozle.internal.VerFilter ("0.0.0", ">=");
       endif
-      ver_filters = packajoozle.internal.VerFilter (ver_filters);
+      if ! isa (ver_filters, "packajoozle.internal.VerFilter")
+        ver_filters = packajoozle.internal.VerFilter (ver_filters);
+      endif
+      this.package = pkg_name;
       this.ver_filters = ver_filters;
     endfunction
 
@@ -63,7 +66,7 @@ classdef PkgVerReq
       out = cell (size (this));
       for i = 1:numel (this)
         ver_filter_str = strjoin (dispstrs (this(i).ver_filters, ", "));
-        out{i} = sprintf ("%s %s", this(i).package, ver_filter_str));
+        out{i} = sprintf ("%s %s", this(i).package, ver_filter_str);
       endfor
     endfunction
 
