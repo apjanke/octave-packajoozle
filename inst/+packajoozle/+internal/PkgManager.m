@@ -619,15 +619,7 @@ function copy_built_files (desc, build_dir, verbose)
 
   ## Get filenames.
   if (exist (files, "file"))
-    [fid, msg] = fopen (files, "r");
-    if (fid < 0)
-      error ("couldn't open %s: %s", files, msg);
-    endif
-    filenames = char (fread (fid))';
-    fclose (fid);
-    if (filenames(end) == "\n")
-      filenames(end) = [];
-    endif
+    filenames = chomp (fileread (files));
     filenames = strtrim (ostrsplit (filenames, "\n"));
     delete_idx = [];
     for i = 1:length (filenames)
