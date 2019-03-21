@@ -134,8 +134,9 @@ classdef OctaveForgeClient
 
     function out = get_latest_matching_pkg_version (this, pkgreq)
       avail = this.list_all_releases;
-      ix = strcmp (avail.package, pkgreq.package);
-      vers = avail.version(ix);
+      ix = strcmp (names (avail), pkgreq.package);
+      vers = versions (avail);
+      vers = vers(ix);
       tf = pkgreq.ver_filters.matches (vers);
       match_vers = vers(tf);
       if isempty (match_vers)
