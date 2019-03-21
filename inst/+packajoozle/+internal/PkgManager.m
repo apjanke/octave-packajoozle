@@ -114,6 +114,7 @@ classdef PkgManager
       # Consider all packages to be installed
 
       # Install selected packages
+      printf ("pkj: installing: %s\n", strjoin (dispstrs (pkgvers), ", "));
       for i = 1:numel (pkgvers)
         pkgver = pkgvers(i);
         this.install_forge_pkg_single (pkgver);
@@ -164,7 +165,7 @@ classdef PkgManager
       pkgver = packajoozle.internal.PkgVer (info.name, info.version);
       out.pkgver = pkgver;
       if inst_dir.is_installed (pkgver)
-        error ("PkgManager: already installed: %s", char (pkgver));
+        error ("pkj: already installed: %s", char (pkgver));
       endif
 
 
@@ -174,7 +175,7 @@ classdef PkgManager
       files = unpack (file, build_dir_parent);
       kids = packajoozle.internal.Util.readdir (build_dir_parent);
       if numel (kids) > 1
-        error ("PkgManager: bundles of packages are not allowed");
+        error ("pkj: bundles of packages are not allowed");
       endif
       build_dir = fullfile (build_dir_parent, kids{1});
 
@@ -218,7 +219,7 @@ classdef PkgManager
       try
         generate_lookfor_cache (desc, target);
       catch err
-        warning ("PkgManager: failed creating lookfor cache for %s: %s", ...
+        warning ("pkj: failed creating lookfor cache for %s: %s", ...
           desc.name, err.message);
       end_try_catch
 
@@ -398,6 +399,7 @@ classdef PkgManager
 
       # Find packages to uninstall
       pkgvers = inst_dir.list_packages_matching (pkgreqs);
+      printf ("pkj: uninstalling: %s\n", strjoin (dispstrs (pkgvers), ", "));
 
       #TODO: Check that dependencies will still be satisfied after uninstallation
 
@@ -409,6 +411,7 @@ classdef PkgManager
       for i = 1:numel (pkgvers)
         this.uninstall_one_package (pkgvers(i), inst_dir);
       endfor
+      printf ("pkj: packages uninstalled\n");
     endfunction
 
     function uninstall_one_package (this, pkgver, inst_dir)
@@ -421,7 +424,7 @@ classdef PkgManager
 
       found = false;
       if ! inst_dir.is_installed (pkgver)
-        error ("PkgManager: package %s is not installed", char (pkgver));
+        error ("pkj: package %s is not installed", char (pkgver));
       endif
       
       #TODO: Get desc for installed package
@@ -443,7 +446,7 @@ classdef PkgManager
 
       # Delete package installation directories
       if ! isfolder (target.dir)
-        warning ("PkgManager: directory %s previously lost; marking %s as uninstalled", ...
+        warning ("pkj: directory %s previously lost; marking %s as uninstalled", ...
          target.dir, char (pkgver));
       endif
       packajoozle.internal.Util.rm_rf (target.arch_dir);
