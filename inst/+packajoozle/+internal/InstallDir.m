@@ -132,6 +132,10 @@ classdef InstallDir
     endfunction
 
     function out = get_package_list (this)
+      if ! exist (this.pkg_list_file, "file")
+        out = [];
+        return
+      endif
       out = load (this.pkg_list_file);
       if isstruct (out)
         # Hack: take any field

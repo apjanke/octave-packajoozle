@@ -554,7 +554,7 @@ function copy_built_files (desc, build_dir, verbose)
   ## Copy files to "inst" and "inst/arch" (this is instead of 'make install').
   files = fullfile (src, "FILES");
   instdir = fullfile (build_dir, "inst");
-  archdir = fullfile (build_dir, "inst", getarch ());
+  archdir = fullfile (build_dir, "inst", packajoozle.internal.Util.get_system_arch ());
 
   ## Get filenames.
   if (exist (files, "file"))
@@ -657,6 +657,10 @@ function dep = is_architecture_dependent (file)
 
 endfunction
 
+
+function out = getarch ()
+  out = packajoozle.internal.Util.get_system_arch;
+endfunction
 
 function copy_files_from_build_to_inst (desc, target, build_dir)
   % Copy built files from the build dir (build_dir) to the final install_dir
@@ -1018,7 +1022,7 @@ function out = configure_make (desc, build_dir, verbose)
       endif
       cmd = ["cd '" src "'; " scenv "./configure " flags];
       [status, output] = shell (cmd, verbose);
-      spew (fullfile (log_dir, 'configure.log'), output);
+      packajoozle.internal.Util.filewrite (fullfile (log_dir, 'configure.log'), output);
       if (status != 0)
         rmdir (desc.dir, "s");
         disp (output);
@@ -1038,7 +1042,7 @@ function out = configure_make (desc, build_dir, verbose)
     if (exist (fullfile (src, "Makefile"), "file"))
       [status, output] = shell (sprintf ("%s make --jobs %i --directory '%s'",
                                          scenv, jobs, src), verbose);
-      spew (fullfile (log_dir, 'make.log'), output);
+      packajoozle.internal.Util.filewrite (fullfile (log_dir, 'make.log'), output);
       if (status != 0)
         rmdir (desc.dir, "s");
         disp (output);
@@ -1211,7 +1215,7 @@ function [out1, out2] = installed_packages (local_list, global_list, pkgname = {
 
 endfunction
 
-function tf = dirempty (path, ignore_files)
+function tf = dirempty (path, ignore_files = {})
   if ! isfolder (path)
     tf = false;
     return;
