@@ -156,7 +156,7 @@ classdef InstallDir
       list = this.get_package_list_descs;
       ix_to_delete = [];
       for i = 1:numel (list)
-        ref = packajoozle.internal.PkgVer (list(i).name, list(i).version);
+        ref = packajoozle.internal.PkgVer (list{i}.name, list{i}.version);
         if ref == pkgver
           ix_to_delete(end+1) = i;
         endif
