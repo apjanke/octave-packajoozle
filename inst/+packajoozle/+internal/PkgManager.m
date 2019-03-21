@@ -457,9 +457,62 @@ classdef PkgManager
 
     endfunction
     
+    function out = load_package (this, pkgver)
+      inst_dirs = this.world.get_all_installdirs;
+      for i = 1:numel (inst_dirs)
+        inst_dir = inst_dirs(i);
+        if inst_dir.is_installed (pkgver)
+          desc = inst_dir.get_installed_package_desc (pkgver);
+          if exist (desc.dir)
+            printf ("PkgManager.load_package: adding dir %s\n", desc.dir);
+            addpath (desc.dir);
+          endif
+          if exist (desc.archprefix)
+            printf ("PkgManager.load_package: adding arch dir %s\n", desc.dir);
+            addpath (desc.archprefix);
+          endif
+          printf ("PkgManager.load_package: loaded %s from %s pkg dir\n", char (pkgver), inst_dir.tag);
+          return
+        endif
+      endfor
+      error ("pkj: package not installed: %s", char (pkgver));
+    endfunction
+
+    function out = unload_packages (this, pkgreqs)
+      descs = this.all_installed_packages ("desc");
+      # TODO: Pick packages and then sort in reverse dependency order
+      out = {};
+      for i_req = 1:numel (pkgreqs)
+        pkgreq = pkgreqs(i_req);
+        for i_desc = 1:numel (descs)
+          desc = descs{i_desc};
+          pkgver = packajoozle.internal.PkgVer (desc.name, desc.version);
+          if pkgreq.matches (pkgver)
+            [is_loaded, dirs_on_path] = is_pkg_loaded (desc);
+            if is_loaded
+              rmpath (dirs_on_path{:});
+              out{end+1} = pkgver;
+            endif
+          endif
+        endfor
+      endfor
+      out = packajoozle.internal.Util.objcat (out{:});
+    endfunction
+
   endmethods
 
 endclassdef
+
+function [out, pkg_dirs_on_path] = is_pkg_loaded (desc)
+  dirs = {desc.dir};
+  if ! isempty (desc.archprefix)
+    dirs{end+1} = desc.archprefix;
+  endif
+  dirs_on_path = strsplit (path, pathsep);
+  tf = ismember (dirs, dirs_on_path);
+  out = any (tf);
+  pkg_dirs_on_path = unique(dirs(tf));
+endfunction
 
 function say (varargin)
   fprintf ("%s: %s\n", "pkj", sprintf (varargin{:}));

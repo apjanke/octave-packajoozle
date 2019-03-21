@@ -148,6 +148,12 @@ classdef Util
       endfor
     endfunction
 
+    function out = objcatc (c)
+      %OBJCATC Hack to allow one-liners like objcatc({myobj.propname})
+      mustBeA (c, "cell");
+      out = packajoozle.internal.Util.objcat (c{:});
+    endfunction
+
     function out = objcat (varargin)
       # Hack to concatenate objects because Octave doesn't support it as of 5.1
       if isempty (varargin)

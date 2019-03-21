@@ -67,7 +67,12 @@ classdef VerFilterSet
     function out = dispstrs (this)
       out = cell (size (this));
       for i = 1:numel (this)
-        out{i} = strjoin (dispstrs (this(i).filters), ", ");
+        #TODO: Can this be eliminated by making the base filter set ">= 0.0.0"?
+        if isempty (this(i).filters)
+          out{i} = "[]";
+        else
+          out{i} = strjoin (dispstrs (this(i).filters), ", ");
+        endif
       endfor
     endfunction
 

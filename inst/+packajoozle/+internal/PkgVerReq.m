@@ -75,7 +75,8 @@ classdef PkgVerReq
         error ("%s: char() only works on scalar %s objects; this is %s", ...
           class (this), class (this), size2str (size (this)));
       endif
-      out = this.string;
+      strs = dispstrs (this);
+      out = strs{1};
     endfunction
 
     function out = matches (this, pkg_specs)

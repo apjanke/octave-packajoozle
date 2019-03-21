@@ -327,6 +327,10 @@ function out = pkj (varargin)
           out = pkg_list_descs;
         endif
       endif
+    case "load"
+      load_packages (opts);
+    case "unload"
+      unload_packages (opts)
     case "uninstall"
       uninstall_packages (opts);
     otherwise
@@ -372,14 +376,34 @@ endfunction
 function out = list_forge_packages (opts)
   forge = packajoozle.internal.OctaveForgeClient;
 
-  if nargout == 0
-    puts ("Octave Forge provides these packages:\n");
-    info = forge.list_forge_packages_with_meta;
-    for i = 1:numel (info.name)
-      printf ("  %s %s\n", info.name{i}, info.current_version{i});
-    endfor
+  if opts.listversions
+    if isempty (opts.targets)
+      error ("pkj: you must supply a package name with 'list -forge -listversions'");
+    elseif numel (opts.targets) > 1
+      error ("pkj: only a single package name with 'list -forge -listversions' is allowed");
+    else
+      vers = forge.list_versions_for_package (opts.targets{1});
+      if nargout == 0
+        printf (strjoin (dispstrs (vers), "\n"));
+        printf ("\n");
+      else
+        out = dispstrs (vers);
+      endif
+    endif
   else
-    out = forge.list_forge_package_names;
+    if nargout == 0
+      puts ("Octave Forge provides these packages:\n");
+      p = forge.list_all_releases;
+      # Pick the latest one for each release
+      p_names = unique (names (p));
+      for i = 1:numel (p_names)
+        p_i = p(strcmp (p_names, p_names{i}));
+        [newest_ver, ix] = max (versions (p_i));
+        printf ("  %s %s\n", p_names{i}, char (newest_ver));
+      endfor
+    else
+      out = forge.list_forge_package_names;
+    endif
   endif
 endfunction
 
@@ -454,22 +478,42 @@ function display_pkg_desc_list (descs)
     printf (format, cur_name, cur_loaded, cur_version, cur_dir);
   endfor
 
-  function out = load_packages (pkgreqs, opts)
-    inst_descs = list_installed_packages (opts);
-    inst_pkgvers = descs_to_pkgvers (inst_descs);
-    for i_pkgreq = 1:numel (pkgreqs)
-      pkgreq = pkgreqs(i_pkgreq);
-      tf = pkgreq.matches (inst_pkgvers);
-      if ! any (tf)
-        error ("pkj: no matching package installed: %s", char (pkgreq));
-      endif
-      picked = inst_pkgvers(tf).newest;
-    endfor
-  endfunction
-  
 endfunction
 
-function descs_to_pkgvers (descs)
+function out = load_packages (opts)
+  pkgman = packajoozle.internal.PkgManager;
+  pkgreqs = parse_forge_targets (opts.targets);
+  inst_descs = list_installed_packages (opts);
+  inst_pkgvers = descs_to_pkgvers (inst_descs);
+  picked = {};
+  for i_pkgreq = 1:numel (pkgreqs)
+    pkgreq = pkgreqs(i_pkgreq);
+    tf = pkgreq.matches (inst_pkgvers);
+    if ! any (tf)
+      error ("pkj: no matching package installed: %s", char (pkgreq));
+    endif
+    picked{end+1} = inst_pkgvers(tf).newest;
+  endfor
+  picked = packajoozle.internal.Util.objcat (picked{:});
+  for i = 1:numel (picked)
+    pkgman.load_package (picked(i));
+  endfor
+  printf ("pkj: loaded packages: %s\n", strjoin (dispstrs (picked), " "));
+endfunction
+
+
+function out = unload_packages (opts)
+  pkgman = packajoozle.internal.PkgManager;
+  pkgreqs = parse_forge_targets (opts.targets);
+  unloaded = pkgman.unload_packages (pkgreqs);
+  if isempty (unloaded)
+    printf ("pkj: no packages unloaded: no loaded packages matched request\n");
+  else
+    printf ("pkj: unloaded: %s\n", strjoin (dispstrs (unloaded), ", "));
+  endif
+endfunction
+
+function out = descs_to_pkgvers (descs)
   out = cell (size (descs));
   for i = 1:numel (descs)
     out{i} = packajoozle.internal.PkgVer (descs{i}.name, descs{i}.version);
@@ -486,10 +530,12 @@ function opts = parse_inputs (args_in)
   opts.global = false;
   opts.verbose = false;
   opts.targets = {};
+  opts.listversions = false;
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
     "describe", "prefix", "local_list", "global_list", "build", "rebuild"};
-  valid_options = {"forge", "nodeps", "local", "global", "forge", "verbose"};
+  valid_options = {"forge", "nodeps", "local", "global", "forge", "verbose", ...
+    "listversions"};
   opt_flags = strcat("-", valid_options);
 
   args = args_in;

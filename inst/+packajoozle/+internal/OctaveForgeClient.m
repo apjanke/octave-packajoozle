@@ -155,7 +155,7 @@ classdef OctaveForgeClient
       pat = '<script>\s+net\.sf\.files = (.*?)\s*net.sf.staging_days';
       [ix, str, tok] = regexp(html, pat, 'start', 'match', 'tokens');
       # So scrape the HTML itself
-      pat = '<tr\s+title="(.*?\.tar\.gz)"\s+class="file';
+      pat = '<tr\s+title="(.*?gz)"\s+class="file';
       [ix, m, tok] = regexp(html, pat, 'start', 'match', 'tokens');
       if isempty (ix)
         error ("OctaveForgeClient: failed parsing file list web page");
@@ -185,12 +185,18 @@ classdef OctaveForgeClient
 
     function out = list_all_releases (this)
       dist_files = this.list_all_package_distribution_files;
-      [ix, tok] = regexp (dist_files, '^(.*)-(.*)\.tar\.gz$', 'start', 'tokens');
+      [ix, tok] = regexp (dist_files, '^(.*)-(.*)(\.tar\.gz|\.tgz)$', 'start', 'tokens');
       tok = cat(1, tok{:});
       tok = cat(1, tok{:});
-      out.package = tok(:,1);
-      out.version_str = tok(:,2);
-      out.version = packajoozle.internal.Version.parse_versions (out.version_str);
+      pkgs = tok(:,1);
+      vers = tok(:,2);
+      out = cell (size (pkgs));
+      for i = 1:numel (out)
+        ver = packajoozle.internal.Version(vers{i});
+        out{i} = packajoozle.internal.PkgVer (pkgs{i}, ver);
+      endfor
+      out = packajoozle.internal.Util.objcatc (out);
+      out = sort (out);
     endfunction
 
     function out = list_forge_packages_with_meta (this)

@@ -49,6 +49,14 @@ classdef PkgVer
       this.version = version;
     endfunction
 
+    function out = names (this)
+      out = {this.name};
+    endfunction
+
+    function out = versions (this)
+      out = out = packajoozle.internal.Util.objcatc ({this.version});
+    endfunction
+    
     function out = eq (A, B)
       mustBeScalar (A);
       mustBeScalar (B);
@@ -103,6 +111,17 @@ classdef PkgVer
       vers = packajoozle.internal.Util.objcat (vers{:});
       [newest_ver, ix] = max (vers);
       out = this(ix);
+    endfunction
+
+    function out = sort (this)
+      %SORT Sorts by package name, and then by version
+      # Radix sort!
+      out = this;
+      ver = packajoozle.internal.Util.objcatc ({out.version});
+      [~, ix] = sort (ver);
+      out = out(ix);
+      [~, ix] = sort ({out.name});
+      out = out(ix);
     endfunction
 
   endmethods
