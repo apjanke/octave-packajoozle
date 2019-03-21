@@ -464,14 +464,11 @@ classdef PkgManager
         if inst_dir.is_installed (pkgver)
           desc = inst_dir.get_installed_package_desc (pkgver);
           if exist (desc.dir)
-            printf ("PkgManager.load_package: adding dir %s\n", desc.dir);
             addpath (desc.dir);
           endif
           if exist (desc.archprefix)
-            printf ("PkgManager.load_package: adding arch dir %s\n", desc.dir);
             addpath (desc.archprefix);
           endif
-          printf ("PkgManager.load_package: loaded %s from %s pkg dir\n", char (pkgver), inst_dir.tag);
           return
         endif
       endfor
