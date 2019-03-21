@@ -49,7 +49,7 @@ classdef PkgInstaller
       % it also:
       %   * Captures build logs
       args = cellstr (varargin);
-      install_args = [{'install' '-forge'} args];
+      install_args = [{"install" "-forge"} args];
       say ("%s", strjoin (install_args, ' '));
       result = pkg_install (install_args{:});
       out = result;
@@ -60,7 +60,7 @@ classdef PkgInstaller
 endclassdef
 
 function say (varargin)
-  fprintf ('%s: %s\n', 'PkgInstaller', sprintf (varargin{:}));
+  fprintf ("%s: %s\n", "PkgInstaller", sprintf (varargin{:}));
   flush_diary
 endfunction
 

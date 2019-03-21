@@ -27,6 +27,10 @@ classdef Util
 
   methods (Static)
 
+    function out = packajoozle_data_dir
+      out = fullfile (getenv("HOME"), "octave", "packajoozle");
+    endfunction
+
     function flush_diary
       if diary
         diary off
@@ -44,6 +48,28 @@ classdef Util
       fclose (fid);
     endfunction
 
+    function out = basename (file)
+      ix = find (file == filesep, 1, "last");
+      if isempty (ix)
+        out = file;
+      else
+        out = file(ix+1:end);
+      endif
+    endfunction
+
+    function out = posixtime2datenum (posix_time)
+      persistent unix_epoch_datenum = datenum('1/1/1970');
+      out = (posix_time / (60 * 60 * 24)) + unix_epoch_datenum;
+    endfunction
+
+    function out = urlwrite (url, localfile)
+      [f, ok, msg] = urlwrite (url, localfile);
+      if ! ok
+        error ("urlwrite: Failed downloading URL:\n  URL: %s\n  Error: %s", ...
+          url, msg);
+      endif
+      fprintf ("urlwrite: Downloaded %s to %s\n", url, localfile);
+    endfunction
   endmethods
 
 endclassdef
