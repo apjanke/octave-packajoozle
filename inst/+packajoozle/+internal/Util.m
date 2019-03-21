@@ -73,7 +73,6 @@ classdef Util
         error ("urlwrite: Failed downloading URL:\n  URL: %s\n  Error: %s", ...
           url, msg);
       endif
-      fprintf ("urlwrite: Downloaded %s to %s\n", url, localfile);
     endfunction
 
     function out = urlread (url)
