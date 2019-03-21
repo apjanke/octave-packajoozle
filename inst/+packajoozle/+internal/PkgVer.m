@@ -14,11 +14,13 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Class Constructor} {obj =} PkgVerSpec (pkg_name, version)
+## @deftypefn {Class Constructor} {obj =} PkgVer (pkg_name, version)
 ## A specification of a package of a particular version.
 ##
-## A PkgVerSpec specifies a package by its name and an exact version.
+## A PkgVer specifies a package by its name and an exact version.
 ##
+## pkg_name is a valid package name, as a string.
+## 
 ## version is a packajoozle.internal.OctVer object, or something that can
 ## be converted to one.
 ##
@@ -26,7 +28,7 @@
 
 ## Author:	
 
-classdef PkgVerSpec
+classdef PkgVer
 
   properties
     % The package name
@@ -37,7 +39,7 @@ classdef PkgVerSpec
 
   methods
 
-    function this = PkgVerSpec (pkg_name, version)
+    function this = PkgVer (pkg_name, version)
       if nargin == 0
         return
       endif

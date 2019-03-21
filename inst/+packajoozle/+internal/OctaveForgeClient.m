@@ -98,7 +98,7 @@ classdef OctaveForgeClient
     endfunction
 
     function cached_file = download_cached_pkg_distribution (this, pkg)
-      mustBeA (pkg, "packajoozle.internal.PkgVerSpec")
+      mustBeA (pkg, "packajoozle.internal.PkgVer")
       tgz_file = sprintf ("%s-%s.tar.gz", pkg.name, char (pkg.version));
       url = [this.forge_url "/download/" tgz_file];
       cache_dir = fullfile (this.download_cache_dir, "distributions");
@@ -135,7 +135,7 @@ classdef OctaveForgeClient
 
     function out = resolve_latest_version (this, pkg_name)
       ver = this.get_current_pkg_version (pkg_name);
-      out = packajoozle.internal.PkgVerSpec (pkg_name, ver);
+      out = packajoozle.internal.PkgVer (pkg_name, ver);
     endfunction
 
   endmethods

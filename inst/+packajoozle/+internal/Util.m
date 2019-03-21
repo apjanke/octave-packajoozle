@@ -38,7 +38,7 @@ classdef Util
       endif
     endfunction
 
-    
+
     function filewrite (out_file, txt)
       [fid, msg] = fopen (out_file, 'w');
       if fid < 0
@@ -95,8 +95,29 @@ classdef Util
     endfunction
 
     function out = readdir (path)
-      out = readdir (path);
+      [out, err, msg] = readdir (path);
+      if err
+        error ("readdir: Could not read directory '%s': %s", path, msg);
+      endif
       out(ismember (out, {'.', '..'})) = [];
+    endfunction
+
+    function rm_rf (path)
+      if exist (path, "file")
+        delete (path);
+      elseif exist (path, "dir")
+        rmdir (path, "s");
+      else
+        % NOP
+      endif
+    endfunction
+
+    function arch = get_system_arch ()
+      persistent _arch = sprintf ("%s-%s", ...
+        __octave_config_info__("canonical_host_type"), ...
+        __octave_config_info__("api_version"));
+
+      arch = _arch;
     endfunction
 
   endmethods

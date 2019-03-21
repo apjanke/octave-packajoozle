@@ -89,16 +89,95 @@ classdef PkgInstaller
       # Do the installation
     endfunction
 
-    function out = install_pkg_from_file (this, file, prefix)
+    function out = install_pkg_from_file (this, file, inst_dir, verbose = true)
       if (! isfolder (prefix))
         packajoozle.internal.Util.mkdir (prefix);
       endif
 
       # Remove existing installation of same pkg/ver
+      info = this.get_pkg_description_from_file (file);
+      pkgver = packajoozle.internal.PkgVerSpec (info.name, info.version);
+      if inst_dir.is_installed (pkgver)
+        error ("PkgInstaller: already installed: %s", char (pkgver));
+      endif
+
+
+      build_dir = tempname (tempdir, "packajoozle-build-");
+      packajoozle.internal.Util.mkdir (build_dir);
+      RAII.build_dir = onCleanup (@() packajoozle.internal.Util.rm_rf (build_dir));
+      files = unpack (file, build_dir);
+      dirlist = packajoozle.internal.Util.readdir (build_dir);
+      if numel (dirlist) > 1
+        error ("PkgInstaller: bundles of packages are not allowed");
+      endif
+
+      # Inspect the package
+
+      verify_directory (build_dir);
+      desc_file = fullfile (build_dir, "DESCRIPTION");
+      desc = this.parse_pkg_description_file (fileread (desc_file));
+
+      target = inst_dir.install_paths_for_pkg (pkgver);
+
+      this.require_deps_installed_from_desc (desc);
+
+      # Build the package
+
+      prepare_installation (desc, build_dir);
+      rslt = configure_make (desc, build_dir, verbose);
+      out.log_dir = rslt.log_dir;
+      if ! rslt.success
+        out.success = false;
+        out.error_message = rslt.error_message;
+        out.exception = rslt.exception;
+        return
+      endif
+      copy_built_files (desc, build_dir, verbose);
+
+      # TODO: Remove existing installation of same package down here
+
+      # Install the built package
+
+      copy_files (target, build_dir);
+      create_pkgadddel (desc, build_dir, "PKG_ADD", target);
+      create_pkgadddel (desc, build_dir, "PKG_DEL", target);
+      finish_installation (desc, build_dir);
+      generate_lookfor_cache (desc, target);
+
+      fprintf ("Installed %s to %s / %s\n", desc.name, target.dir, target.arch_dir);
 
     endfunction
 
-    function out = get_pkg_description_from_file (this, file)
+    function require_deps_installed_from_desc (this, desc)
+      bad_deps = this.get_unsatisfied_deps (desc);
+      if ! isempty (bad_deps)
+        error ("PkgInstaller: unsatisified dependencies: %s", ...
+          strjoin (dispstrs (bad_deps), ", "));
+      endif
+    endfunction
+
+    function bad_deps = get_unsatisfied_deps_from_desc (this, desc)
+      bad_deps = {};
+
+      installed = this.list_installed_pkgs;
+      for i = 1:numel (desc.depends)
+        dep = desc.depends{i};
+        dep_req = packajoozle.internal.PkgVerReq (dep.package, ...
+          packajoozle.internal.VerFilter (dep.version, dep.operator));
+        if isequal (dep.package, "octave")
+          if (! compare_versions (OCTAVE_VERSION, dep.version, dep.operator))
+            bad_deps{end+1} = dep_req;
+          endif
+        else
+          if ! any (dep_req.matches (installed))
+            bad_deps{end+1} = dep_req;
+          endif
+        endif
+      endfor
+    endfunction
+    
+
+    function out = get_pkg_description_from_pkg_file (this, file)
       tmp_dir = tempname (tempdir, "packajoozle-work-");
       packajoozle.internal.Util.mkdir (tmp_dir);
       untar (file, tmp_dir);
@@ -597,7 +676,7 @@ function out = install_private_impl (files, handle_deps, prefix, archprefix, ver
     for i = 1:length (descriptions)
       desc = descriptions{i};
       pdir = packdirs{i};
-      copy_files (desc, pdir, global_install);
+      copy_files (desc, pdir);
       create_pkgadddel (desc, pdir, "PKG_ADD", global_install);
       create_pkgadddel (desc, pdir, "PKG_DEL", global_install);
       finish_installation (desc, pdir, global_install);
@@ -743,6 +822,7 @@ endfunction
 
 
 function copy_built_files (desc, packdir, verbose)
+  % Copies built files from src/ to inst/ within a build dir
 
   src = fullfile (packdir, "src");
   if (! isfolder (src))
@@ -856,14 +936,15 @@ function dep = is_architecture_dependent (nm)
 endfunction
 
 
-function copy_files (desc, packdir, global_install)
+function copy_files (desc, install_dir, packdir)
+  % Copy built files from the build dir (packdir) to the final install_dir
 
   ## Create the installation directory.
-  if (! isfolder (desc.dir))
-    [status, output] = mkdir (desc.dir);
+  if (! isfolder (install_dir))
+    [status, output] = mkdir (install_dir);
     if (status != 1)
       error ("couldn't create installation directory %s : %s",
-      desc.dir, output);
+      install_dir, output);
     endif
   endif
 
@@ -951,8 +1032,7 @@ function copy_files (desc, packdir, global_install)
     packinfo_copy_file ("INDEX", "required", packdir, packinfo, desc, octfiledir);
   else
     try
-      write_index (desc, fullfile (packdir, "inst"),
-                   fullfile (packinfo, "INDEX"), global_install);
+      write_index (desc, fullfile (packdir, "inst"), fullfile (packinfo, "INDEX"));
     catch
       rmdir (desc.dir, "s");
       rmdir (octfiledir, "s");
@@ -1000,7 +1080,7 @@ endfunction
 ##   'desc'  describes the package.
 ##   'dir'   is the 'inst' directory in temporary directory.
 ##   'index_file' is the name (including path) of resulting INDEX file.
-function write_index (desc, dir, index_file, global_install)
+function write_index (desc, dir, index_file)
 
   ## Get names of functions in dir
   [files, err, msg] = readdir (dir);
@@ -1066,18 +1146,18 @@ function write_index (desc, dir, index_file, global_install)
 endfunction
 
 
-function create_pkgadddel (desc, packdir, nm, global_install)
+function create_pkgadddel (desc, packdir, nm, install_dirs)
 
-  instpkg = fullfile (desc.dir, nm);
+  inst_dir = install_dirs.dir;
+  instpkg = fullfile (inst_dir, nm);
   instfid = fopen (instpkg, "at"); # append to support PKG_ADD at inst/
-  ## If it is exists, most of the PKG_* file should go into the
+  ## If it exists, most of the PKG_* file should go into the
   ## architecture dependent directory so that the autoload/mfilename
   ## commands work as expected.  The only part that doesn't is the
   ## part in the main directory.
-  archdir = fullfile (getarchprefix (desc, global_install),
-                      [desc.name "-" desc.version], getarch ());
-  if (isfolder (getarchdir (desc, global_install)))
-    archpkg = fullfile (getarchdir (desc, global_install), nm);
+  archdir = install_dirs.arch_dir;
+  if isfolder (archdir) && ! isequal (inst_dir, archdir)
+    archpkg = fullfile (archdir, nm);
     archfid = fopen (archpkg, "at");
   else
     archpkg = instpkg;
@@ -1148,7 +1228,7 @@ function archprefix = getarchprefix (desc, global_install)
 endfunction
 
 
-function finish_installation (desc, packdir, global_install)
+function finish_installation (desc, packdir)
 
   ## Is there a post-install to call?
   if (exist (fullfile (packdir, "post_install.m"), "file"))
@@ -1157,20 +1237,20 @@ function finish_installation (desc, packdir, global_install)
       cd (packdir);
       post_install (desc);
       cd (wd);
-    catch
+    catch err
       cd (wd);
       rmdir (desc.dir, "s");
       rmdir (getarchdir (desc), "s");
-      rethrow (lasterror ());
+      rethrow (err);
     end_try_catch
   endif
 
 endfunction
 
 
-function generate_lookfor_cache (desc)
+function generate_lookfor_cache (desc, target)
 
-  dirs = strtrim (ostrsplit (genpath (desc.dir), pathsep ()));
+  dirs = strtrim (ostrsplit (genpath (target.dir), pathsep ()));
   for i = 1 : length (dirs)
     doc_cache_create (fullfile (dirs{i}, "doc-cache"), dirs{i});
   endfor
@@ -1529,163 +1609,14 @@ function [out1, out2] = installed_packages (local_list, global_list, pkgname = {
 
 endfunction
 
-## Parse the DESCRIPTION file.
-function desc = get_description (filename)
-
-  [fid, msg] = fopen (filename, "r");
-  if (fid == -1)
-    error ("the DESCRIPTION file %s could not be read: %s", filename, msg);
+function tf = dirempty (path, ignore_files)
+  if ! isfolder (path)
+    tf = false;
+    return;
   endif
-
-  desc = struct ();
-
-  line = fgetl (fid);
-  while (line != -1)
-    if (line(1) == "#")
-      ## Comments, do nothing.
-    elseif (isspace (line(1)))
-      ## Continuation lines
-      if (exist ("keyword", "var") && isfield (desc, keyword))
-        desc.(keyword) = [desc.(keyword) " " deblank(line)];
-      endif
-    else
-      ## Keyword/value pair
-      colon = find (line == ":");
-      if (length (colon) == 0)
-        warning ("pkg: skipping invalid line in DESCRIPTION file");
-      else
-        colon = colon(1);
-        keyword = tolower (strtrim (line(1:colon-1)));
-        value = strtrim (line (colon+1:end));
-        if (length (value) == 0)
-            fclose (fid);
-            error ("The keyword '%s' of the package '%s' has an empty value",
-                    keyword, desc.name);
-        endif
-        if (isfield (desc, keyword))
-          warning ('pkg: duplicate keyword "%s" in DESCRIPTION, ignoring',
-                   keyword);
-        else
-          desc.(keyword) = value;
-        endif
-      endif
-    endif
-    line = fgetl (fid);
-  endwhile
-  fclose (fid);
-
-  ## Make sure all is okay.
-  needed_fields = {"name", "version", "date", "title", ...
-                   "author", "maintainer", "description"};
-  for f = needed_fields
-    if (! isfield (desc, f{1}))
-      error ("description is missing needed field %s", f{1});
-    endif
-  endfor
-
-  if (! is_valid_pkg_version_string (desc.version))
-    error ("invalid version string '%s'", desc.version);
-  endif
-
-  if (isfield (desc, "depends"))
-    desc.depends = fix_depends (desc.depends);
-  else
-    desc.depends = "";
-  endif
-  desc.name = tolower (desc.name);
-
-endfunction
-
-
-function valid = is_valid_pkg_version_string (str)
-  ## We are limiting ourselves to this set of characters because the
-  ## version will appear on the filepath.  The portable character, according to
-  ## http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_278
-  ## is [A-Za-z0-9\.\_\-].  However, this is very limited.  We specially
-  ## want to support a "+" so we can support "pkgname-2.1.0+" during
-  ## development.  So we use Debian's character set for version strings
-  ## https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
-  ## with the exception of ":" (colon) because that's the PATH separator.
-  ##
-  ## Debian does not include "_" because it is used to separate the name,
-  ## version, and arch in their deb files.  While the actual filenames are
-  ## never parsed to get that information, it is important to have a unique
-  ## separator character to prevent filename clashes.  For example, if we
-  ## used hyhen as separator, "signal-2-1-rc1" could be "signal-2" version
-  ## "1-rc1" or "signal" version "2-1-rc1".  A package file for both must be
-  ## able to co-exist in the same directory, e.g., during package install or
-  ## in a flat level package repository.
-  valid = numel (regexp (str, '[^0-9a-zA-Z\.\+\-\~]')) == 0;
-endfunction
-
-function bad_deps = get_unsatisfied_deps (desc, installed_pkgs_lst)
-
-  bad_deps = {};
-
-  ## For each dependency.
-  for i = 1:length (desc.depends)
-    dep = desc.depends{i};
-
-    ## Is the current dependency Octave?
-    if (strcmp (dep.package, "octave"))
-      if (! compare_versions (OCTAVE_VERSION, dep.version, dep.operator))
-        bad_deps{end+1} = dep;
-      endif
-      ## Is the current dependency not Octave?
-    else
-      ok = false;
-      for i = 1:length (installed_pkgs_lst)
-        cur_name = installed_pkgs_lst{i}.name;
-        cur_version = installed_pkgs_lst{i}.version;
-        if (strcmp (dep.package, cur_name)
-            && compare_versions (cur_version, dep.version, dep.operator))
-          ok = true;
-          break;
-        endif
-      endfor
-      if (! ok)
-        bad_deps{end+1} = dep;
-      endif
-    endif
-  endfor
-endfunction
-
-function arch = getarch ()
-  persistent _arch = [__octave_config_info__("canonical_host_type"), "-", ...
-                      __octave_config_info__("api_version")];
-
-  arch = _arch;
-endfunction
-
-function archdir = getarchdir (desc)
-  archdir = fullfile (desc.archprefix, getarch ());
-endfunction
-
-function emp = dirempty (nm, ign)
-  if (isfolder (nm))
-    if (nargin < 2)
-      ign = {".", ".."};
-    else
-      ign = [{".", ".."}, ign];
-    endif
-    l = dir (nm);
-    for i = 1:length (l)
-      found = false;
-      for j = 1:length (ign)
-        if (strcmp (l(i).name, ign{j}))
-          found = true;
-          break;
-        endif
-      endfor
-      if (! found)
-        emp = false;
-        return;
-      endif
-    endfor
-    emp = true;
-  else
-    emp = true;
-  endif
+  kids = packajoozle.internal.Util.readdir (path);
+  found = setdiff (kids, ignore_files);
+  tf = ! isempty (found);
 endfunction
 
 function newdesc = save_order (desc)
