@@ -38,6 +38,7 @@ classdef Util
       endif
     endfunction
 
+    
     function filewrite (out_file, txt)
       [fid, msg] = fopen (out_file, 'w');
       if fid < 0
@@ -77,6 +78,25 @@ classdef Util
         error ("urlread: Failed downloading URL:\n  URL: %s\n  Error: %s", ...
           url, msg);
       endif
+    endfunction
+
+    function movefile (f1, f2, varargin)
+      [ok, msg, msgid] = movefile (f1, f2, varargin{:});
+      if ! ok
+        error ("movefile: Failed moving '%s' to '%s': %s", f1, f2, msg);
+      endif
+    endfunction
+
+    function mkdir (path)
+      [ok, msg] = mkdir (path);
+      if ! ok
+        error ("mkdir: Could not create directory %s: %s", path, msg);
+      endif
+    endfunction
+
+    function out = readdir (path)
+      out = readdir (path);
+      out(ismember (out, {'.', '..'})) = [];
     endfunction
 
   endmethods

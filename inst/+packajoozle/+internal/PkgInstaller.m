@@ -28,7 +28,7 @@
 classdef PkgInstaller
 
   properties
-    
+    forge = packajoozle.internal.OctaveForgeClient
   endproperties
 
   methods
@@ -39,7 +39,28 @@ classdef PkgInstaller
       endif
     endfunction
 
-    function out = install_forge (this, varargin)
+    function valid = is_valid_pkg_version_string (this, str)
+      ## We are limiting ourselves to this set of characters because the
+      ## version will appear on the filepath.  The portable character, according to
+      ## http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_278
+      ## is [A-Za-z0-9\.\_\-].  However, this is very limited.  We specially
+      ## want to support a "+" so we can support "pkgname-2.1.0+" during
+      ## development.  So we use Debian's character set for version strings
+      ## https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+      ## with the exception of ":" (colon) because that's the PATH separator.
+      ##
+      ## Debian does not include "_" because it is used to separate the name,
+      ## version, and arch in their deb files.  While the actual filenames are
+      ## never parsed to get that information, it is important to have a unique
+      ## separator character to prevent filename clashes.  For example, if we
+      ## used hyhen as separator, "signal-2-1-rc1" could be "signal-2" version
+      ## "1-rc1" or "signal" version "2-1-rc1".  A package file for both must be
+      ## able to co-exist in the same directory, e.g., during package install or
+      ## in a flat level package repository.
+      valid = numel (regexp (str, '[^0-9a-zA-Z\.\+\-\~]')) == 0;
+    endfunction
+
+    function out = pkg_install_forge_pkg (this, varargin)
       %INSTALL Replacement for `pkg -forge install`
       %
       % Returns a result code instead of throwing errors in the case of some
@@ -51,8 +72,112 @@ classdef PkgInstaller
       args = cellstr (varargin);
       install_args = [{"install" "-forge"} args];
       say ("%s", strjoin (install_args, ' '));
-      result = pkg_install (install_args{:});
+      result = pkg_install_forge (install_args{:});
       out = result;
+    endfunction
+
+    function out = install_forge_pkg (this, pkg)
+      % pkgs may be a package name, or a packajoozle.internal.PkgVerSpec.
+      % If just a name is given, the latest version of the package is installed.
+      if ischar (pkg)
+        pkg = this.forge.resolve_latest_version (pkg);
+      endif
+      mustBeA (pkg, "packajoozle.internal.PkgVerSpec");
+      
+      dist_tgz = this.forge.download_cached_pkg_distribution (pkg);
+
+      # Do the installation
+    endfunction
+
+    function out = install_pkg_from_file (this, file, prefix)
+      if (! isfolder (prefix))
+        packajoozle.internal.Util.mkdir (prefix);
+      endif
+
+      # Remove existing installation of same pkg/ver
+
+    endfunction
+
+    function out = get_pkg_description_from_file (this, file)
+      tmp_dir = tempname (tempdir, "packajoozle-work-");
+      packajoozle.internal.Util.mkdir (tmp_dir);
+      untar (file, tmp_dir);
+      kids = packajoozle.internal.Util.readdir (tmp_dir);
+      if numel (kids) > 1
+        error ("PkgInstaller: Multiple top-level directories found in pkg file: %s", file);
+      endif
+      subdir = fullfile (tmp_dir, kids{1});
+      descr_file = fullfile (subdir, "DESCRIPTION");
+      if ! exist (descr_file, "file")
+        error ("PkgInstaller: Pkg file does not contain a DESCRIPTION file: %s", file);
+      endif
+      descr_txt = fileread (descr_file);
+      out = this.parse_pkg_description_file (descr_txt);
+    endfunction
+
+    function out = parse_pkg_description_file (this, descr_txt)
+      desc = struct ();
+
+      lines = regexp (descr_txt, "\r?\n", "split");
+      if isempty (lines{end})
+        lines(end) = [];
+      endif
+
+      for i = 1:numel (lines)
+        line = chomp (lines{i});
+        if isempty (line)
+          ## Ignore empty lines
+        elseif (line(1) == "#")
+          ## Comments, do nothing.
+        elseif (isspace (line(1)))
+          ## Continuation lines
+          if (exist ("keyword", "var") && isfield (desc, keyword))
+            desc.(keyword) = [desc.(keyword) " " deblank(line)];
+          endif
+        else
+          ## Keyword/value pair
+          colon = find (line == ":");
+          if (length (colon) == 0)
+            warning ("pkg: skipping invalid line %d in DESCRIPTION file: '%s'", i, line);
+          else
+            colon = colon(1);
+            keyword = tolower (strtrim (line(1:colon-1)));
+            value = strtrim (line (colon+1:end));
+            if (length (value) == 0)
+                fclose (fid);
+                error ("PkgInstaller: The keyword '%s' of the package '%s' has an empty value",
+                        keyword, desc.name);
+            endif
+            if (isfield (desc, keyword))
+              warning ("PkgInstaller: duplicate keyword '%s' in DESCRIPTION, ignoring",
+                       keyword);
+            else
+              desc.(keyword) = value;
+            endif
+          endif
+        endif
+      endfor
+
+      ## Make sure all is okay.
+      needed_fields = {"name", "version", "date", "title", ...
+                       "author", "maintainer", "description"};
+      for f = needed_fields
+        if (! isfield (desc, f{1}))
+          error ("PkgInstaller: DESCRIPTION is missing needed field %s", f{1});
+        endif
+      endfor
+
+      if (! this.is_valid_pkg_version_string (desc.version))
+        error ("PkgInstaller: invalid version string '%s'", desc.version);
+      endif
+
+      if (isfield (desc, "depends"))
+        desc.depends = fix_depends (desc.depends);
+      else
+        desc.depends = "";
+      endif
+      desc.name = tolower (desc.name);
+      out = desc;
     endfunction
 
   endmethods
@@ -64,12 +189,66 @@ function say (varargin)
   flush_diary
 endfunction
 
+function out = chomp (str)
+  out = regexprep (str, "\r?\n$", "");
+endfunction
+
 % ======================================================
 %
 % Code copied from Octave's pkg/pkg.m
 
-function out = pkg_install (varargin)
+## Make sure the depends field is of the right format.
+## This function returns a cell of structures with the following fields:
+##   package, version, operator
+function deps_cell = fix_depends (depends)
+
+  deps = strtrim (ostrsplit (tolower (depends), ","));
+  deps_cell = cell (1, length (deps));
+  dep_pat = ...
+  '\s*(?<name>[-\w]+)\s*(\(\s*(?<op>[<>=]+)\s*(?<ver>\d+\.\d+(\.\d+)*)\s*\))*\s*';
+
+  ## For each dependency.
+  for i = 1:length (deps)
+    dep = deps{i};
+    [start, nm] = regexp (dep, dep_pat, 'start', 'names');
+    ## Is the dependency specified
+    ## in the correct format?
+    if (! isempty (start))
+      package = tolower (strtrim (nm.name));
+      ## Does the dependency specify a version
+      ## Example: package(>= version).
+      if (! isempty (nm.ver))
+        operator = nm.op;
+        if (! any (strcmp (operator, {">", ">=", "<=", "<", "=="})))
+          error ("PkgInstaller: unsupported operator in dependency: %s", operator);
+        endif
+        if (! is_valid_pkg_version_string (nm.ver))
+          error ("PkgInstaller: invalid version string in dependency: '%s'", nm.ver);
+        endif
+      else
+        ## If no version is specified for the dependency
+        ## we say that the version should be greater than
+        ## or equal to "0.0.0".
+        package = tolower (strtrim (dep));
+        operator = ">=";
+        nm.ver  = "0.0.0";
+      endif
+      deps_cell{i} = struct ("package", package,
+                             "operator", operator,
+                             "version", nm.ver);
+    else
+      error ("PkgInstaller: incorrect syntax for dependency '%s' in the DESCRIPTION file\n",
+             dep);
+    endif
+  endfor
+
+endfunction
+
+function out = pkg_install_forge (varargin)
   % Parse inputs
+
+  forge = packajoozle.internal.OctaveForgeClient;
+
   ## Installation prefix (FIXME: what should these be on windows?)
   persistent user_prefix = false;
   persistent prefix = false;
@@ -154,8 +333,13 @@ function out = pkg_install (varargin)
   local_files = {};
   tmp_dir = tempname ();
   unwind_protect
-    [urls, local_files] = cellfun ("get_cached_forge_download", files,
-                                   "uniformoutput", false);
+    local_files = cell (size (files));
+    for i = 1:numel (files)
+      pkg_name = files{i};
+      ver = forge.get_current_pkg_version (pkg_name);
+      pkg_ver = packajoozle.internal.PkgVerSpec (pkg_name, ver);
+      local_files{i} = forge.download_cached_pkg_distribution (pkg_ver);
+    endfor
     rslt = install_private_impl (local_files, deps, prefix, archprefix, verbose, local_list,
              global_list, global_install);
     out.log_dirs = rslt.log_dirs;
@@ -1412,53 +1596,6 @@ function desc = get_description (filename)
 
 endfunction
 
-
-## Make sure the depends field is of the right format.
-## This function returns a cell of structures with the following fields:
-##   package, version, operator
-function deps_cell = fix_depends (depends)
-
-  deps = strtrim (ostrsplit (tolower (depends), ","));
-  deps_cell = cell (1, length (deps));
-  dep_pat = ...
-  '\s*(?<name>[-\w]+)\s*(\(\s*(?<op>[<>=]+)\s*(?<ver>\d+\.\d+(\.\d+)*)\s*\))*\s*';
-
-  ## For each dependency.
-  for i = 1:length (deps)
-    dep = deps{i};
-    [start, nm] = regexp (dep, dep_pat, 'start', 'names');
-    ## Is the dependency specified
-    ## in the correct format?
-    if (! isempty (start))
-      package = tolower (strtrim (nm.name));
-      ## Does the dependency specify a version
-      ## Example: package(>= version).
-      if (! isempty (nm.ver))
-        operator = nm.op;
-        if (! any (strcmp (operator, {">", ">=", "<=", "<", "=="})))
-          error ("unsupported operator: %s", operator);
-        endif
-        if (! is_valid_pkg_version_string (nm.ver))
-          error ("invalid dependency version string '%s'", nm.ver);
-        endif
-      else
-        ## If no version is specified for the dependency
-        ## we say that the version should be greater than
-        ## or equal to "0.0.0".
-        package = tolower (strtrim (dep));
-        operator = ">=";
-        nm.ver  = "0.0.0";
-      endif
-      deps_cell{i} = struct ("package", package,
-                             "operator", operator,
-                             "version", nm.ver);
-    else
-      error ("incorrect syntax for dependency '%s' in the DESCRIPTION file\n",
-             dep);
-    endif
-  endfor
-
-endfunction
 
 function valid = is_valid_pkg_version_string (str)
   ## We are limiting ourselves to this set of characters because the

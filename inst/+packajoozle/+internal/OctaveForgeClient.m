@@ -78,7 +78,7 @@ classdef OctaveForgeClient
     endfunction
 
     function cached_file = download_cached_meta_file (this, tag, url)
-      cache_dir = fullfile (this.download_cache_dir, "forge", "meta");
+      cache_dir = fullfile (this.download_cache_dir, "meta");
       cached_file = fullfile (cache_dir, tag);
       if exist (cached_file, "file")
         [st, err, msg] = stat (cached_file);
@@ -95,6 +95,20 @@ classdef OctaveForgeClient
       # Cache miss
       mkdir (cache_dir);
       packajoozle.internal.Util.urlwrite (url, cached_file);
+    endfunction
+
+    function cached_file = download_cached_pkg_distribution (this, pkg)
+      mustBeA (pkg, "packajoozle.internal.PkgVerSpec")
+      tgz_file = sprintf ("%s-%s.tar.gz", pkg.name, char (pkg.version));
+      url = [this.forge_url "/download/" tgz_file];
+      cache_dir = fullfile (this.download_cache_dir, "distributions");
+      cached_file = fullfile (cache_dir, tgz_file);
+      if exist (cached_file, "file")
+        return
+      endif
+      tmp_file = [cached_file ".download.tmp"];
+      packajoozle.internal.Util.urlwrite (url, tmp_file);
+      packajoozle.internal.Util.movefile (tmp_file, cached_file);
     endfunction
 
     function out = get_current_pkg_version (this, pkg_name)
@@ -117,6 +131,11 @@ classdef OctaveForgeClient
         ver = t{1}{1};
       endif
       out = ver;
+    endfunction
+
+    function out = resolve_latest_version (this, pkg_name)
+      ver = this.get_current_pkg_version (pkg_name);
+      out = packajoozle.internal.PkgVerSpec (pkg_name, ver);
     endfunction
 
   endmethods
