@@ -58,6 +58,11 @@ classdef InstallDir
       out.package_list_var_name = "global_packages";
     endfunction
 
+    function out = get_all_installdirs ()
+      out = [packajoozle.internal.InstallDir.get_user_installdir ...
+        packajoozle.internal.InstallDir.get_global_installdir];
+    endfunction
+
   endmethods
 
   methods
@@ -76,6 +81,11 @@ classdef InstallDir
       this.prefix = prefix;
       this.arch_prefix = arch_prefix;
     endfunction
+
+    function out = get.pkg_list_file (this)
+      out = fullfile (this.meta_dir, "octave_packages");
+    endfunction
+    
 
     function out = is_installed (this, pkgver)
       inst_dir = this.install_path_for_pkg (pkgver);
@@ -110,20 +120,53 @@ classdef InstallDir
     endfunction
 
     function out = get_package_list (this)
-      pkg_list_file = fullfile (this.meta_dir, "octave_packages");
-      out = load (pkg_list_file);
+      out = load (this.pkg_list_file);
       out = out.(this.package_list_var_name);
     endfunction
     
     function record_installed_package (this, desc, target)
-      pkg_list_file = fullfile (this.meta_dir, "octave_packages");
       desc.dir = target.dir;
       desc.archprefix = target.arch_dir;
       list = this.get_package_list;
       new_list = normalize_desc_save_order ([list desc]);
-      s = struct (this.package_list_var_name, new_list);
-      save (pkg_list_file, "-struct", "s");
+      this.save_pkg_list_to_file (new_list);
     endfunction
+
+    function record_uninstalled_package (this, pkgver)
+      list = this.get_package_list;
+      ix_to_delete = [];
+      for i = 1:numel (list)
+        ref = packajoozle.internal.PkgVer (list(i).name, list(i).version);
+        if ref == pkgver
+          ix_to_delete(end+1) = i;
+        endif
+      endfor
+      if ! isempty (ix_to_delete)
+        list(ix_to_delete) = [];
+        this.save_pkg_list_to_file (list);
+      endif
+    endfunction
+
+    function save_pkg_list_to_file (this, list)
+      s = struct (this.package_list_var_name, new_list);
+      packajoozle.internal.Util.mkdir (this.meta_dir);
+      save (this.pkg_list_file, "-struct", "s");
+    endfunction
+
+    function out = is_installed (this, pkgver)
+      #TODO: This should probably use the package index instead
+      target = this.install_paths_for_pkg (pkgver);
+      out = exist (target.dir, "dir");
+    endfunction
+
+    function out = installed_packages (this)
+      list = this.get_package_list;
+      out = [];
+      for i = 1:numel (list)
+        out(end+1) = packajoozle.internal.PkgVer (list(i).name, list(i).version);
+      endfor
+    endfunction
+    
   endmethods
 
 endclassdef

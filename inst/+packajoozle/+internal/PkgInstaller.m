@@ -298,6 +298,75 @@ classdef PkgInstaller
       out = desc;
     endfunction
 
+    function out = all_installed_packages (this)
+      inst_dirs = packajoozle.internal.InstallDir.get_all_installdirs;
+      out = [];
+      for i = 1:numel (inst_dirs)
+        out = [out inst_dirs(i).installed_packages];
+      endfor
+    endfunction
+    
+    function uninstall_all_versions (this, pkg_name)
+    endfunction
+
+    function uninstall (this, pkgvers)
+
+      # TODO: Check dependencies
+      # Calculate remaining installed packages and see that their deps are still
+      # satisfied
+
+      # If we're clear to proceed:
+      for i = 1:numel (pkgvers)
+        this.uninstall_one (pkgvers(i));
+      endfor
+    endfunction
+
+    function uninstall_one (this, pkgver)
+      %UNINSTALL_ONE Uninstall a package from wherever it is installed
+      mustBeA (pkgver, "packajoozle.internal.PkgVer");
+      mustBeScalar (pkgver);
+
+      inst_dirs = packajoozle.internal.InstallDir.get_all_installdirs;
+
+      found = false;
+      for i_inst_dir = 1:numel (inst_dirs)
+        inst_dir = inst_dirs(i);
+        if inst_dir.is_installed (pkgver)
+          #TODO: Get desc for installed package
+          target = inst_dir.install_paths_for_pkg (pkgver);
+
+          # Run pre-uninstall hooks
+          if exist (fullfile (target.dir, "packinfo", "on_uninstall.m"), "file")
+            orig_pwd = pwd;
+            try
+              cd (fullfile (target.dir, "packinfo"));
+              on_uninstall (desc);
+              cd (orig_pwd);
+            catch err
+              cd (orig_pwd);
+              error ("Error while running on_uninstall hook for %s: %s", ...
+                char (pkgver), err.message);
+            end_try_catch
+          endif
+
+          # Delete package installation directories
+          if ! isfolder (target.dir)
+            warning ("PkgInstaller: directory %s previously lost; marking %s as uninstalled", ...
+             target.dir, char (pkgver));
+          endif
+          packajoozle.internal.Util.rm_rf (target.arch_dir);
+          packajoozle.internal.Util.rm_rf (target.dir);
+
+          # Update package index
+          inst_dir.record_uninstalled_package (pkgver);
+        endif
+      endfor
+
+      if ! found
+        error ("PkgInstaller: package %s is not installed", char (pkgver));
+      endif
+    endfunction
+    
   endmethods
 
 endclassdef
@@ -1122,131 +1191,3 @@ function tf = dirempty (path, ignore_files)
   tf = ! isempty (found);
 endfunction
 
-function uninstall (pkgnames, handle_deps, verbose, local_list,
-                    global_list, global_install)
-
-  ## Get the list of installed packages.
-  [local_packages, global_packages] = installed_packages(local_list,
-                                                         global_list);
-  if (global_install)
-    installed_pkgs_lst = {local_packages{:}, global_packages{:}};
-  else
-    installed_pkgs_lst = local_packages;
-  endif
-
-  num_packages = length (installed_pkgs_lst);
-  delete_idx = [];
-  for i = 1:num_packages
-    cur_name = installed_pkgs_lst{i}.name;
-    if (any (strcmp (cur_name, pkgnames)))
-      delete_idx(end+1) = i;
-    endif
-  endfor
-
-  ## Are all the packages that should be uninstalled already installed?
-  if (length (delete_idx) != length (pkgnames))
-    if (global_install)
-      ## Try again for a locally installed package.
-      installed_pkgs_lst = local_packages;
-
-      num_packages = length (installed_pkgs_lst);
-      delete_idx = [];
-      for i = 1:num_packages
-        cur_name = installed_pkgs_lst{i}.name;
-        if (any (strcmp (cur_name, pkgnames)))
-          delete_idx(end+1) = i;
-        endif
-      endfor
-      if (length (delete_idx) != length (pkgnames))
-        ## FIXME: We should have a better error message.
-        warning ("some of the packages you want to uninstall are not installed");
-      endif
-    else
-      ## FIXME: We should have a better error message.
-      warning ("some of the packages you want to uninstall are not installed");
-    endif
-  endif
-
-  if (isempty (delete_idx))
-    warning ("no packages will be uninstalled");
-  else
-
-    ## Compute the packages that will remain installed.
-    idx = setdiff (1:num_packages, delete_idx);
-    remaining_packages = {installed_pkgs_lst{idx}};
-
-    ## Check dependencies.
-    if (handle_deps)
-      error_text = "";
-      for i = 1:length (remaining_packages)
-        desc = remaining_packages{i};
-        bad_deps = get_unsatisfied_deps (desc, remaining_packages);
-
-        ## Will the uninstallation break any dependencies?
-        if (! isempty (bad_deps))
-          for i = 1:length (bad_deps)
-            dep = bad_deps{i};
-            error_text = [error_text " " desc.name " needs " ...
-                          dep.package " " dep.operator " " dep.version "\n"];
-          endfor
-        endif
-      endfor
-
-      if (! isempty (error_text))
-        error ("the following dependencies where unsatisfied:\n  %s", error_text);
-      endif
-    endif
-
-    ## Delete the directories containing the packages.
-    for i = delete_idx
-      desc = installed_pkgs_lst{i};
-      ## If an 'on_uninstall.m' exist, call it!
-      if (exist (fullfile (desc.dir, "packinfo", "on_uninstall.m"), "file"))
-        wd = pwd ();
-        cd (fullfile (desc.dir, "packinfo"));
-        on_uninstall (desc);
-        cd (wd);
-      endif
-      ## Do the actual deletion.
-      if (desc.loaded)
-        rmpath (desc.dir);
-        if (isfolder (getarchdir (desc)))
-          rmpath (getarchdir (desc));
-        endif
-      endif
-      if (isfolder (desc.dir))
-        [status, msg] = rmdir (desc.dir, "s");
-        if (status != 1 && isfolder (desc.dir))
-          error ("couldn't delete directory %s: %s", desc.dir, msg);
-        endif
-        [status, msg] = rmdir (getarchdir (desc), "s");
-        if (status != 1 && isfolder (getarchdir (desc)))
-          error ("couldn't delete directory %s: %s", getarchdir (desc), msg);
-        endif
-        if (dirempty (desc.archprefix))
-          rmdir (desc.archprefix, "s");
-        endif
-      else
-        warning ("directory %s previously lost", desc.dir);
-      endif
-    endfor
-
-    ## Write a new ~/.octave_packages.
-    if (global_install)
-      if (length (remaining_packages) == 0)
-        unlink (global_list);
-      else
-        global_packages = save_order (remaining_packages);
-        save (global_list, "global_packages");
-      endif
-    else
-      if (length (remaining_packages) == 0)
-        unlink (local_list);
-      else
-        local_packages = save_order (remaining_packages);
-        save (local_list, "local_packages");
-      endif
-    endif
-  endif
-
-endfunction
