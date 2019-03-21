@@ -81,6 +81,11 @@ This means that if you install multiple versions of a single package using `pkj`
 But then if you install a package using `pkg` (or do something else that causes it to update the package index file), `pkg` will wipe out all the “duplicate” old versions of the package, leaving only the latest version.
 The older versions of the package will then disappear to both `pkg` and `pkj`.
 
+Packajoozle uses a superset of the Octave Forge metadata that `pkg` does.
+Generally, they will see the same state of Octave Forge; it’s just that `pkj` knows more details about it, like full listings of versions for a given Forge package.
+Also, `pkj` does caching, so it may take a couple hours for Octave Forge updates to make their way down to `pkj` clients.
+But that shouldn’t be a big deal, given how seldom Octave Forge packages receive updates.
+
 ## Requirements
 
 * Octave 4.4.0 or newer
