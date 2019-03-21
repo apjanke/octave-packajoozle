@@ -44,6 +44,10 @@ Examples:
 
 When you have multiple versions of a package installed, the same version selectors can be used with `pkj load` to choose which one gets loaded.
 
+When you use `<` or `>` selectors instead of a specific version for `install` or `load`, `pkj` will choose the most recent version that meets all your specified criteria.
+For example, if you did `pkj install -forge io@<1.2`, it would pick `forge`
+1.0.20, because that’s the most recent version that is still less than 1.2.0.
+
 ### Things to try
 
 Here’s some stuff Packajoozle can do.
