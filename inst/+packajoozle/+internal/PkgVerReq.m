@@ -85,14 +85,7 @@ classdef PkgVerReq
       for i = 1:numel (pkg_specs)
         p = pkg_specs(i);
         if isequal (this.package, p.name)
-          all_filters_matched = true;
-          for i = 1:numel (this.ver_filters)
-            if ! this.ver_filters(i).matches (p.version)
-              all_filters_matched = false;
-              break;
-            endif
-          endfor
-          out(i) = all_filters_matched;
+          out(i) = this.ver_filters.matches (p.version);
         endif
       endfor
     endfunction

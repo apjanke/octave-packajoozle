@@ -46,7 +46,7 @@ classdef PkgManager
         if numel (ix) > 1
           error ("Too many @s in target: '%s'", str);
         endif
-        pkg_name = str(1:ix);
+        pkg_name = str(1:ix-1);
         ver_filter_str = str(ix+1:end);
         ver_filter = packajoozle.internal.VerFilter.parse_ver_filter (ver_filter_str);
         out = packajoozle.internal.PkgVerReq (pkg_name, ver_filter);
@@ -101,16 +101,24 @@ classdef PkgManager
       if nargin < 3; inst_dir = []; endif
       inst_dir = this.resolve_installdir (inst_dir);
 
-      # TODO: Resolve dependencies
-      # Consider all packages to be installed
-
+      # Resolve requests
+      c = cell (size (pkgreqs));
       for i = 1:numel (pkgreqs)
         # For now, just install the latest version of each one
         req = pkgreqs(i);
-        #TODO: Actually respect the version filter
-        pkgver = this.forge.resolve_latest_version (req.package);
+        c{i} = this.forge.resolve_latest_version (req);
+      endfor
+      pkgvers = packajoozle.internal.Util.objcat (c{:});
+
+      # TODO: Resolve dependencies
+      # Consider all packages to be installed
+
+      # Install selected packages
+      for i = 1:numel (pkgvers)
+        pkgver = pkgvers(i);
         this.install_forge_pkg_single (pkgver);
       endfor
+
     endfunction
 
     function out = install_file_pkgs (this, files, inst_dir)
@@ -132,16 +140,29 @@ classdef PkgManager
       mustBeA (pkgver, "packajoozle.internal.PkgVer");
       
       dist_tgz = this.forge.download_cached_pkg_distribution (pkgver);
-      this.install_pkg_from_file (dist_tgz);
+      out = this.install_pkg_from_file_impl (dist_tgz);
+
+      printf ("Installed %s from Octave Forge to %s pkg dir\n", ...
+        char (pkgver), inst_dir.tag);
     endfunction
 
     function out = install_pkg_from_file (this, file, inst_dir)
+      if nargin < 3; inst_dir = []; endif
+      inst_dir = this.resolve_installdir (inst_dir);
+      rslt = this.install_pkg_from_file_impl (file, inst_dir);
+      printf ("Installed %s %s from %s to %s pkg dir\n", ...
+        char (rslt.pkgver), file, inst_dir.tag);
+      out = rslt;
+    endfunction
+
+    function out = install_pkg_from_file_impl (this, file, inst_dir)
       if nargin < 3; inst_dir = []; endif
       inst_dir = this.resolve_installdir (inst_dir);
 
       # Remove existing installation of same pkg/ver
       info = this.get_pkg_description_from_pkg_file (file);
       pkgver = packajoozle.internal.PkgVer (info.name, info.version);
+      out.pkgver = pkgver;
       if inst_dir.is_installed (pkgver)
         error ("PkgManager: already installed: %s", char (pkgver));
       endif
@@ -228,7 +249,6 @@ classdef PkgManager
 
       # Give notifications to user
 
-      printf ("Installed %s to %s / %s\n", desc.name, target.dir, target.arch_dir);
       news_file = fullfile (target.dir, "packinfo", "NEWS");
       if exist (news_file, "file")
         printf (["For information about changes from previous versions " ...
@@ -246,9 +266,8 @@ classdef PkgManager
       endif
     endfunction
 
-    function bad_deps = get_unsatisfied_deps_from_desc (this, desc)
+    function out = get_unsatisfied_deps_from_desc (this, desc)
       bad_deps = {};
-
       installed = this.all_installed_packages;
       for i = 1:numel (desc.depends)
         dep = desc.depends{i};
@@ -264,6 +283,7 @@ classdef PkgManager
           endif
         endif
       endfor
+      out = packajoozle.internal.Util.objcat (bad_deps{:});
     endfunction
 
     function out = get_pkg_description_from_pkg_file (this, file)

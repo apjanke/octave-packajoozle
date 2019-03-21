@@ -175,8 +175,8 @@ classdef InstallDir
 
     function out = is_installed (this, pkgver)
       #TODO: This should probably use the package index instead
-      target = this.install_paths_for_pkg (pkgver);
-      out = exist (target.dir, "dir");
+      installed = this.get_package_list;
+      out = ismember (pkgver, installed);
     endfunction
     
     function out = list_packages_matching (this, pkgreqs)
@@ -202,41 +202,43 @@ endfunction
 
 function out = normalize_desc_save_order (descs)
   newdesc = {};
-  for i = 1 : length (desc)
-    deps = desc{i}.depends;
+  for i = 1 : length (descs)
+    desc = descs{i};
+    deps = desc.depends;
     if (isempty (deps)
         || (length (deps) == 1 && strcmp (deps{1}.package, "octave")))
-      newdesc{end + 1} = desc{i};
+      newdesc{end + 1} = desc;
     else
       tmpdesc = {};
       for k = 1 : length (deps)
-        for j = 1 : length (desc)
+        for j = 1 : length (descs)
           if (strcmp (desc{j}.name, deps{k}.package))
-            tmpdesc{end+1} = desc{j};
+            tmpdesc{end+1} = descs{j};
             break;
           endif
         endfor
       endfor
       if (! isempty (tmpdesc))
-        newdesc = {newdesc{:}, save_order(tmpdesc){:}, desc{i}};
+        newdesc = {newdesc{:}, save_order(tmpdesc){:}, desc};
       else
-        newdesc{end+1} = desc{i};
+        newdesc{end+1} = desc;
       endif
     endif
   endfor
 
   ## Eliminate the duplicates.
-  ## TODO: This currently ignores versions. When we add multi-version
-  ## support, it should respect versions.
   idx = [];
   for i = 1 : length (newdesc)
     for j = (i + 1) : length (newdesc)
-      if (strcmp (newdesc{i}.name, newdesc{j}.name))
+      if isequal (packajoozle.internal.PkgVer (newdesc{i}.name, newdesc{i}.version), ...
+        packajoozle.internal.PkgVer (newdesc{j}.name, newdesc{j}.version))
         idx(end + 1) = j;
       endif
     endfor
   endfor
   newdesc(idx) = [];
+
+  out = newdesc;
 endfunction
 
 function out = file_is_zero_bytes (file)

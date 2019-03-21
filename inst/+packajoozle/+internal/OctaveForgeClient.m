@@ -132,15 +132,65 @@ classdef OctaveForgeClient
       out = ver;
     endfunction
 
-    function out = resolve_latest_version (this, pkg_name)
-      ver = this.get_current_pkg_version (pkg_name);
-      out = packajoozle.internal.PkgVer (pkg_name, ver);
+    function out = get_latest_matching_pkg_version (this, pkgreq)
+      avail = this.list_all_releases;
+      ix = strcmp (avail.package, pkgreq.package);
+      vers = avail.version(ix);
+      tf = pkgreq.ver_filters.matches (vers);
+      match_vers = vers(tf);
+      if isempty (match_vers)
+        out = [];
+      else
+        out = max (match_vers);
+      endif
+    endfunction
+    
+
+    function out = list_all_package_distribution_files (this)
+      file = this.download_cached_meta_file ('package-file-download-page.html', ...
+        'https://sourceforge.net/projects/octave/files/Octave%20Forge%20Packages/Individual%20Package%20Releases');
+      html = fileread (file);
+      # Here's a JSON representation of all the files, but we can't use it yet because Octave
+      # doesn't have JSON support
+      pat = '<script>\s+net\.sf\.files = (.*?)\s*net.sf.staging_days';
+      [ix, str, tok] = regexp(html, pat, 'start', 'match', 'tokens');
+      # So scrape the HTML itself
+      pat = '<tr\s+title="(.*?\.tar\.gz)"\s+class="file';
+      [ix, m, tok] = regexp(html, pat, 'start', 'match', 'tokens');
+      if isempty (ix)
+        error ("OctaveForgeClient: failed parsing file list web page");
+      endif
+      files = cat(1, tok{:});
+      out = files;
+    endfunction
+
+    function out = list_versions_for_package (this, pkg_name)
+      meta = this.list_all_releases;
+      ix = strcmp (meta.package, pkg_name);
+      vers = meta.version(ix);
+      out = vers;
+    endfunction
+    
+
+    function out = resolve_latest_version (this, pkg_req)
+      ver = this.get_latest_matching_pkg_version (pkg_req);
+      out = packajoozle.internal.PkgVer (pkg_req.package, ver);
     endfunction
 
     function out = list_forge_package_names (this)
       # Just a name list, returned as a cellstr
       txt = packajoozle.internal.Util.urlread ([this.forge_url "/list_packages.php"]);
       out = ostrsplit (txt, " \n\t", true);
+    endfunction
+
+    function out = list_all_releases (this)
+      dist_files = this.list_all_package_distribution_files;
+      [ix, tok] = regexp (dist_files, '^(.*)-(.*)\.tar\.gz$', 'start', 'tokens');
+      tok = cat(1, tok{:});
+      tok = cat(1, tok{:});
+      out.package = tok(:,1);
+      out.version_str = tok(:,2);
+      out.version = packajoozle.internal.Version.parse_versions (out.version_str);
     endfunction
 
     function out = list_forge_packages_with_meta (this)

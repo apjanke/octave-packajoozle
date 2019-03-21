@@ -80,6 +80,18 @@ classdef PkgVer
       out = strs{1};
     endfunction
 
+    function out = ismember (a, b)
+      out = false (size (a));
+      for i_a = 1:numel (a)
+        for i_b = 1:numel (b)
+          if a(i_a) == b(i_b)
+            out(i_a) = true;
+            break;
+          endif
+        endfor
+      endfor
+    endfunction
+
   endmethods
 
 endclassdef
