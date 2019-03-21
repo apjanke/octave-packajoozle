@@ -29,6 +29,10 @@ Compared to Octave’s `pkg`, Packajoozle’s `pkj` also provides:
 Use the `pkj` function like you would Octave’s `pkg` function.
 That's Packajoozle's version of it.
 
+See `help pkj` for details.
+Though the help and documentation is pretty lacking right now.
+Sorry about that.
+
 `pkj` supports additional features:
 
 ### Versioned installation
