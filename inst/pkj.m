@@ -81,9 +81,9 @@
 ##
 ## @example
 ## pkj install -forge io
-## pkj install -forge io@2.4.9
-## pkj install -forge symbolic@<=2.6.5
-## pkj install -forge io statistics financial@0.5.1
+## pkj install -forge io@@2.4.9
+## pkj install -forge symbolic@@<=2.6.5
+## pkj install -forge io statistics financial@@0.5.1
 ## @end example
 ##
 ## @emph{Security risk}: no verification of the package is performed
