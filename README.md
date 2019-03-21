@@ -4,7 +4,7 @@ Packajoozle for GNU Octave
 Packajoozle is a re-factoring/re-working of Octave’s `pkg` package management tool to use OOP. It provides the `pkj` command, a drop-in replacement for `pkg`.
 
 I’m just doing this as a fun exercise.
-I don’t plan on submitting this back up for inclusion in Octave.
+I don’t plan on submitting this back up for inclusion in core Octave.
 
 ## New features
 
@@ -61,6 +61,20 @@ pkj list -forge -listversions statistics
 pkj install -forge statistics@1.4.0 statistics@1.3.0 statistics@1.2.4
 pkj load statistics@1.3.0
 ```
+
+## Compatibility with Octave `pkg`
+
+Packajoozle `pkj` is pretty well compatible with `pkg`.
+
+The `pkj` command is back-compatible with the `pkg` command. Generally, any `pkg ...` command you run will do the same thing when you run it as `pkj ...` instead.
+It’s just that `pkj` supports more commands, options, and package specifier forms over and above what `pkg` does, so more things will work in `pkj` than `pkg`.
+
+Packajoozle uses the same package directory structure, installation locations, and index/metadata file formats that `pkg` does.
+This means that packages installed by `pkj` are visible to `pkj`, and vice versa.
+The one big exception here is versioning: `pkg` does not support multiple versioned installations of a given package, even though its index file supports it.
+This means that if you install multiple versions of a single package using `pkj`, they will all be visible to `pkj`, and the newest ones will be visible to `pkg`, and everyone will be happy.
+But then if you install a package using `pkg` (or do something else that causes it to update the package index file), `pkg` will wipe out all the “duplicate” old versions of the package, leaving only the latest version.
+The older versions of the package will then disappear to both `pkg` and `pkj`.
 
 ## Requirements
 
