@@ -168,9 +168,9 @@ classdef Version
         this = normalize_elements (this(:));
         el_keys = { this.elements };
         el_keys = cat (1, el_keys{:});
-        [~, ~, suffix_keys] = unique ({this.suffix});
+        [~, ~, suffix_keys] = unique ({this.suffix}');
         key_rows = [el_keys suffix_keys];
-        [~, ~, out] = unique (key_rows, "rows");
+        [~, ~, keys_A] = unique (key_rows, "rows");
       else
         [A, B] = normalize_elements (A, B);
         el_keys_a = { A.elements };
