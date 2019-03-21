@@ -107,13 +107,18 @@ classdef Util
     endfunction
 
     function rm_rf (path)
-      if exist (path, "file")
-        delete (path);
-        # TODO: Error checking. delete () only raises a warning if it fails
-      elseif exist (path, "dir")
+      if exist (path, "dir")
+        confirm_recursive_rmdir (0, "local");
         [ok, msg, msgid] = rmdir (path, "s");
         if ! ok
-          error ("rm_rf: Failed deleting %s: %s", path, msg);
+          error ("rm_rf: Failed deleting dir %s: %s", path, msg);
+        endif
+      elseif exist (path, "file")
+        lastwarn("");
+        delete (path);
+        [w, w_id] = lastwarn;
+        if ! isempty (w)
+          error ("rm_rf: Failed deleting file %s: %s", path, w);
         endif
       else
         % NOP

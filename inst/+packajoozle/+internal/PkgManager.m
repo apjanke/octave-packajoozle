@@ -30,6 +30,7 @@ classdef PkgManager
   properties
     forge = packajoozle.internal.OctaveForgeClient
     default_installdir = "user"
+    verbose = false
   endproperties
 
   methods (Static)
@@ -120,7 +121,7 @@ classdef PkgManager
       this.install_pkg_from_file (dist_tgz);
     endfunction
 
-    function out = install_pkg_from_file (this, file, inst_dir, verbose = true)
+    function out = install_pkg_from_file (this, file, inst_dir)
       if nargin < 3; inst_dir = []; endif
       inst_dir = this.resolve_installdir (inst_dir);
 
@@ -134,7 +135,7 @@ classdef PkgManager
 
       build_dir_parent = tempname (tempdir, "packajoozle-build-");
       packajoozle.internal.Util.mkdir (build_dir_parent);
-      RAII.build_dir_parent = onCleanup (@() rm_rf_safe (build_dir_parent));
+      #RAII.build_dir_parent = onCleanup (@() rm_rf_safe (build_dir_parent));
       files = unpack (file, build_dir_parent);
       kids = packajoozle.internal.Util.readdir (build_dir_parent);
       if numel (kids) > 1
@@ -157,7 +158,7 @@ classdef PkgManager
       # Build the package
 
       prepare_installation (desc, build_dir);
-      rslt = configure_make (desc, build_dir, verbose);
+      rslt = configure_make (desc, build_dir, this.verbose);
       out.success = true;
       out.error_message = [];
       out.log_dir = rslt.log_dir;
@@ -167,7 +168,7 @@ classdef PkgManager
         out.exception = rslt.exception;
         return
       endif
-      copy_built_files (desc, build_dir, verbose);
+      copy_built_files (desc, build_dir, this.verbose);
 
       # TODO: Remove existing installation of same package down here
 
@@ -179,9 +180,14 @@ classdef PkgManager
       create_pkgadddel (desc, build_dir, "PKG_ADD", target);
       create_pkgadddel (desc, build_dir, "PKG_DEL", target);
       finish_installation (desc, build_dir);
-      generate_lookfor_cache (desc, target);
+      try
+        generate_lookfor_cache (desc, target);
+      catch err
+        warning ("PkgManager: failed creating lookfor cache for %s: %s", ...
+          desc.name, err.message);
+      end_try_catch
 
-      # Check the installation
+      # Validate the installation
 
       if dirempty (target.dir, {"packinfo", "doc"}) ...
         && dirempty (target.arch_dir)
@@ -202,6 +208,8 @@ classdef PkgManager
         rm_rf_safe (target.dir);
         out.success = false;
         out.error_message = sprintf ("failed recording package in package list: %s", err.message);        
+        fprintf ("PkgManager: Failed updating package index file: %s", err.message);
+        return
       end_try_catch
 
       # Give notifications to user

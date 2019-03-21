@@ -136,6 +136,12 @@ classdef InstallDir
         out = [];
         return
       endif
+      # Now, for some reason, a 0-byte octave_packages file is appearing, and I don't
+      # know what's writing it there. But it breaks load()
+      if file_is_zero_bytes (this.pkg_list_file)
+        out = [];
+        return
+      endif
       out = load (this.pkg_list_file);
       if isstruct (out)
         # Hack: take any field
@@ -146,12 +152,17 @@ classdef InstallDir
         out = out.(fields{1});
       endif
     endfunction
-    
+
     function record_installed_package (this, desc, target)
       desc.dir = target.dir;
       desc.archprefix = target.arch_dir;
       list = this.get_package_list;
-      new_list = normalize_desc_save_order ([list desc]);
+      keyboard
+      if isempty (list)
+        new_list = desc;
+      else
+        new_list = normalize_desc_save_order ([list {desc}]);
+      endif
       this.save_pkg_list_to_file (new_list);
     endfunction
 
@@ -171,10 +182,10 @@ classdef InstallDir
     endfunction
 
     function save_pkg_list_to_file (this, list)
-      s = struct (this.package_list_var_name, new_list);
+      s = struct (this.package_list_var_name, list);
       packajoozle.internal.Util.mkdir (this.meta_dir);
-      keyboard
       save (this.pkg_list_file, "-struct", "s");
+      printf ("Saved package list to: %s\n", this.pkg_list_file);
     endfunction
 
     function out = is_installed (this, pkgver)
@@ -236,5 +247,10 @@ function out = normalize_desc_save_order (descs)
     endfor
   endfor
   newdesc(idx) = [];
+endfunction
+
+function out = file_is_zero_bytes (file)
+  st = stat (file);
+  out = st.blocks == 0;
 endfunction
 
