@@ -29,6 +29,7 @@ classdef PkgManager
 
   properties
     forge = packajoozle.internal.OctaveForgeClient
+    default_installdir = "user"
   endproperties
 
   methods (Static)
@@ -84,35 +85,39 @@ classdef PkgManager
 
     function out = resolve_installdir (this, inst_dir)
       if isempty (inst_dir)
-        inst_dir = "user";
+        inst_dir = this.default_installdir;
       endif
       if ischar (inst_dir)
-        switch inst_dir
-          case "user"
-            inst_dir = packajoozle.internal.InstallDir.get_user_installdir;
-          case "global"
-            inst_dir = packajoozle.internal.InstallDir.get_user_installdir;
-          otherwise
-            error ("PkgManager: Invalid install_dir string: '%s'", inst_dir);
-        endswitch
+        out = packajoozle.internal.InstallDir.get_installdir_by_tag (inst_dir);
+      else
+        mustBeA (inst_dir, "packajoozle.internal.InstallDir");
+        out = inst_dir;
       endif
-      mustBeA (inst_dir, "packajoozle.internal.InstallDir");
     endfunction
 
-    function out = install_forge_pkg (this, pkg, inst_dir)
+    function out = install_forge_pkgs (this, pkgreqs, inst_dir)
       if nargin < 3; inst_dir = []; endif
       inst_dir = this.resolve_installdir (inst_dir);
 
-      % pkgs may be a package name, or a PkgVer.
-      % If just a name is given, the latest version of the package is installed.
-      if ischar (pkg)
-        pkg = this.forge.resolve_latest_version (pkg);
-      endif
-      mustBeA (pkg, "packajoozle.internal.PkgVer");
+      # TODO: Resolve dependencies
+      # Consider all packages to be installed
+
+      for i = 1:numel (pkgreqs)
+        # For now, just install the latest version of each one
+        req = pkgreqs(i);
+        #TODO: Actually respect the version filter
+        pkgver = this.forge.resolve_latest_version (req.package);
+        this.install_forge_pkg_single (pkgver);
+      endfor
+    endfunction
+
+    function out = install_forge_pkg_single (this, pkgver, inst_dir)
+      if nargin < 3; inst_dir = []; endif
+      inst_dir = this.resolve_installdir (inst_dir);
+      mustBeA (pkgver, "packajoozle.internal.PkgVer");
       
-      dist_tgz = this.forge.download_cached_pkg_distribution (pkg);
-      this.install_pkg_from_file (dist_tgz, dist_tgz);
-      # Do the installation
+      dist_tgz = this.forge.download_cached_pkg_distribution (pkgver);
+      this.install_pkg_from_file (dist_tgz);
     endfunction
 
     function out = install_pkg_from_file (this, file, inst_dir, verbose = true)
@@ -120,21 +125,22 @@ classdef PkgManager
       inst_dir = this.resolve_installdir (inst_dir);
 
       # Remove existing installation of same pkg/ver
-      info = this.get_pkg_description_from_file (file);
+      info = this.get_pkg_description_from_pkg_file (file);
       pkgver = packajoozle.internal.PkgVer (info.name, info.version);
       if inst_dir.is_installed (pkgver)
         error ("PkgManager: already installed: %s", char (pkgver));
       endif
 
 
-      build_dir = tempname (tempdir, "packajoozle-build-");
-      packajoozle.internal.Util.mkdir (build_dir);
-      RAII.build_dir = onCleanup (@() rm_rf_safe (build_dir));
-      files = unpack (file, build_dir);
-      dirlist = packajoozle.internal.Util.readdir (build_dir);
-      if numel (dirlist) > 1
+      build_dir_parent = tempname (tempdir, "packajoozle-build-");
+      packajoozle.internal.Util.mkdir (build_dir_parent);
+      RAII.build_dir_parent = onCleanup (@() rm_rf_safe (build_dir_parent));
+      files = unpack (file, build_dir_parent);
+      kids = packajoozle.internal.Util.readdir (build_dir_parent);
+      if numel (kids) > 1
         error ("PkgManager: bundles of packages are not allowed");
       endif
+      build_dir = fullfile (build_dir_parent, kids{1});
 
       # Inspect the package
 
@@ -211,7 +217,7 @@ classdef PkgManager
     endfunction
 
     function require_deps_installed_from_desc (this, desc)
-      bad_deps = this.get_unsatisfied_deps (desc);
+      bad_deps = this.get_unsatisfied_deps_from_desc (desc);
       if ! isempty (bad_deps)
         error ("PkgManager: unsatisified dependencies: %s", ...
           strjoin (dispstrs (bad_deps), ", "));
@@ -221,7 +227,7 @@ classdef PkgManager
     function bad_deps = get_unsatisfied_deps_from_desc (this, desc)
       bad_deps = {};
 
-      installed = this.list_installed_pkgs;
+      installed = this.all_installed_packages;
       for i = 1:numel (desc.depends)
         dep = desc.depends{i};
         dep_req = packajoozle.internal.PkgVerReq (dep.package, ...
@@ -321,6 +327,7 @@ classdef PkgManager
     endfunction
 
     function out = all_installed_packages (this)
+      # Returns list as PkgVers
       inst_dirs = packajoozle.internal.InstallDir.get_all_installdirs;
       out = inst_dirs(1).installed_packages;
       for i = 2:numel (inst_dirs)
@@ -439,7 +446,8 @@ function deps_cell = fix_depends (depends)
         if (! any (strcmp (operator, {">", ">=", "<=", "<", "=="})))
           error ("PkgManager: unsupported operator in dependency: %s", operator);
         endif
-        if (! is_valid_pkg_version_string (nm.ver))
+        pkgman = packajoozle.internal.PkgManager;
+        if (! pkgman.is_valid_pkg_version_string (nm.ver))
           error ("PkgManager: invalid version string in dependency: '%s'", nm.ver);
         endif
       else

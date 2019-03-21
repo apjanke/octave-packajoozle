@@ -46,6 +46,17 @@ classdef InstallDir
 
   methods (Static)
 
+    function out = get_installdir_by_tag (tag)
+      switch tag
+        case "user"
+          out = packajoozle.internal.InstallDir.get_user_installdir;
+        case "global"
+          out = packajoozle.internal.InstallDir.get_user_installdir;
+        otherwise
+          error ("InstallDir: unknown installdir tag: '%s'", tag);
+      end
+    endfunction
+
     function out = get_user_installdir ()
       [prefix, arch_prefix] = pkg ("prefix");
       meta_dir = fileparts (pkg ("local_list"));
@@ -123,7 +134,12 @@ classdef InstallDir
     function out = get_package_list (this)
       out = load (this.pkg_list_file);
       if isstruct (out)
-        out = out.(this.package_list_var_name);
+        # Hack: take any field
+        fields = fieldnames (out);
+        if numel (fields) > 1
+          error ("Multiple fields in package list file: %s", this.pkg_list_file);
+        endif
+        out = out.(fields{1});
       endif
     endfunction
     

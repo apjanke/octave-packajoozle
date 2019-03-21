@@ -70,6 +70,14 @@ classdef PkgVerReq
       endfor
     endfunction
 
+    function out = char (this)
+      if ! isscalar (this)
+        error ("%s: char() only works on scalar %s objects; this is %s", ...
+          class (this), class (this), size2str (size (this)));
+      endif
+      out = this.string;
+    endfunction
+
     function out = matches (this, pkg_specs)
       mustBeScalar (this);
       out = false (size (pkg_specs));

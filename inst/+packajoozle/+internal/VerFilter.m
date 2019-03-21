@@ -90,6 +90,15 @@ classdef VerFilter
       endfor
     endfunction
 
+    function out = char (this)
+      if ! isscalar (this)
+        error ("%s: char() only works on scalar %s objects; this is %s", ...
+          class (this), class (this), size2str (size (this)));
+      endif
+      strs = dispstrs (this);
+      out = strs{1};
+    endfunction
+
     function out = matches (this, ver)
       %MATCHES True if given version matches this filter
       mustBeScalar (this);

@@ -100,6 +100,7 @@ classdef OctaveForgeClient
       tgz_file = sprintf ("%s-%s.tar.gz", pkg.name, char (pkg.version));
       url = [this.forge_url "/download/" tgz_file];
       cache_dir = fullfile (this.download_cache_dir, "distributions");
+      packajoozle.internal.Util.mkdir (cache_dir);
       cached_file = fullfile (cache_dir, tgz_file);
       if exist (cached_file, "file")
         return

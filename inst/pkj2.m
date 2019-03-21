@@ -40,6 +40,8 @@ endfunction
 
 function install_forge_packages (opts)
   reqs = parse_forge_targets (opts.targets);
+  pkgman = packajoozle.internal.PkgManager;
+  pkgman.install_forge_pkgs (reqs);
 endfunction
 
 function out = parse_forge_targets (targets)
@@ -48,24 +50,15 @@ function out = parse_forge_targets (targets)
     return
   endif
   for i = 1:numel (targets)
-    req = parse_forge_target (targets{i});
-    if numel == 1
+    req = packajoozle.internal.PkgManager.parse_forge_target (targets{i});
+    if i == 1
       out = req;
     else
-      out = packajoozle.internal.Util.objcat (out req);
+      out = packajoozle.internal.Util.objcat (out, req);
     endif
   endfor
 endfunction
 
-function out = parse_forge_target (target)
-  ix = regexp (target, '^[\w]+$');
-  if ! isempty (ix)
-    out = packajoozle.internal.PkgVerReq (target);
-    return
-  endif
-  [ix, tok] = regexp (target, '^([\w]+)@([\d\.]+(\+.*)?)', "match", "tokens")
-  keyboard
-endfunction
 
 function opts = parse_inputs (args_in)
   opts = struct;

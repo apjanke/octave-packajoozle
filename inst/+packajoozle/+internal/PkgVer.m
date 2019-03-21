@@ -45,12 +45,39 @@ classdef PkgVer
       endif
       mustBeCharVec (pkg_name);
       version = packajoozle.internal.Version (version);
+      this.name = pkg_name;
+      this.version = version;
     endfunction
 
     function out = eq (A, B)
       mustBeScalar (A);
       mustBeScalar (B);
       out = isequal (A, B);
+    endfunction
+
+    function out = disp (this)
+      if isscalar (this)
+        strs = dispstrs (this);
+        disp (strs{1});
+      else
+        disp (sprintf ("%s %s", size2str (size (this)), class (this)));
+      endif
+    endfunction
+
+    function out = dispstrs (this)
+      out = cell (size (this));
+      for i = 1:numel (this)
+        out{i} = sprintf ("%s %s", this(i).name, char (this(i).version));
+      endfor
+    endfunction
+    
+    function out = char (this)
+      if ! isscalar (this)
+        error ("%s: char() only works on scalar %s objects; this is %s", ...
+          class (this), class (this), size2str (size (this)));
+      endif
+      strs = dispstrs (this);
+      out = strs{1};
     endfunction
 
   endmethods
