@@ -297,6 +297,11 @@
 function out = pkj (varargin)
   opts = parse_inputs (varargin);
 
+  if opts.help
+    help ("pkj");
+    return
+  endif
+  
   # Check requirements
   if opts.forge
     if (! __octave_config_info__ ("CURL_LIBS"))
@@ -333,6 +338,8 @@ function out = pkj (varargin)
       unload_packages (opts)
     case "uninstall"
       uninstall_packages (opts);
+    case ""
+      error ("pkj: you must supply a command");
     otherwise
       error ("pkj: the %s command is not yet implemented", opts.command);
   endswitch
@@ -532,11 +539,12 @@ function opts = parse_inputs (args_in)
   opts.verbose = false;
   opts.targets = {};
   opts.listversions = false;
+  opts.help = false;
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
     "describe", "prefix", "local_list", "global_list", "build", "rebuild"};
   valid_options = {"forge", "nodeps", "local", "global", "forge", "verbose", ...
-    "listversions"};
+    "listversions", "help"};
   opt_flags = strcat("-", valid_options);
 
   args = args_in;
@@ -560,7 +568,7 @@ function opts = parse_inputs (args_in)
     endif
   endfor
 
-  if ! ismember (command, valid_commands)
+  if ! isempty (command) && ! ismember (command, valid_commands)
     error ("pkj: invalid command: %s. Valid commands are: %s", command, ...
       strjoin (valid_commands, ", "));
   endif
