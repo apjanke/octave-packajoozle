@@ -44,6 +44,24 @@ Examples:
 
 When you have multiple versions of a package installed, the same version selectors can be used with `pkj load` to choose which one gets loaded.
 
+#### Things to try
+
+Here’s some stuff Packajoozle can do.
+
+```
+% What's available on Octave Forge?
+pkj list -forge     % This is 40x faster than Octave's `pkg list -forge`!
+pkj list -forge -listversions statistics
+
+% Want to test multiple versions?
+pkj install -forge statistics@1.4.0 statistics@1.3.0 statistics@1.2.4
+pkj load statistics@1.3.0
+```
+
+## Requirements
+
+* Octave 4.4.0 or newer
+
 ## Internal changes
 
 Internally, Packajoozle has reworked the Octave `pkg` code to move most of the logic into OOP classes.
