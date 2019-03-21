@@ -212,14 +212,14 @@ function out = normalize_desc_save_order (descs)
       tmpdesc = {};
       for k = 1 : length (deps)
         for j = 1 : length (descs)
-          if (strcmp (desc{j}.name, deps{k}.package))
+          if (strcmp (descs{j}.name, deps{k}.package))
             tmpdesc{end+1} = descs{j};
             break;
           endif
         endfor
       endfor
       if (! isempty (tmpdesc))
-        newdesc = {newdesc{:}, save_order(tmpdesc){:}, desc};
+        newdesc = {newdesc{:}, normalize_desc_save_order(tmpdesc){:}, desc};
       else
         newdesc{end+1} = desc;
       endif
