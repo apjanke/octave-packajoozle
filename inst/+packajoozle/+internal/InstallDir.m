@@ -40,6 +40,10 @@ classdef InstallDir
     package_list_var_name = "octave_packages"
   endproperties
 
+  properties (Dependent)
+    pkg_list_file
+  endproperties
+
   methods (Static)
 
     function out = get_user_installdir ()
@@ -53,12 +57,16 @@ classdef InstallDir
       [prefix, arch_prefix] = pkg ("prefix", "-global");
       meta_dir = fileparts (pkg ("global_list"));
       out = packajoozle.internal.InstallDir (prefix, arch_prefix, "global");
+      #TODO: If global install location has been aliased to user install location,
+      # this will break. Probably need to probe the package index file to see
+      # what's there
       out.package_list_var_name = "global_packages";
     endfunction
 
     function out = get_all_installdirs ()
-      out = [packajoozle.internal.InstallDir.get_user_installdir ...
-        packajoozle.internal.InstallDir.get_global_installdir];
+      out = packajoozle.internal.Util.objcat(...
+        packajoozle.internal.InstallDir.get_user_installdir, ...
+        packajoozle.internal.InstallDir.get_global_installdir);
     endfunction
 
   endmethods
@@ -76,6 +84,7 @@ classdef InstallDir
         tag = "unlabelled";
       endif
       this.tag = tag;
+      this.meta_dir = meta_dir;
       this.prefix = prefix;
       this.arch_prefix = arch_prefix;
     endfunction
@@ -84,12 +93,6 @@ classdef InstallDir
       out = fullfile (this.meta_dir, "octave_packages");
     endfunction
     
-
-    function out = is_installed (this, pkgver)
-      inst_dir = this.install_path_for_pkg (pkgver);
-      out = isfolder (inst_dir);
-    endfunction
-
     function out = install_paths_for_pkg (this, pkgver)
       ver = char (pkgver.version);
       name_ver = [pkgver.name "-" ver];
@@ -119,7 +122,9 @@ classdef InstallDir
 
     function out = get_package_list (this)
       out = load (this.pkg_list_file);
-      out = out.(this.package_list_var_name);
+      if isstruct (out)
+        out = out.(this.package_list_var_name);
+      endif
     endfunction
     
     function record_installed_package (this, desc, target)
@@ -159,10 +164,14 @@ classdef InstallDir
 
     function out = installed_packages (this)
       list = this.get_package_list;
-      out = [];
-      for i = 1:numel (list)
-        out(end+1) = packajoozle.internal.PkgVer (list(i).name, list(i).version);
-      endfor
+      if isempty (list)
+        out = [];        
+      else
+        out = packajoozle.internal.PkgVer (list{1}.name, list{1}.version);
+        for i = 2:numel (list)
+          out(end+1) = packajoozle.internal.PkgVer (list{i}.name, list{i}.version);
+        endfor
+      endif
     endfunction
     
   endmethods

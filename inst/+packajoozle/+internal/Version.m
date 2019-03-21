@@ -27,6 +27,9 @@
 ##
 ## @end deftypefn
 
+## Note: Keep in mind that Versions can only be row vectors, because Octave
+## doesn't support reshape() or repmat() for objects.
+
 classdef Version
 
   properties

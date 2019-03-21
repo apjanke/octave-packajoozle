@@ -143,6 +143,14 @@ classdef Util
       endfor
     endfunction
 
+    function out = objcat (A, B)
+      # Hack to concatenate objects because Octave doesn't support it as of 5.1
+      out = A;
+      for i = 1:numel (B)
+        out(end+1) = B(i);
+      endfor
+    endfunction
+
     function mustBeCompatibleSizes (a, b)
       if ! isscalar (a) && ! isscalar (b)
         if ! isequal (size (a), size (b))
