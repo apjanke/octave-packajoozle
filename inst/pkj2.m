@@ -55,6 +55,8 @@ function out = pkj2 (varargin)
           out = pkg_list_descs;
         endif
       endif
+    case "uninstall"
+      uninstall_packages (opts);
     otherwise
       error ("pkj2: the %s command is not yet implemented", opts.command);
   endswitch
@@ -88,6 +90,14 @@ function out = parse_forge_targets (targets)
   endfor
 endfunction
 
+function uninstall_packages (opts)
+  pkgman = packajoozle.internal.PkgManager;
+  reqs = parse_forge_targets (opts.targets);
+  inst_dir = ifelse (opts.global, "global", "user");
+  pkgman.uninstall_packages (reqs);
+endfunction
+
+
 function out = list_forge_packages (opts)
   forge = packajoozle.internal.OctaveForgeClient;
 
@@ -104,7 +114,7 @@ endfunction
 
 function descs = list_installed_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
-  descs = pkgman.all_installed_packages_descs;
+  descs = pkgman.all_installed_packages ("desc");
 
   ## Add loaded state info
   p = strrep (path (), '\', '/');

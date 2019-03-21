@@ -33,25 +33,49 @@ classdef VerFilter
   endproperties
 
   properties
-    version
-    operator
+    version = packajoozle.internal.Version ("0.0.0")
+    operator = ">="
   endproperties
 
   methods (Static)
-    function out = parse_ver_filter (str)
-      ver_pat = packajoozle.internal.Version.version_regexp_pat;
-      if ! isempty (regexp (str, '^[\d\.]+$'))
-        out = packajoozle.internal.VerFilter (str);
+    function out = parse_ver_filter (strs)
+      strs = cellstr (strs);
+      if isempty (strs)
+        out = [];
         return
       endif
-      [ix, tok] = regexp (str, ['^\s*(<|<=|=|==|\!=|~=|>|>=)\s*(' ver_pat ')'], ...
-        "match", "tokens");
-      if isempty (ix)
-        error ("VerFilter: invalid version filter string: '%s'", str);
-      endif
-      tok = tok{1};
-      out = packajoozle.internal.VerFilter (tok{2}, tok{1});
+      ver_pat = packajoozle.internal.Version.version_regexp_pat;
+      c = cell (size (strs));
+      for i = 1:numel (strs)
+        str = strs{i};
+        if ! isempty (regexp (str, '^[\d\.]+$'))
+          out = packajoozle.internal.VerFilter (str);
+          return
+        endif
+        [ix, tok] = regexp (str, ['^\s*(<|<=|=|==|\!=|~=|>|>=)\s*(' ver_pat ')'], ...
+          "match", "tokens");
+        if isempty (ix)
+          error ("VerFilter: invalid version filter string: '%s'", str);
+        endif
+        tok = tok{1};
+        c{i} = packajoozle.internal.VerFilter (tok{2}, tok{1});
+      endfor
+      out = packajoozle.internal.Util.objcat (c{:});
     endfunction
+
+    function out = canonicalize_operator (operator)
+      switch operator
+        case { "<" "<=" "==" "!=" ">" ">=" }
+          out = operator;
+        case "~="
+          out = "!=";
+        case "="
+          ouct = "==";
+        otherwise
+          error ("VerFilter: invalid operator: '%s'", operator);
+      end
+    endfunction
+    
   endmethods
 
   methods
@@ -62,14 +86,7 @@ classdef VerFilter
       endif
       version = packajoozle.internal.Version (version);
       mustBeCharVec (operator);
-      if isequal (operator, "=")
-        operator = "==";
-      elseif isequal (operator, "~=")
-        operator = "!=";
-      endif
-      if (! ismember (operator, packajoozle.internal.VerFilter.valid_operators))
-        error ("VerFilter: invalid operator: %s", operator);
-      endif
+      operator = packajoozle.internal.VerFilter.canonicalize_operator (operator);
       this.version = version;
       this.operator = operator;
     endfunction
@@ -108,6 +125,32 @@ classdef VerFilter
         out(i) = compare_versions (char (ver(i)), char (this(i).version), this.operator);
       endfor
     endfunction
+
+    function out = subsumes (a, b)
+      mustBeScalar (a);
+      mustBeScalar (b);
+      a = makeItA (a, "packajoozle.internal.VerFilter");
+      b = makeItA (b, "packajoozle.internal.VerFilter");
+      switch a.operator
+        case "<"
+          out = (isequal (b.operator, "<") && a.version <= b.version) ...
+            || (isequal (b.operator, "<=") && a.version < b.version);
+        case "<="
+          out = (isequal (b.operator, "<") && a.version < b.version) ...
+            || (isequal (b.operator, "<=") && a.version <= b.version);
+        case "=="
+          out = isequal (b.operator, "==") && isequal (a.version, b.version);
+        case "!="
+          out = isequal (b.operator, "1=") && isequal (a.version, b.version);
+        case ">="
+          out = (isequal (b.operator, ">=") && a.version >= b.version) ...
+            || (isequal (b.operator, ">") && a.version > b.version);
+        case ">"
+          out = (isequal (b.operator, ">") && a.version >= b.version) ...
+            || (isequal (b.operator, ">=") && a.version > b.version);
+      endswitch
+    endfunction
+    
   endmethods
 
 endclassdef

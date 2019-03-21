@@ -93,33 +93,57 @@ classdef InstallDir
       endfor
     endfunction
 
-    function out = get_package_list (this)
+    function out = get_package_list_descs (this)
+      out = this.get_package_list ("desc");
+    endfunction
+
+    function out = get_package_list (this, format = "pkgver")
       # Gets package list as "descs" (a cell array of structs)
       if ! exist (this.pkg_list_file, "file")
         out = [];
         return
       endif
       # Now, for some reason, a 0-byte octave_packages file is appearing, and I don't
-      # know what's writing it there. But it breaks load()
+      # know what's writing it there. Octave, not Packajoozle, seems to be dropping
+      # them. But regardless, it breaks load().
       if file_is_zero_bytes (this.pkg_list_file)
         out = [];
         return
       endif
-      out = load (this.pkg_list_file);
-      if isstruct (out)
-        # Hack: take any field
-        fields = fieldnames (out);
-        if numel (fields) > 1
-          error ("Multiple fields in package list file: %s", this.pkg_list_file);
-        endif
-        out = out.(fields{1});
+      s = load (this.pkg_list_file);
+      # Hack: take any field
+      fields = fieldnames (s);
+      if numel (fields) > 1
+        error ("Multiple fields in package list file: %s", this.pkg_list_file);
       endif
+      descs = s.(fields{1});
+      # Convert to output format
+      switch format
+        case "desc"
+          out = descs;
+        case "pkgver"
+          out = descs_to_pkgvers (descs);
+        otherwise
+          error ("InstallDir.get_package_list: Invalid format: '%s'", format);
+      endswitch
+    endfunction
+
+    function out = get_installed_package_desc (this, pkgver)
+      descs = this.get_package_list_descs;
+      for i = 1:numel (descs)
+        pkgver_i = packajoozle.internal.PkgVer (descs{i}.name, descs{i}.version);
+        if pkgver_i == pkgver
+          out = descs{i};
+          return
+        endif
+      endfor
+      error ("Installed package not found: %s", char (pkgver));
     endfunction
 
     function record_installed_package (this, desc, target)
       desc.dir = target.dir;
       desc.archprefix = target.arch_dir;
-      list = this.get_package_list;
+      list = this.get_package_list_descs;
       if isempty (list)
         new_list = {desc};
       else
@@ -129,7 +153,7 @@ classdef InstallDir
     endfunction
 
     function record_uninstalled_package (this, pkgver)
-      list = this.get_package_list;
+      list = this.get_package_list_descs;
       ix_to_delete = [];
       for i = 1:numel (list)
         ref = packajoozle.internal.PkgVer (list(i).name, list(i).version);
@@ -155,22 +179,27 @@ classdef InstallDir
       target = this.install_paths_for_pkg (pkgver);
       out = exist (target.dir, "dir");
     endfunction
-
-    function out = installed_packages (this)
-      list = this.get_package_list;
-      if isempty (list)
-        out = [];        
-      else
-        out = packajoozle.internal.PkgVer (list{1}.name, list{1}.version);
-        for i = 2:numel (list)
-          out(end+1) = packajoozle.internal.PkgVer (list{i}.name, list{i}.version);
-        endfor
-      endif
-    endfunction
     
+    function out = list_packages_matching (this, pkgreqs)
+      all_pkgs = this.get_package_list ("pkgver");
+      tf = false (size (all_pkgs));
+      for i = 1:numel (pkgreqs)
+        tf = tf | pkgreqs(i).matches (all_pkgs);
+      endfor
+      out = all_pkgs(tf);
+    endfunction
+            
   endmethods
 
 endclassdef
+
+function out = descs_to_pkgvers (descs)
+  c = cell (size (descs));
+  for i = 1:numel (descs)
+    c{i} = packajoozle.internal.PkgVer (descs{i}.name, descs{i}.version);
+  endfor
+  out = packajoozle.internal.Util.objcat (c{:});
+endfunction
 
 function out = normalize_desc_save_order (descs)
   newdesc = {};

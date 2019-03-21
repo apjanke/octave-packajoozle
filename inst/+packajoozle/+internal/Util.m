@@ -148,10 +148,14 @@ classdef Util
       endfor
     endfunction
 
-    function out = objcat (A, varargin)
+    function out = objcat (varargin)
       # Hack to concatenate objects because Octave doesn't support it as of 5.1
-      out = A;
-      for i_arg = 1:numel (varargin)
+      if isempty (varargin)
+        out = [];
+        return
+      endif
+      out = varargin{1};
+      for i_arg = 2:numel (varargin)
         B = varargin{i_arg};
         for i_B = 1:numel (B)
           out(end+1) = B(i_B);

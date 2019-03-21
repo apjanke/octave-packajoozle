@@ -44,10 +44,10 @@ classdef PkgVerReq
       endif
       mustBeCharVec (pkg_name);
       if nargin < 2
-        ver_filters = packajoozle.internal.VerFilter ("0.0.0", ">=");
+        ver_filters = packajoozle.internal.VerFilterSet;
       endif
-      if ! isa (ver_filters, "packajoozle.internal.VerFilter")
-        ver_filters = packajoozle.internal.VerFilter (ver_filters);
+      if ! isa (ver_filters, "packajoozle.internal.VerFilterSet")
+        ver_filters = packajoozle.internal.VerFilterSet (ver_filters);
       endif
       this.package = pkg_name;
       this.ver_filters = ver_filters;
@@ -80,10 +80,11 @@ classdef PkgVerReq
 
     function out = matches (this, pkg_specs)
       mustBeScalar (this);
+      mustBeA (pkg_specs, "packajoozle.internal.PkgVer");
       out = false (size (pkg_specs));
       for i = 1:numel (pkg_specs)
         p = pkg_specs(i);
-        if isequal (this.package, p.package)
+        if isequal (this.package, p.name)
           all_filters_matched = true;
           for i = 1:numel (this.ver_filters)
             if ! this.ver_filters(i).matches (p.version)

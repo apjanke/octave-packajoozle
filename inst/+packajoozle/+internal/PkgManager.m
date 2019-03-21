@@ -125,7 +125,6 @@ classdef PkgManager
         this.install_pkg_from_file (file, inst_dir);
       endfor
     endfunction
-    
 
     function out = install_forge_pkg_single (this, pkgver, inst_dir)
       if nargin < 3; inst_dir = []; endif
@@ -349,20 +348,13 @@ classdef PkgManager
       out = desc;
     endfunction
 
-    function out = all_installed_packages (this)
+    function out = all_installed_packages (this, format = "pkgver")
       # Returns list as PkgVers
       inst_dirs = this.world.get_all_installdirs;
-      out = inst_dirs(1).installed_packages;
+      out = inst_dirs(1).get_package_list;
       for i = 2:numel (inst_dirs)
-        out = packajoozle.internal.Util.objcat (out, inst_dirs(i).installed_packages);
-      endfor
-    endfunction
-
-    function out = all_installed_packages_descs (this)
-      inst_dirs = this.world.get_all_installdirs;
-      out = {};
-      for i = 1:numel (inst_dirs)
-        out = [out inst_dirs(i).get_package_list];
+        out = packajoozle.internal.Util.objcat (out, ...
+          inst_dirs(i).get_package_list;
       endfor
     endfunction
     
@@ -370,62 +362,66 @@ classdef PkgManager
       error ("this is not yet implemented")
     endfunction
 
-    function uninstall (this, pkgvers)
+    function uninstall_packages (this, pkgreqs, inst_dir)
+      if nargin < 3; inst_dir = []; endif
+      inst_dir = this.resolve_installdir (inst_dir);
+
+      # Find packages to uninstall
+      pkgvers = inst_dir.list_packages_matching (pkgreqs);
+
+      #TODO: Check that dependencies will still be satisfied after uninstallation
 
       # TODO: Check dependencies
       # Calculate remaining installed packages and see that their deps are still
       # satisfied
 
-      # If we're clear to proceed:
+      # Uninstall the packages if we're clear to proceed
       for i = 1:numel (pkgvers)
-        this.uninstall_one (pkgvers(i));
+        this.uninstall_one_package (pkgvers(i), inst_dir);
       endfor
     endfunction
 
-    function uninstall_one (this, pkgver)
-      %UNINSTALL_ONE Uninstall a package from wherever it is installed
+    function uninstall_one_package (this, pkgver, inst_dir)
+      %UNINSTALL_ONE Uninstall a package
+      if nargin < 3; inst_dir = []; endif
+      inst_dir = this.resolve_installdir (inst_dir);
+
       mustBeA (pkgver, "packajoozle.internal.PkgVer");
       mustBeScalar (pkgver);
 
-      inst_dirs = packajoozle.internal.InstallDir.get_all_installdirs;
-
       found = false;
-      for i_inst_dir = 1:numel (inst_dirs)
-        inst_dir = inst_dirs(i);
-        if inst_dir.is_installed (pkgver)
-          #TODO: Get desc for installed package
-          target = inst_dir.install_paths_for_pkg (pkgver);
-
-          # Run pre-uninstall hooks
-          if exist (fullfile (target.dir, "packinfo", "on_uninstall.m"), "file")
-            orig_pwd = pwd;
-            try
-              cd (fullfile (target.dir, "packinfo"));
-              on_uninstall (desc);
-              cd (orig_pwd);
-            catch err
-              cd (orig_pwd);
-              error ("Error while running on_uninstall hook for %s: %s", ...
-                char (pkgver), err.message);
-            end_try_catch
-          endif
-
-          # Delete package installation directories
-          if ! isfolder (target.dir)
-            warning ("PkgManager: directory %s previously lost; marking %s as uninstalled", ...
-             target.dir, char (pkgver));
-          endif
-          packajoozle.internal.Util.rm_rf (target.arch_dir);
-          packajoozle.internal.Util.rm_rf (target.dir);
-
-          # Update package index
-          inst_dir.record_uninstalled_package (pkgver);
-        endif
-      endfor
-
-      if ! found
+      if ! inst_dir.is_installed (pkgver)
         error ("PkgManager: package %s is not installed", char (pkgver));
       endif
+      
+      #TODO: Get desc for installed package
+      target = inst_dir.install_paths_for_pkg (pkgver);
+
+      # Run pre-uninstall hooks
+      if exist (fullfile (target.dir, "packinfo", "on_uninstall.m"), "file")
+        orig_pwd = pwd;
+        try
+          cd (fullfile (target.dir, "packinfo"));
+          on_uninstall (desc);
+          cd (orig_pwd);
+        catch err
+          cd (orig_pwd);
+          error ("Error while running on_uninstall hook for %s: %s", ...
+            char (pkgver), err.message);
+        end_try_catch
+      endif
+
+      # Delete package installation directories
+      if ! isfolder (target.dir)
+        warning ("PkgManager: directory %s previously lost; marking %s as uninstalled", ...
+         target.dir, char (pkgver));
+      endif
+      packajoozle.internal.Util.rm_rf (target.arch_dir);
+      packajoozle.internal.Util.rm_rf (target.dir);
+
+      # Update package index
+      inst_dir.record_uninstalled_package (pkgver);
+
     endfunction
     
   endmethods
