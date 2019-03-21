@@ -507,7 +507,8 @@ function out = unload_packages (opts)
   pkgreqs = parse_forge_targets (opts.targets);
   unloaded = pkgman.unload_packages (pkgreqs);
   if isempty (unloaded)
-    printf ("pkj: no packages unloaded: no loaded packages matched request\n");
+    printf ("pkj: no packages unloaded: no loaded packages matched request: %s\n", ...
+      dispstr (pkgreqs));
   else
     printf ("pkj: unloaded: %s\n", strjoin (dispstrs (unloaded), ", "));
   endif
