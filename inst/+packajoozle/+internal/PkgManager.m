@@ -135,6 +135,12 @@ classdef PkgManager
       endfor
     endfunction
 
+    function display_user_messages (this, rslt)
+      for i = 1:numel (rslt.user_messages)
+        printf ("%s\n", rslt.user_messages{i});
+      endfor
+    endfunction
+
     function out = install_forge_pkg_single (this, pkgver, inst_dir)
       if nargin < 3; inst_dir = []; endif
       inst_dir = this.resolve_installdir (inst_dir);
@@ -145,6 +151,7 @@ classdef PkgManager
 
       printf ("Installed %s from Octave Forge to %s pkg dir\n", ...
         char (pkgver), inst_dir.tag);
+      this.display_user_messages (out);
     endfunction
 
     function out = install_pkg_from_file (this, file, inst_dir)
@@ -153,6 +160,7 @@ classdef PkgManager
       rslt = this.install_pkg_from_file_impl (file, inst_dir);
       printf ("Installed %s %s from %s to %s pkg dir\n", ...
         char (rslt.pkgver), file, inst_dir.tag);
+      this.display_user_messages (rslt);
       out = rslt;
     endfunction
 
@@ -198,6 +206,7 @@ classdef PkgManager
       out.success = true;
       out.error_message = [];
       out.log_dir = rslt.log_dir;
+      out.user_messages = {};
       if ! rslt.success
         out.success = false;
         out.error_message = rslt.error_message;
@@ -248,13 +257,14 @@ classdef PkgManager
         return
       end_try_catch
 
-      # Give notifications to user
+      # Pick up user notifications
 
       news_file = fullfile (target.dir, "packinfo", "NEWS");
       if exist (news_file, "file")
-        printf (["For information about changes from previous versions " ...
-                 "of the %s package, run 'news %s'.\n"],
+        msg = sprintf (["For information about changes from previous versions " ...
+                 "of the %s package, run 'news %s'."],
                 desc.name, desc.name);
+        out.user_messages{end+1} = msg;
       endif        
 
     endfunction
