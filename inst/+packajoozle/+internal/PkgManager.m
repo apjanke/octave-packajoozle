@@ -113,6 +113,20 @@ classdef PkgManager
       endfor
     endfunction
 
+    function out = install_file_pkgs (this, files, inst_dir)
+      if nargin < 3; inst_dir = []; endif
+      inst_dir = this.resolve_installdir (inst_dir);
+
+      # TODO: Resolve dependencies
+      # Consider all packages to be installed
+
+      for i = 1:numel (files)
+        file = files{i};
+        this.install_pkg_from_file (file, inst_dir);
+      endfor
+    endfunction
+    
+
     function out = install_forge_pkg_single (this, pkgver, inst_dir)
       if nargin < 3; inst_dir = []; endif
       inst_dir = this.resolve_installdir (inst_dir);
@@ -343,8 +357,17 @@ classdef PkgManager
         out = packajoozle.internal.Util.objcat (out, inst_dirs(i).installed_packages);
       endfor
     endfunction
+
+    function out = all_installed_packages_descs (this)
+      inst_dirs = this.world.get_all_installdirs;
+      out = {};
+      for i = 1:numel (inst_dirs)
+        out = [out inst_dirs(i).get_package_list];
+      endfor
+    endfunction
     
     function uninstall_all_versions (this, pkg_name)
+      error ("this is not yet implemented")
     endfunction
 
     function uninstall (this, pkgvers)

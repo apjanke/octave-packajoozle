@@ -94,6 +94,7 @@ classdef InstallDir
     endfunction
 
     function out = get_package_list (this)
+      # Gets package list as "descs" (a cell array of structs)
       if ! exist (this.pkg_list_file, "file")
         out = [];
         return
