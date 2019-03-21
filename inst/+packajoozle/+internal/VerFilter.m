@@ -43,7 +43,7 @@ classdef VerFilter
       if nargin == 0
         return
       endif
-      version = packajoozle.internal.OctVer (version);
+      version = packajoozle.internal.Version (version);
       mustBeCharVec (operator);
       if (! ismember (operator, packajoozle.internal.VerFilter.valid_operators))
         error ("VerFilter: invalid operator: %s", operator);
@@ -71,7 +71,7 @@ classdef VerFilter
     function out = matches (this, ver)
       %MATCHES True if given version matches this filter
       mustBeScalar (this);
-      ver = packajoozle.internal.OctVer (ver);
+      ver = packajoozle.internal.Version (ver);
       out = false (size (ver));
       for i = 1:numel (ver)
         out(i) = compare_versions (char (ver(i)), char (this(i).version), this.operator);

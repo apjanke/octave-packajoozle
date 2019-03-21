@@ -14,10 +14,10 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Class Constructor} {obj = } OctVer (ver_str)
+## @deftypefn {Class Constructor} {obj = } Version (ver_str)
 ## An Octave-style version.
 ##
-## An OctVer is an Octave-style version. This is a version in the form
+## An Version is an Octave-style version. This is a version in the form
 ## "1.2.3" or "1.2.3+suffix": a dot-separated list of numeric elements,
 ## followed by an optional suffix. It is similar to a SemVer version.
 ##
@@ -29,7 +29,7 @@
 
 ## Author:	
 
-classdef OctVer
+classdef Version
 
   properties
     % The full string that represents this version
@@ -42,15 +42,15 @@ classdef OctVer
 
   methods
 
-    function this = OctVer (ver_str)
+    function this = Version (ver_str)
       if nargin == 0
         return
       endif
-      if isequal (class (ver_str), "packajoozle.internal.OctVer")
+      if isequal (class (ver_str), "packajoozle.internal.Version")
         this = ver_str;
         return;
       endif
-      s = packajoozle.internal.OctVer.parse_version_str (ver_str);
+      s = packajoozle.internal.Version.parse_version_str (ver_str);
       this.string = ver_str;
       this.elements = s.elements;
       this.suffix = s.suffix;
@@ -73,7 +73,7 @@ classdef OctVer
 
     function out = char (this)
       if ! isscalar (this)
-        error ("OctVer: char() only works on scalar OctVer objects");
+        error ("Version: char() only works on scalar Version objects");
       endif
       els_strs = arrayfun (@(x) {num2str(x)}, this.elements);
       out = [strjoin(els_strs, ".") this.suffix];
@@ -93,7 +93,7 @@ classdef OctVer
       if numel (b_els) < numel (a_els)
         b_els(end:numel (a_els)) = 0;
       endif
-      [a_suffix_proxy, b_suffix_proxy] = packajoozle.internal.OctVer.string_proxy_keys (...
+      [a_suffix_proxy, b_suffix_proxy] = packajoozle.internal.Version.string_proxy_keys (...
         A.suffix, B.suffix);
       a_vals = [a_els a_suffix_proxy];
       b_vals = [b_els b_suffix_proxy];
@@ -140,11 +140,11 @@ classdef OctVer
     endfunction
 
     function [A, B] = promote (A, B)
-      if ! isa(A, "packajoozle.internal.OctVer")
-        A = packajoozle.internal.OctVer (A);
+      if ! isa(A, "packajoozle.internal.Version")
+        A = packajoozle.internal.Version (A);
       endif
-      if ! isa(B, "packajoozle.internal.OctVer")
-        B = packajoozle.internal.OctVer (B);
+      if ! isa(B, "packajoozle.internal.Version")
+        B = packajoozle.internal.Version (B);
       endif      
     endfunction
 
@@ -155,7 +155,7 @@ classdef OctVer
       pat = '([\d\.]+)(\+\w*)?';
       [ix, tok] = regexp (ver_str, pat, "start", "tokens");
       if isempty (ix)
-        error ("OctVer: invalid version string: %s", ver_str);
+        error ("Version: invalid version string: %s", ver_str);
       endif
       tok = tok{1};
       els_str = tok{1};

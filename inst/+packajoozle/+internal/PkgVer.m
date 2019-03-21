@@ -21,7 +21,7 @@
 ##
 ## pkg_name is a valid package name, as a string.
 ## 
-## version is a packajoozle.internal.OctVer object, or something that can
+## version is a packajoozle.internal.Version object, or something that can
 ## be converted to one.
 ##
 ## @end deftypefn
@@ -33,7 +33,7 @@ classdef PkgVer
   properties
     % The package name
 		name
-    % The version, as an OctVer object
+    % The version, as an Version object
     version
   endproperties
 
@@ -44,7 +44,7 @@ classdef PkgVer
         return
       endif
       mustBeCharVec (pkg_name);
-      version = packajoozle.internal.OctVer (version);
+      version = packajoozle.internal.Version (version);
     endfunction
 
     function out = eq (A, B)
