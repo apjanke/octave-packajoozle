@@ -330,7 +330,7 @@ function out = pkj (varargin)
     case "uninstall"
       uninstall_packages (opts);
     otherwise
-      error ("pkj2: the %s command is not yet implemented", opts.command);
+      error ("pkj: the %s command is not yet implemented", opts.command);
   endswitch
   
 endfunction
@@ -368,7 +368,6 @@ function uninstall_packages (opts)
   inst_dir = ifelse (opts.global, "global", "user");
   pkgman.uninstall_packages (reqs);
 endfunction
-
 
 function out = list_forge_packages (opts)
   forge = packajoozle.internal.OctaveForgeClient;
@@ -455,8 +454,28 @@ function display_pkg_desc_list (descs)
     printf (format, cur_name, cur_loaded, cur_version, cur_dir);
   endfor
 
+  function out = load_packages (pkgreqs, opts)
+    inst_descs = list_installed_packages (opts);
+    inst_pkgvers = descs_to_pkgvers (inst_descs);
+    for i_pkgreq = 1:numel (pkgreqs)
+      pkgreq = pkgreqs(i_pkgreq);
+      tf = pkgreq.matches (inst_pkgvers);
+      if ! any (tf)
+        error ("pkj: no matching package installed: %s", char (pkgreq));
+      endif
+      picked = inst_pkgvers(tf).newest;
+    endfor
+  endfunction
+  
 endfunction
 
+function descs_to_pkgvers (descs)
+  out = cell (size (descs));
+  for i = 1:numel (descs)
+    out{i} = packajoozle.internal.PkgVer (descs{i}.name, descs{i}.version);
+  endfor
+  out = packajoozle.internal.Util.objcat (out{:});
+endfunction
 
 function opts = parse_inputs (args_in)
   opts = struct;

@@ -92,6 +92,19 @@ classdef PkgVer
       endfor
     endfunction
 
+    function out = newest (this)
+      % The newest of these pkgvers, if they are all the same package
+      u_names = unique ({this.name});
+      if numel (u_names) > 1
+        error ("PkgVer: cannot do newest(): multiple packages in list: %s", ...
+          strjoin (u_names, ", "));
+      endif
+      vers = {this.version};
+      vers = packajoozle.internal.Util.objcat (vers{:});
+      [newest_ver, ix] = max (vers);
+      out = this(ix);
+    endfunction
+
   endmethods
 
 endclassdef
