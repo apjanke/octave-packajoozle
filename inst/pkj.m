@@ -1,31 +1,28 @@
-## Copyright (C) 2005-2019 Søren Hauberg
-## Copyright (C) 2010 VZLU Prague, a.s.
-## Copyright (C) 2012 Carlo de Falco
+## Copyright (C) 2019 Andrew Janke
 ##
-## This file is part of Octave.
-##
-## Octave is free software: you can redistribute it and/or modify it
-## under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
 ##
-## Octave is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU General Public License for more details.
 ##
 ## You should have received a copy of the GNU General Public License
-## along with Octave; see the file COPYING.  If not, see
-## <https://www.gnu.org/licenses/>.
+## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
 ## @deftypefn  {} {} pkj @var{command} @var{pkg_name}
-## @deftypefnx {} {} pk @var{command} @var{option} @var{pkg_name}
+## @deftypefnx {} {} pkj @var{command} @var{option} @var{pkg_name}
 ## @deftypefnx {} {[@var{out1}, @dots{}] =} pkj (@var{command}, @dots{} )
 ## Manage or query packages (groups of add-on functions) for Octave.
 ##
-## Different actions are available depending on the value of @var{command}
-## and on return arguments.
+## pkj is the main command interface for the Packajoozle package manager.
+##
+## Different actions are available depending on the value of @var{command},
+## the additional options supplied, and the return arguments captured.
 ##
 ## Available commands:
 ##
@@ -81,6 +78,13 @@
 ## @item -forge
 ## Install a package directly from the Octave Forge repository.  This
 ## requires an internet connection and the cURL library.
+##
+## @example
+## pkj install -forge io
+## pkj install -forge io@2.4.9
+## pkj install -forge symbolic@<=2.6.5
+## pkj install -forge io statistics financial@0.5.1
+## @end example
 ##
 ## @emph{Security risk}: no verification of the package is performed
 ## before the installation.  There are no signature for packages, or
@@ -289,346 +293,210 @@
 ## @seealso{ver, news}
 ## @end deftypefn
 
-function [local_packages, global_packages] = pkj (varargin)
 
-  ## Installation prefix (FIXME: what should these be on windows?)
-  persistent user_prefix = false;
-  persistent prefix = false;
-  persistent archprefix = -1;
-  persistent local_list = tilde_expand (fullfile ("~", ".octave_packages"));
-  persistent global_list = fullfile (OCTAVE_HOME (), "share", "octave",
-                                     "octave_packages");
+function out = pkj (varargin)
+  opts = parse_inputs (varargin);
 
-  ## If user is superuser set global_istall to true
-  ## FIXME: is it OK to set this always true on windows?
-  global_install = ((ispc () && ! isunix ()) || (geteuid () == 0));
-
-  if (isbool (prefix))
-    [prefix, archprefix] = default_prefix (global_install);
-    prefix = tilde_expand (prefix);
-    archprefix = tilde_expand (archprefix);
+  # Check requirements
+  if opts.forge
+    if (! __octave_config_info__ ("CURL_LIBS"))
+      error ("pkj: can't download from Octave Forge without the cURL library");
+    endif
   endif
 
-  mlock ();
+  # Do something
+  switch opts.command
+    case "install"
+      if opts.forge
+        install_forge_packages (opts);
+      else
+        install_files (opts);
+      endif
+    case "list"
+      if opts.forge
+        if nargout == 0
+          list_forge_packages (opts);
+        else
+          out = list_forge_packages (opts);
+        endif
+      else
+        pkg_list_descs = list_installed_packages (opts);
+        if nargout == 0
+          display_pkg_desc_list (pkg_list_descs);
+        else
+          out = pkg_list_descs;
+        endif
+      endif
+    case "uninstall"
+      uninstall_packages (opts);
+    otherwise
+      error ("pkj2: the %s command is not yet implemented", opts.command);
+  endswitch
+  
+endfunction
 
-  confirm_recursive_rmdir (false, "local");
+function install_forge_packages (opts)
+  reqs = parse_forge_targets (opts.targets);
+  pkgman = packajoozle.internal.PkgManager;
+  pkgman.install_forge_pkgs (reqs);
+endfunction
 
-  # valid actions in alphabetical order
-  available_actions = {"build", "describe", "global_list",  "install", ...
-                       "list", "load", "local_list", "prefix", "rebuild", ...
-                       "uninstall", "unload", "update"};
+function install_files (opts)
+  files = opts.targets;
+  pkgman = packajoozle.internal.PkgManager;
+  pkgman.install_file_pkgs (files);
+endfunction
 
-  ## Parse input arguments
-  if (isempty (varargin) || ! iscellstr (varargin))
-    print_usage ();
+function out = parse_forge_targets (targets)
+  if isempty (targets)
+    out = [];
+    return
   endif
-  files = {};
-  deps = true;
-  action = "none";
-  verbose = false;
-  octave_forge = false;
-  for i = 1:numel (varargin)
-    switch (varargin{i})
-      case "-nodeps"
-        deps = false;
-      ## TODO completely remove these warnings after some releases.
-      case "-noauto"
-        warning ("Octave:deprecated-option",
-                 ["pkj: autoload is no longer supported.  The -noauto "...
-                  "option is no longer required."]);
-      case "-auto"
-        warning ("Octave:deprecated-option",
-                 ["pkj: autoload is no longer supported.  Add a "...
-                  "'pkj load ...' command to octaverc instead."]);
-      case "-verbose"
-        verbose = true;
-        ## Send verbose output to pager immediately.  Change setting locally.
-        page_output_immediately (true, "local");
-      case "-forge"
-        if (! __octave_config_info__ ("CURL_LIBS"))
-          error ("pkj: can't download from Octave Forge without the cURL library");
-        endif
-        octave_forge = true;
-      case "-local"
-        global_install = false;
-        if (! user_prefix)
-          [prefix, archprefix] = default_prefix (global_install);
-        endif
-      case "-global"
-        global_install = true;
-        if (! user_prefix)
-          [prefix, archprefix] = default_prefix (global_install);
-        endif
-      case available_actions
-        if (! strcmp (action, "none"))
-          error ("pkj: more than one action specified");
-        endif
-        action = varargin{i};
-      otherwise
-        files{end+1} = varargin{i};
-    endswitch
+  for i = 1:numel (targets)
+    req = packajoozle.internal.PkgManager.parse_forge_target (targets{i});
+    if i == 1
+      out = req;
+    else
+      out = packajoozle.internal.Util.objcat (out, req);
+    endif
+  endfor
+endfunction
+
+function uninstall_packages (opts)
+  pkgman = packajoozle.internal.PkgManager;
+  reqs = parse_forge_targets (opts.targets);
+  inst_dir = ifelse (opts.global, "global", "user");
+  pkgman.uninstall_packages (reqs);
+endfunction
+
+
+function out = list_forge_packages (opts)
+  forge = packajoozle.internal.OctaveForgeClient;
+
+  if nargout == 0
+    puts ("Octave Forge provides these packages:\n");
+    info = forge.list_forge_packages_with_meta;
+    for i = 1:numel (info.name)
+      printf ("  %s %s\n", info.name{i}, info.current_version{i});
+    endfor
+  else
+    out = forge.list_forge_package_names;
+  endif
+endfunction
+
+function descs = list_installed_packages (opts)
+  pkgman = packajoozle.internal.PkgManager;
+  descs = pkgman.all_installed_packages ("desc");
+
+  ## Add loaded state info
+  p = strrep (path (), '\', '/');
+  for i = 1:numel (descs)
+    if (strfind (p, strrep (descs{i}.dir, '\', '/')))
+      descs{i}.loaded = true;
+    else
+      descs{i}.loaded = false;
+    endif
+  endfor
+endfunction
+
+function display_pkg_desc_list (descs)
+  if isempty (descs)
+    printf ("pkj: no packages installed\n");
+    return
+  endif
+
+  ## Compute the maximal lengths of name, version, and dir.
+  names = cellfun (@(x) {x.name}, descs);
+  num_packages = numel (names);
+  h1 = "Package Name";
+  h2 = "Version";
+  h3 = "Installation directory";
+  max_name_length = max ([numel(h1), cellfun(@numel, names)]);
+  version_lengths = cellfun (@(x) numel (x.version), descs);
+  max_version_length = max ([numel(h2), version_lengths]);
+  ncols = terminal_size ()(2);
+  max_dir_length = ncols - max_name_length - max_version_length - 7;
+  if (max_dir_length < 20)
+    max_dir_length = Inf;
+  endif
+
+  h1 = postpad (h1, max_name_length + 1, " ");
+  h2 = postpad (h2, max_version_length, " ");;
+
+  ## Print a header.
+  header = sprintf ("%s | %s | %s\n", h1, h2, h3);
+  printf (header);
+  tmp = sprintf (repmat ("-", 1, numel (header) - 1));
+  tmp(numel(h1) + 2) = "+";
+  tmp(numel(h1) + numel(h2) + 5) = "+";
+  printf ("%s\n", tmp);
+
+  ## Print the packages.
+  format = sprintf ("%%%ds %%1s| %%%ds | %%s\n",
+                    max_name_length, max_version_length);
+  for i = 1:num_packages
+    cur_name = descs{i}.name;
+    cur_version = descs{i}.version;
+    cur_dir = descs{i}.dir;
+    if (numel (cur_dir) > max_dir_length)
+      first_char = numel (cur_dir) - max_dir_length + 4;
+      first_filesep = strfind (cur_dir(first_char:end), filesep ());
+      if (! isempty (first_filesep))
+        cur_dir = ["..." cur_dir((first_char + first_filesep(1) - 1):end)];
+      else
+        cur_dir = ["..." cur_dir(first_char:end)];
+      endif
+    endif
+    if (descs{i}.loaded)
+      cur_loaded = "*";
+    else
+      cur_loaded = " ";
+    endif
+    printf (format, cur_name, cur_loaded, cur_version, cur_dir);
   endfor
 
-  if (octave_forge && ! any (strcmp (action, {"install", "list"})))
-    error ("pkj: '-forge' can only be used with install or list");
+endfunction
+
+
+function opts = parse_inputs (args_in)
+  opts = struct;
+  opts.command = [];
+  opts.forge = false;
+  opts.nodeps = false;
+  opts.local = false;
+  opts.global = false;
+  opts.verbose = false;
+  opts.targets = {};
+
+  valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
+    "describe", "prefix", "local_list", "global_list", "build", "rebuild"};
+  valid_options = {"forge", "nodeps", "local", "global", "forge", "verbose"};
+  opt_flags = strcat("-", valid_options);
+
+  args = args_in;
+
+  command = [];
+  for i = 1:numel (args)
+    if ismember (args{i}, opt_flags)
+      opt = args{i}(2:end);
+      opts.(opt) = true;
+    else
+      if args{i}(1) == "-"
+        error ("pkj: invalid option: %s", args{i});
+      endif
+      if isempty (command)
+        # First non-option arg is command
+        command = args{i};
+      else
+        # The rest are targets
+        opts.targets{end+1} = args{i};
+      endif
+    endif
+  endfor
+
+  if ! ismember (command, valid_commands)
+    error ("pkj: invalid command: %s. Valid commands are: %s", command, ...
+      strjoin (valid_commands, ", "));
   endif
-
-  ## Take action
-  switch (action)
-    case "list"
-      if (octave_forge)
-        if (nargout)
-          local_packages = list_forge_packages ();
-        else
-          list_forge_packages ();
-        endif
-      else
-        if (nargout == 1)
-          local_packages = installed_packages (local_list, global_list, files);
-        elseif (nargout > 1)
-          [local_packages, global_packages] = installed_packages (local_list,
-                                                                  global_list,
-                                                                  files);
-        else
-          installed_packages (local_list, global_list, files);
-        endif
-      endif
-
-    case "install"
-      if (isempty (files))
-        error ("pkj: install action requires at least one filename");
-      endif
-
-      local_files = {};
-      tmp_dir = tempname ();
-      unwind_protect
-
-        if (octave_forge)
-          [urls, local_files] = cellfun ("get_forge_download", files,
-                                         "uniformoutput", false);
-          [files, succ] = cellfun ("urlwrite", urls, local_files,
-                                   "uniformoutput", false);
-          succ = [succ{:}];
-          if (! all (succ))
-            i = find (! succ, 1);
-            error ("pkj: could not download file %s from url %s",
-                   local_files{i}, urls{i});
-          endif
-        else
-          ## If files do not exist, maybe they are not local files.
-          ## Try to download them.
-          not_local_files = cellfun (@(x) isempty (glob (x)), files);
-          if (any (not_local_files))
-            [success, msg] = mkdir (tmp_dir);
-            if (success != 1)
-              error ("pkj: failed to create temporary directory: %s", msg);
-            endif
-
-            for file = files(not_local_files)
-              file = file{1};
-              [~, fname, fext] = fileparts (file);
-              tmp_file = fullfile (tmp_dir, [fname fext]);
-              local_files{end+1} = tmp_file;
-              looks_like_url = regexp (file, '^\w+://');
-              if (looks_like_url)
-                [~, success, msg] = urlwrite (file, local_files{end});
-                if (success != 1)
-                  error ("pkj: failed downloading '%s': %s", file, msg);
-                endif
-                ## Verify that download is a tarball,
-                ## to protect against ISP DNS hijacking.
-                ## FIXME: Need a test which does not rely on external OS.
-                #{
-                if (isunix ())
-                  [ok, file_descr] = ...
-                    system (sprintf ('file "%s" | cut -d ":" -f 2', ...
-                                     local_files{end}));
-                  if (! ok)
-                    if (strfind (file_descr, "HTML"))
-                      error (["pkj: Invalid package file downloaded from " ...
-                              "%s\n" ...
-                              "File is HTML, not a tar archive."], ...
-                             file);
-                    endif
-                  else
-                    ## Ignore: maybe something went wrong with the "file" call.
-                  endif
-                endif
-                #}
-              else
-                looks_like_pkg_name = regexp (file, '^[\w-]+$');
-                if (looks_like_pkg_name)
-                  error (["pkj: file not found: %s.\n" ...
-                          "This looks like an Octave Forge package name." ...
-                          "  Did you mean:\n" ...
-                          "       pkg install -forge %s"], ...
-                         file, file);
-                else
-                  error ("pkj: file not found: %s", file);
-                endif
-              endif
-              files{strcmp (files, file)} = local_files{end};
-
-            endfor
-          endif
-        endif
-        install (files, deps, prefix, archprefix, verbose, local_list,
-                 global_list, global_install);
-
-      unwind_protect_cleanup
-        cellfun ("unlink", local_files);
-        if (exist (tmp_dir, "file"))
-          rmdir (tmp_dir, "s");
-        endif
-      end_unwind_protect
-
-    case "uninstall"
-      if (isempty (files))
-        error ("pkj: uninstall action requires at least one package name");
-      endif
-      uninstall (files, deps, verbose, local_list, global_list, global_install);
-
-    case "load"
-      if (isempty (files))
-        error ("pkj: load action requires at least one package name");
-      endif
-      load_packages (files, deps, local_list, global_list);
-
-    case "unload"
-      if (isempty (files))
-        error ("pkj: unload action requires at least one package name");
-      endif
-      unload_packages (files, deps, local_list, global_list);
-
-    case "prefix"
-      if (isempty (files) && ! nargout)
-        printf ("Installation prefix:             %s\n", prefix);
-        printf ("Architecture dependent prefix:   %s\n", archprefix);
-      elseif (isempty (files) && nargout)
-        local_packages = prefix;
-        global_packages = archprefix;
-      elseif (numel (files) >= 1 && ischar (files{1}))
-        prefix = tilde_expand (files{1});
-        local_packages = prefix = make_absolute_filename (prefix);
-        user_prefix = true;
-        if (numel (files) >= 2 && ischar (files{2}))
-          archprefix = make_absolute_filename (tilde_expand (files{2}));
-        endif
-      else
-        error ("pkj: prefix action requires a directory input, or an output argument");
-      endif
-
-    case "local_list"
-      if (isempty (files) && ! nargout)
-        disp (local_list);
-      elseif (isempty (files) && nargout)
-        local_packages = local_list;
-      elseif (numel (files) == 1 && ! nargout && ischar (files{1}))
-        local_list = files{1};
-        if (! exist (local_list, "file"))
-          try
-            ## Force file to be created
-            fclose (fopen (local_list, "wt"));
-          catch
-            error ("pkj: cannot create file %s", local_list);
-          end_try_catch
-        endif
-        local_list = canonicalize_file_name (local_list);
-      else
-        error ("pkj: specify a local_list file, or request an output argument");
-      endif
-
-    case "global_list"
-      if (isempty (files) && ! nargout)
-        disp (global_list);
-      elseif (isempty (files) && nargout)
-        local_packages = global_list;
-      elseif (numel (files) == 1 && ! nargout && ischar (files{1}))
-        global_list = files{1};
-        if (! exist (global_list, "file"))
-          try
-            ## Force file to be created
-            fclose (fopen (files{1}, "wt"));
-          catch
-            error ("pkj: cannot create file %s", global_list);
-          end_try_catch
-        endif
-        global_list = canonicalize_file_name (global_list);
-      else
-        error ("pkj: specify a global_list file, or request an output argument");
-      endif
-
-    case "rebuild"
-      if (global_install)
-        global_packages = rebuild (prefix, archprefix, global_list, files,
-                                   verbose);
-        global_packages = save_order (global_packages);
-        save (global_list, "global_packages");
-        if (nargout)
-          local_packages = global_packages;
-        endif
-      else
-        local_packages = rebuild (prefix, archprefix, local_list, files,
-                                  verbose);
-        local_packages = save_order (local_packages);
-        save (local_list, "local_packages");
-        if (! nargout)
-          clear ("local_packages");
-        endif
-      endif
-
-    case "build"
-      if (numel (files) < 2)
-        error ("pkj: build action requires build directory and at least one filename");
-      endif
-      build (files{1}, files(2:end), verbose);
-
-    case "describe"
-      ## FIXME: name of the output variables is inconsistent with their content
-      if (nargout)
-        [local_packages, global_packages] = describe (files, verbose,
-                                                      local_list, global_list);
-      else
-        describe (files, verbose, local_list, global_list);
-      endif
-
-    case "update"
-      installed_pkgs_lst = installed_packages (local_list, global_list);
-
-      ## Explicit list of packages to update, rather than all packages
-      if (numel (files) > 0)
-        update_lst = {};
-        installed_names = cellfun (@(idx) idx.name, installed_pkgs_lst,
-                                   "UniformOutput", false);
-        for i = 1:numel (files)
-          idx = find (strcmp (files{i}, installed_names), 1);
-          if (isempty (idx))
-            warning ("pkj: package %s is not installed - skipping update",
-                     files{i});
-          else
-            update_lst = [ update_lst, installed_pkgs_lst(idx) ];
-          endif
-        endfor
-        installed_pkgs_lst = update_lst;
-      endif
-
-      for i = 1:numel (installed_pkgs_lst)
-        installed_pkg_name = installed_pkgs_lst{i}.name;
-        installed_pkg_version = installed_pkgs_lst{i}.version;
-        try
-          forge_pkg_version = get_forge_pkg (installed_pkg_name);
-        catch
-          warning ("pkj: package %s not found on Octave Forge - skipping update\n",
-                   installed_pkg_name);
-          forge_pkg_version = "0";
-        end_try_catch
-        if (compare_versions (forge_pkg_version, installed_pkg_version, ">"))
-          feval (@pkj, "install", "-forge", installed_pkg_name);
-        endif
-      endfor
-
-    otherwise
-      error ("pkj: invalid action.  See 'help pkj' for available actions");
-  endswitch
-
+  opts.command = command;
 endfunction
