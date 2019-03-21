@@ -137,6 +137,31 @@ classdef Util
       endif
     endfunction
     
+    function out = repmat_object_to_vector (x, n)
+      # This exists becaue repmat doesn't work on objects, at least in Octave 4.4 or 5.1
+      out = x;
+      for i = 2:n
+        out(i) = x;
+      endfor
+    endfunction
+
+    function mustBeCompatibleSizes (a, b)
+      if ! isscalar (a) && ! isscalar (b)
+        if ! isequal (size (a), size (b))
+          error ("dimension mismatch: %s vs %s", size2str (size (a)), size2str (size (b)));
+        endif
+      endif
+    endfunction
+    
+    function [A_keys, B_keys] = proxy_keys_unique_trick (A, B)
+      n_a = numel (A);
+      both = [A(:); B(:)];
+      [u, ix, jx] = unique (both);
+      A_keys = jx(1:n_a);
+      B_keys = jx(n_a+1:end);
+      A_keys = reshape (A_keys, size (A));
+      B_keys = reshape (B_keys, size (B));
+    endfunction
 
   endmethods
 
