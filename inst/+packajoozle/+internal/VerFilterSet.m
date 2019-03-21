@@ -82,7 +82,7 @@ classdef VerFilterSet
 
     function out = add_filter (this, filter)
       mustBeScalar (this);
-      filter = makeItA (filter, "packajoozle.internal.VerFilter");
+      filter = makeItBeA (filter, "packajoozle.internal.VerFilter");
       for i_new = 1:numel (filter)
         for i_current = 1:numel (this.filters)
           subsumed = false;
@@ -100,7 +100,7 @@ classdef VerFilterSet
     function out = matches (this, vers)
       mustBeScalar (this);
       mustBeA (this, "packajoozle.internal.VerFilterSet");
-      vers = makeItA (vers, "packajoozle.internal.Version");
+      vers = makeItBeA (vers, "packajoozle.internal.Version");
       out = true (size (vers));
       for i_ver = 1:numel (vers)
         for i_filter = 1:numel (this.filters)

@@ -129,8 +129,8 @@ classdef VerFilter
     function out = subsumes (a, b)
       mustBeScalar (a);
       mustBeScalar (b);
-      a = makeItA (a, "packajoozle.internal.VerFilter");
-      b = makeItA (b, "packajoozle.internal.VerFilter");
+      a = makeItBeA (a, "packajoozle.internal.VerFilter");
+      b = makeItBeA (b, "packajoozle.internal.VerFilter");
       switch a.operator
         case "<"
           out = (isequal (b.operator, "<") && a.version <= b.version) ...
