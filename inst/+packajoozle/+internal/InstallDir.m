@@ -46,6 +46,7 @@ classdef InstallDir
 
   methods (Static)
 
+    #TODO: Finish moving this to InstallDirWorld
     function out = get_installdir_by_tag (tag)
       switch tag
         case "user"
