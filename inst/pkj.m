@@ -24,6 +24,10 @@
 ## Different actions are available depending on the value of @var{command},
 ## the additional options supplied, and the return arguments captured.
 ##
+## Please note, pkj is a work in progress. Some of the commands listed 
+## below will not actually work. If you have trouble with any of them, please
+## post a bug report at https://github.com/apjanke/octave-packajoozle/issues.
+##
 ## Available commands:
 ##
 ## @table @samp
