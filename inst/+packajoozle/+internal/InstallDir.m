@@ -120,7 +120,7 @@ classdef InstallDir
       desc.archprefix = target.arch_dir;
       list = this.get_package_list;
       if isempty (list)
-        new_list = desc;
+        new_list = {desc};
       else
         new_list = normalize_desc_save_order ([list {desc}]);
       endif
@@ -143,6 +143,7 @@ classdef InstallDir
     endfunction
 
     function save_pkg_list_to_file (this, list)
+      eval (sprintf ("%s = list;", this.package_list_var_name));
       packajoozle.internal.Util.mkdir (this.meta_dir);
       save (this.pkg_list_file, this.package_list_var_name);
       printf ("Saved package list to: %s\n", this.pkg_list_file);
