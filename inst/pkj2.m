@@ -25,6 +25,14 @@
 function out = pkj2 (varargin)
   opts = parse_inputs (varargin);
 
+  # Check requirements
+  if opts.forge
+    if (! __octave_config_info__ ("CURL_LIBS"))
+      error ("pkj: can't download from Octave Forge without the cURL library");
+    endif
+  endif
+
+  # Do something
   switch opts.command
     case "install"
       if opts.forge
@@ -34,7 +42,11 @@ function out = pkj2 (varargin)
       endif
     case "list"
       if opts.forge
-        error ("unimplemented")
+        if nargout == 0
+          list_forge_packages (opts);
+        else
+          out = list_forge_packages (opts);
+        endif
       else
         pkg_list_descs = list_installed_packages (opts);
         if nargout == 0
@@ -74,6 +86,20 @@ function out = parse_forge_targets (targets)
       out = packajoozle.internal.Util.objcat (out, req);
     endif
   endfor
+endfunction
+
+function out = list_forge_packages (opts)
+  forge = packajoozle.internal.OctaveForgeClient;
+
+  if nargout == 0
+    puts ("Octave Forge provides these packages:\n");
+    info = forge.list_forge_packages_with_meta;
+    for i = 1:numel (info.name)
+      printf ("  %s %s\n", info.name{i}, info.current_version{i});
+    endfor
+  else
+    out = forge.list_forge_package_names;
+  endif
 endfunction
 
 function descs = list_installed_packages (opts)
@@ -152,6 +178,7 @@ endfunction
 
 function opts = parse_inputs (args_in)
   opts = struct;
+  opts.command = [];
   opts.forge = false;
   opts.nodeps = false;
   opts.local = false;
@@ -165,12 +192,8 @@ function opts = parse_inputs (args_in)
   opt_flags = strcat("-", valid_options);
 
   args = args_in;
-  opts.command = args{1};
-  args(1) = [];
-  if ! ismember (opts.command, valid_commands)
-    error ("pkj: invalid command: %s", opts.command);
-  endif
 
+  command = [];
   for i = 1:numel (args)
     if ismember (args{i}, opt_flags)
       opt = args{i}(2:end);
@@ -179,7 +202,19 @@ function opts = parse_inputs (args_in)
       if args{i}(1) == "-"
         error ("pkj: invalid option: %s", args{i});
       endif
-      opts.targets{end+1} = args{i};
+      if isempty (command)
+        # First non-option arg is command
+        command = args{i};
+      else
+        # The rest are targets
+        opts.targets{end+1} = args{i};
+      endif
     endif
   endfor
+
+  if ! ismember (command, valid_commands)
+    error ("pkj: invalid command: %s. Valid commands are: %s", command, ...
+      strjoin (valid_commands, ", "));
+  endif
+  opts.command = command;
 endfunction

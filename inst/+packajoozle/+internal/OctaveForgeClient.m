@@ -137,6 +137,23 @@ classdef OctaveForgeClient
       out = packajoozle.internal.PkgVer (pkg_name, ver);
     endfunction
 
+    function out = list_forge_package_names (this)
+      # Just a name list, returned as a cellstr
+      txt = packajoozle.internal.Util.urlread ([this.forge_url "/list_packages.php"]);
+      out = ostrsplit (txt, " \n\t", true);
+    endfunction
+
+    function out = list_forge_packages_with_meta (this)
+      # Returns a struct with at least fields: name, current_version
+      pkg_names = this.list_forge_package_names;
+      vers = cell (size (pkg_names));
+      for i = 1:numel (pkg_names)
+        vers{i} = this.get_current_pkg_version (pkg_names{i});
+      endfor
+      out.name = pkg_names;
+      out.current_version = vers;
+    endfunction
+
   endmethods
 
 endclassdef
