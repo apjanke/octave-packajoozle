@@ -297,7 +297,7 @@
 function out = pkj (varargin)
   opts = parse_inputs (varargin);
 
-  if opts.help
+  if opts.help || isequal (opts.command, "help")
     help ("pkj");
     return
   endif
@@ -542,7 +542,8 @@ function opts = parse_inputs (args_in)
   opts.help = false;
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
-    "describe", "prefix", "local_list", "global_list", "build", "rebuild"};
+    "describe", "prefix", "local_list", "global_list", "build", "rebuild", ...
+    "help"};
   valid_options = {"forge", "nodeps", "local", "global", "forge", "verbose", ...
     "listversions", "help"};
   opt_flags = strcat("-", valid_options);
