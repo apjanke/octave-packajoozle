@@ -279,7 +279,7 @@ classdef PkgManager
             bad_deps{end+1} = dep_req;
           endif
         else
-          if ! any (dep_req.matches (installed))
+          if isempty (installed) || ! any (dep_req.matches (installed))
             bad_deps{end+1} = dep_req;
           endif
         endif
