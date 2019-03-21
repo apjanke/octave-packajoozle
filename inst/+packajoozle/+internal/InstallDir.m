@@ -171,7 +171,6 @@ classdef InstallDir
       eval (sprintf ("%s = list;", this.package_list_var_name));
       packajoozle.internal.Util.mkdir (this.meta_dir);
       save (this.pkg_list_file, this.package_list_var_name);
-      printf ("Saved package list to: %s\n", this.pkg_list_file);
     endfunction
 
     function out = is_installed (this, pkgver)
