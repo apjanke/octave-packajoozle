@@ -183,7 +183,7 @@ classdef InstallDir
     function save_pkg_list_to_file (this, list)
       s = struct (this.package_list_var_name, list);
       packajoozle.internal.Util.mkdir (this.meta_dir);
-      save (this.pkg_list_file, "-struct", "s");
+      save (this.pkg_list_file, "s");
       printf ("Saved package list to: %s\n", this.pkg_list_file);
     endfunction
 
