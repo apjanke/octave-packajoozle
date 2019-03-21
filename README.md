@@ -70,7 +70,8 @@ pkj load statistics@1.3.0
 
 Packajoozle `pkj` is pretty well compatible with `pkg`.
 
-The `pkj` command is back-compatible with the `pkg` command. Generally, any `pkg ...` command you run will do the same thing when you run it as `pkj ...` instead.
+The `pkj` command is back-compatible with the `pkg` command at the interace level.
+Generally, any `pkg ...` command you run will do the same thing when you run it as `pkj ...` instead.
 It’s just that `pkj` supports more commands, options, and package specifier forms over and above what `pkg` does, so more things will work in `pkj` than `pkg`.
 
 Packajoozle uses the same package directory structure, installation locations, and index/metadata file formats that `pkg` does.
