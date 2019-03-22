@@ -146,12 +146,6 @@ classdef qtable
       endswitch
     end
 
-    function prettyprint2 (this, opts)
-    endfunction
-
-  endmethods
-
-  methods (Access = private)
     function prettyprint_A (this)
       n_cols = ncols (this);
       varNames = this.col_names;
@@ -239,6 +233,34 @@ classdef qtable
       end
     endfunction
 
+    function out = resolve_colref (this, col_ref)
+      if isnumeric (col_ref) || islogical (col_ref)
+        out = col_ref;
+      elseif ischar (col_ref) || iscellstr (col_ref)
+        col_ref = cellstr (col_ref);
+        [tf, loc] = ismember (col_ref, this.col_names);
+        if ! all (tf)
+          error ("qtable: no such columns: %s", strjoin (col_ref(!tf)));
+        endif
+        out = loc;
+      else
+        error ("qtable: invalid colref type: %s", class (col_ref));
+      endif
+    endfunction
+
+    function [out, ix] = sortrecords (this, cols)
+      if nargin < 3; cols = 1:ncols (this); endif
+      ix_sort_cols = this.resolve_colref (cols);
+
+      # Radix sort!
+      ix = 1:nrows(this);
+      for i_col = numel(ix_sort_cols):-1:1
+        ix_sort_col = ix_sort_cols(i_col);
+        [~,ix_i] = sort (this.col_values{ix_sort_col});
+        ix = ix(ix_i);
+      endfor
+      out = this.restrict (ix);
+    endfunction
   endmethods
 
 endclassdef

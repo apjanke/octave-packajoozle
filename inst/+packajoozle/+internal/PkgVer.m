@@ -113,15 +113,18 @@ classdef PkgVer
       out = this(ix);
     endfunction
 
-    function out = sort (this)
+    function [out,ix] = sort (this)
       %SORT Sorts by package name, and then by version
       # Radix sort!
       out = this;
       ver = packajoozle.internal.Util.objcatc ({out.version});
-      [~, ix] = sort (ver);
-      out = out(ix);
-      [~, ix] = sort ({out.name});
-      out = out(ix);
+      ix = 1:numel(this);
+      [~, ix1] = sort (ver);
+      out = out(ix1);
+      ix = ix(ix1);
+      [~, ix2] = sort ({out.name});
+      out = out(ix2);
+      ix = ix(ix2);
     endfunction
 
   endmethods

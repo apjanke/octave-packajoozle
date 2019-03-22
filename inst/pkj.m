@@ -219,6 +219,13 @@
 ## @qcode{"Loaded"}, or
 ## @qcode{"Not loaded"} for each of the named packages.
 ##
+## @item test
+## Test the named packages
+##
+## @example
+## pkj test io nan
+## @end example
+##
 ## @item prefix
 ## Set the installation prefix directory.  For example,
 ##
@@ -342,6 +349,8 @@ function out = pkj (varargin)
       unload_packages (opts)
     case "uninstall"
       uninstall_packages (opts);
+    case "test"
+      test_packages (opts);
     case ""
       error ("pkj: you must supply a command");
     otherwise
@@ -454,8 +463,14 @@ function display_pkg_desc_list (descs)
     max_dir_length = Inf;
   endif
 
+  keyboard
   h1 = postpad (h1, max_name_length + 1, " ");
   h2 = postpad (h2, max_version_length, " ");;
+
+  ## Sort the packages
+  pkgvers = descs_to_pkgvers (descs);
+  [~, ix] = sort (pkgvers);
+  descs = descs(ix);
 
   ## Print a header.
   header = sprintf ("%s | %s | %s\n", h1, h2, h3);
@@ -496,20 +511,22 @@ function out = load_packages (opts)
   pkgreqs = parse_forge_targets (opts.targets);
   inst_descs = list_installed_packages (opts);
   inst_pkgvers = descs_to_pkgvers (inst_descs);
-  picked = {};
+  matched = {};
   for i_pkgreq = 1:numel (pkgreqs)
     pkgreq = pkgreqs(i_pkgreq);
     tf = pkgreq.matches (inst_pkgvers);
     if ! any (tf)
       error ("pkj: no matching package installed: %s", char (pkgreq));
     endif
-    picked{end+1} = inst_pkgvers(tf).newest;
+    matched{end+1} = inst_pkgvers(tf).newest;
   endfor
-  picked = packajoozle.internal.Util.objcat (picked{:});
-  for i = 1:numel (picked)
-    pkgman.load_package (picked(i));
+  matched = packajoozle.internal.Util.objcat (matched{:});
+  for i = 1:numel (matched)
+    pkgman.load_package (matched(i));
   endfor
-  printf ("pkj: loaded packages: %s\n", strjoin (dispstrs (picked), " "));
+  # TODO: Different output and return value for packages that are already
+  # loaded. The operation is idempotent, but the path taken may be relevant.
+  printf ("pkj: loaded packages: %s\n", strjoin (dispstrs (matched), " "));
 endfunction
 
 
@@ -523,6 +540,49 @@ function out = unload_packages (opts)
   else
     printf ("pkj: unloaded: %s\n", strjoin (dispstrs (unloaded), ", "));
   endif
+endfunction
+
+function test_packages (opts)
+  #TODO: What to do about package loading? e.g. if io 2.3.1 is installed and loaded,
+  # but a test of io 2.2.0 is requested?
+  pkgman = packajoozle.internal.PkgManager;
+  pkgreqs = parse_forge_targets (opts.targets);
+  pkgvers = installed_packages_matching (pkgreqs, opts);
+  for i = 1:numel (pkgvers)
+    printf ("pkj: testing package %s %s\n", desc.name, desc.version);
+    pkgver = pkgvers(i);
+    descs = pkgman.descs_for_installed_package (pkgver);
+    if numel (descs) > 1
+      # I just don't want to handle this case
+      fprintf ("pkj: multiple installs exist of package %s; just testing the one in %s\n", ...
+        char (pkgver), descs{1}.dir);
+    endif
+    desc = descs{1};
+    # Actual test code here
+    dirs_to_test = {desc.dir};
+    if ! isequal (desc.archprefix, desc.dir)
+      dirs_to_test{end+1} = desc.archprefix;
+    endif
+    for i = 1:numel (dirs_to_test)
+      runtests (dirs_to_test{i});
+    endfor
+  endfor
+endfunction
+
+function out = installed_packages_matching (pkgreqs, opts)
+  pkgman = packajoozle.internal.PkgManager;
+  inst_descs = list_installed_packages (opts);
+  inst_pkgvers = descs_to_pkgvers (inst_descs);
+  matched = {};
+  for i_pkgreq = 1:numel (pkgreqs)
+    pkgreq = pkgreqs(i_pkgreq);
+    tf = pkgreq.matches (inst_pkgvers);
+    if any (tf)
+      matched{end+1} = inst_pkgvers(tf).newest;
+    endif
+  endfor
+  matched = packajoozle.internal.Util.objcat (matched{:});
+  out = matched;
 endfunction
 
 function out = descs_to_pkgvers (descs)
@@ -547,7 +607,7 @@ function opts = parse_inputs (args_in)
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
     "describe", "prefix", "local_list", "global_list", "build", "rebuild", ...
-    "help"};
+    "help" "test"};
   valid_options = {"forge", "nodeps", "local", "global", "forge", "verbose", ...
     "listversions", "help"};
   opt_flags = strcat("-", valid_options);

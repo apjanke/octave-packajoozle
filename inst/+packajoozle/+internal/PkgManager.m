@@ -399,6 +399,18 @@ classdef PkgManager
       endswitch
     endfunction
     
+    function out = descs_for_installed_package (this, pkgver)
+      descs = this.all_installed_packages ("desc");
+      out = {};
+      for i = 1:numel (descs)
+        desc = descs{i};
+        desc_pkgver = packajoozle.internal.PkgVer (desc.name, desc.version);
+        if desc_pkgver == pkgver
+          out{end+1} = desc;
+        endif
+      endfor
+    endfunction
+
     function uninstall_all_versions (this, pkg_name)
       error ("this is not yet implemented")
     endfunction
