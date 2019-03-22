@@ -263,6 +263,25 @@ classdef qtable
       endfor
       out = tmp;
     endfunction
+
+    function [out, ix] = remove_successive_duplicates (this)
+      ix_out = [1];
+      for i_row = 2:nrows (this)
+        is_same_as_last = true;
+        for i_col = 1:ncols (this)
+          if ! isequal (this.col_values{i_col}{i_row}, this.col_values{i_col}{i_row-1})
+            is_same_as_last = false;
+            break
+          endif
+        endfor
+        if ! is_same_as_last
+          ix_out(end+1) = i_row;
+        endif
+      endfor
+      ix = ix_out;
+      out = restrict (this, ix);
+    endfunction
+    
   endmethods
 
 endclassdef

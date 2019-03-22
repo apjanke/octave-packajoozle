@@ -449,12 +449,20 @@ function display_pkg_desc_list (descs)
   endif
 
   ## Compute the maximal lengths of name, version, and dir.
-  s.PackageName = cellfun (@(x) {x.name}, descs);
+  name = cellfun (@(x) {x.name}, descs);
+  name_with_load_indicator = name;
+  for i = 1:numel (name)
+    if descs{i}.loaded
+      name_with_load_indicator{i} = [name_with_load_indicator{i} " *"];
+    endif
+  endfor
+  s.PackageName = name_with_load_indicator;
   s.CurrentVersion = cellfun (@(x) {x.version}, descs);
   s.InstallationDir = cellfun (@(x) {x.dir}, descs);
 
   tbl = packajoozle.internal.qtable (s);
   tbl = sortrecords (tbl, [1 2]);
+  tbl = tbl.remove_successive_duplicates;
   prettyprint (tbl, "B");
 endfunction
 

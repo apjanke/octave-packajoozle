@@ -228,7 +228,7 @@ classdef PkgManager
       try
         generate_lookfor_cache (desc, target);
       catch err
-        warning ("pkj: failed creating lookfor cache for %s: %s", ...
+        warning ("pkj: failed creating lookfor cache for %s: %s\n", ...
           desc.name, err.message);
       end_try_catch
 
@@ -272,7 +272,7 @@ classdef PkgManager
     function require_deps_installed_from_desc (this, desc)
       bad_deps = this.get_unsatisfied_deps_from_desc (desc);
       if ! isempty (bad_deps)
-        error ("pkj: unsatisified dependencies: %s", ...
+        error ("pkj: unsatisified dependencies: %s\n", ...
           strjoin (dispstrs (bad_deps), ", "));
       endif
     endfunction
