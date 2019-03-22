@@ -85,7 +85,9 @@ classdef PkgVerReq
 
     function out = matches (this, pkg_specs)
       mustBeScalar (this);
-      mustBeA (pkg_specs, "packajoozle.internal.PkgVer");
+      if ! isempty (pkg_specs)
+        mustBeA (pkg_specs, "packajoozle.internal.PkgVer");
+      endif
       out = false (size (pkg_specs));
       for i = 1:numel (pkg_specs)
         p = pkg_specs(i);

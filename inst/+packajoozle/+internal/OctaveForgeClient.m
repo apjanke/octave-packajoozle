@@ -22,7 +22,7 @@
 ##
 ## @end deftypefn
 
-classdef OctaveForgeClient
+classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
 
   properties
     % How long to keep cached metadata for, as datenum
@@ -95,9 +95,9 @@ classdef OctaveForgeClient
       packajoozle.internal.Util.urlwrite (url, cached_file);
     endfunction
 
-    function cached_file = download_cached_pkg_distribution (this, pkg)
-      mustBeA (pkg, "packajoozle.internal.PkgVer")
-      tgz_file = sprintf ("%s-%s.tar.gz", pkg.name, char (pkg.version));
+    function cached_file = download_cached_pkg_distribution (this, pkgver)
+      mustBeA (pkgver, "packajoozle.internal.PkgVer")
+      tgz_file = sprintf ("%s-%s.tar.gz", pkgver.name, char (pkgver.version));
       url = [this.forge_url "/download/" tgz_file];
       cache_dir = fullfile (this.download_cache_dir, "distributions");
       packajoozle.internal.Util.mkdir (cache_dir);
@@ -146,7 +146,6 @@ classdef OctaveForgeClient
       endif
     endfunction
     
-
     function out = list_all_package_distribution_files (this)
       file = this.download_cached_meta_file ('package-file-download-page.html', ...
         'https://sourceforge.net/projects/octave/files/Octave%20Forge%20Packages/Individual%20Package%20Releases');
@@ -210,6 +209,31 @@ classdef OctaveForgeClient
       endfor
       out.name = pkg_names;
       out.current_version = vers;
+    endfunction
+
+    % IPackageMetaSource implementation
+
+    function out = list_available_packages (this)
+      out = this.list_all_releases;
+    endfunction
+
+    function out = get_package_description_meta (this, pkgver)
+      # Check cache
+      pkg_meta_cache_dir = fullfile (this.download_cache_dir, ...
+        "pkg-meta");
+      cache_dir_for_this_pkgver = fullfile (pkg_meta_cache_dir, ...
+        pkgver.name, sprintf ("%s-%s", pkgver.name, char (pkgver.version)));
+      cached_file = fullfile (cache_dir_for_this_pkgver, "DESCRIPTION");
+      if ! exist (cached_file, "file")
+        printf (["OctaveForgeClient.get_package_description_meta: cache miss " ...
+            " for %s; downloading...\n"], ...
+          char (pkgver));
+        dist_file = this.download_cached_pkg_distribution (pkgver);
+        out = packajoozle.internal.PkgDistUtil.get_pkg_description_from_pkg_archive_file (dist_file);
+      else
+        printf ("OctaveForgeClient.get_package_description_meta: cache hit: %s\n",
+          char (pkgver));
+      endif
     endfunction
 
   endmethods

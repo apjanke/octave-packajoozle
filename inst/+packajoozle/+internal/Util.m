@@ -46,7 +46,7 @@ classdef Util
     function filewrite (out_file, txt)
       [fid, msg] = fopen (out_file, 'w');
       if fid < 0
-        error ('Failed opening file for writing:\n  File: %s\n  Error: %s', ...
+        error ("filewrite: Failed opening file for writing:\n  File: %s\n  Error: %s", ...
           out_file, msg);
       endif
       fwrite (fid, txt);
@@ -135,7 +135,7 @@ classdef Util
     function copyfile (source, destination)
       [ok, msg] = copyfile (source, destination);
       if ! ok
-        error ("couldn't copy file %s to %s: %s", source, destination, msg);
+        error ("copyfile: couldn't copy file %s to %s: %s", source, destination, msg);
       endif
     endfunction
     
@@ -162,9 +162,13 @@ classdef Util
       out = varargin{1};
       for i_arg = 2:numel (varargin)
         B = varargin{i_arg};
-        for i_B = 1:numel (B)
-          out(end+1) = B(i_B);
-        endfor
+        if isempty (out)
+          out = B;
+        else
+          for i_B = 1:numel (B)
+            out(end+1) = B(i_B);
+          endfor
+        endif
       endfor
     endfunction
 
@@ -184,6 +188,27 @@ classdef Util
       B_keys = jx(n_a+1:end);
       A_keys = reshape (A_keys, size (A));
       B_keys = reshape (B_keys, size (B));
+    endfunction
+
+    function valid = is_valid_pkg_version_string (str)
+      ## We are limiting ourselves to this set of characters because the
+      ## version will appear on the filepath.  The portable character, according to
+      ## http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_278
+      ## is [A-Za-z0-9\.\_\-].  However, this is very limited.  We specially
+      ## want to support a "+" so we can support "pkgname-2.1.0+" during
+      ## development.  So we use Debian's character set for version strings
+      ## https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+      ## with the exception of ":" (colon) because that's the PATH separator.
+      ##
+      ## Debian does not include "_" because it is used to separate the name,
+      ## version, and arch in their deb files.  While the actual filenames are
+      ## never parsed to get that information, it is important to have a unique
+      ## separator character to prevent filename clashes.  For example, if we
+      ## used hyhen as separator, "signal-2-1-rc1" could be "signal-2" version
+      ## "1-rc1" or "signal" version "2-1-rc1".  A package file for both must be
+      ## able to co-exist in the same directory, e.g., during package install or
+      ## in a flat level package repository.
+      valid = numel (regexp (str, '[^0-9a-zA-Z\.\+\-\~]')) == 0;
     endfunction
 
   endmethods

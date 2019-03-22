@@ -64,27 +64,6 @@ classdef PkgManager
       endif
     endfunction
 
-    function valid = is_valid_pkg_version_string (this, str)
-      ## We are limiting ourselves to this set of characters because the
-      ## version will appear on the filepath.  The portable character, according to
-      ## http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_278
-      ## is [A-Za-z0-9\.\_\-].  However, this is very limited.  We specially
-      ## want to support a "+" so we can support "pkgname-2.1.0+" during
-      ## development.  So we use Debian's character set for version strings
-      ## https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
-      ## with the exception of ":" (colon) because that's the PATH separator.
-      ##
-      ## Debian does not include "_" because it is used to separate the name,
-      ## version, and arch in their deb files.  While the actual filenames are
-      ## never parsed to get that information, it is important to have a unique
-      ## separator character to prevent filename clashes.  For example, if we
-      ## used hyhen as separator, "signal-2-1-rc1" could be "signal-2" version
-      ## "1-rc1" or "signal" version "2-1-rc1".  A package file for both must be
-      ## able to co-exist in the same directory, e.g., during package install or
-      ## in a flat level package repository.
-      valid = numel (regexp (str, '[^0-9a-zA-Z\.\+\-\~]')) == 0;
-    endfunction
-
     function out = resolve_installdir (this, inst_dir)
       if isempty (inst_dir)
         inst_dir = this.default_installdir_tag;
@@ -169,7 +148,7 @@ classdef PkgManager
       inst_dir = this.resolve_installdir (inst_dir);
 
       # Remove existing installation of same pkg/ver
-      info = this.get_pkg_description_from_pkg_file (file);
+      info = packajoozle.internal.PkgDistUtil.get_pkg_description_from_pkg_archive_file (file);
       pkgver = packajoozle.internal.PkgVer (info.name, info.version);
       out.pkgver = pkgver;
       if inst_dir.is_installed (pkgver)
@@ -279,7 +258,7 @@ classdef PkgManager
 
     function out = get_unsatisfied_deps_from_desc (this, desc)
       bad_deps = {};
-      installed = this.all_installed_packages;
+      installed = this.world.list_all_installed_packages;
       for i = 1:numel (desc.depends)
         dep = desc.depends{i};
         dep_req = packajoozle.internal.PkgVerReq (dep.package, ...
@@ -295,120 +274,6 @@ classdef PkgManager
         endif
       endfor
       out = packajoozle.internal.Util.objcat (bad_deps{:});
-    endfunction
-
-    function out = get_pkg_description_from_pkg_file (this, file)
-      tmp_dir = tempname (tempdir, "packajoozle-work-");
-      packajoozle.internal.Util.mkdir (tmp_dir);
-      untar (file, tmp_dir);
-      kids = packajoozle.internal.Util.readdir (tmp_dir);
-      if numel (kids) > 1
-        error ("pkj: Multiple top-level directories found in pkg file: %s", file);
-      endif
-      subdir = fullfile (tmp_dir, kids{1});
-      descr_file = fullfile (subdir, "DESCRIPTION");
-      if ! exist (descr_file, "file")
-        error ("pkj: Pkg file does not contain a DESCRIPTION file: %s", file);
-      endif
-      descr_txt = fileread (descr_file);
-      out = this.parse_pkg_description_file (descr_txt);
-    endfunction
-
-    function out = parse_pkg_description_file (this, descr_txt)
-      desc = struct ();
-
-      lines = regexp (descr_txt, "\r?\n", "split");
-      if isempty (lines{end})
-        lines(end) = [];
-      endif
-
-      for i = 1:numel (lines)
-        line = chomp (lines{i});
-        if isempty (line)
-          ## Ignore empty lines
-        elseif (line(1) == "#")
-          ## Comments, do nothing.
-        elseif (isspace (line(1)))
-          ## Continuation lines
-          if (exist ("keyword", "var") && isfield (desc, keyword))
-            desc.(keyword) = [desc.(keyword) " " deblank(line)];
-          endif
-        else
-          ## Keyword/value pair
-          colon = find (line == ":");
-          if (length (colon) == 0)
-            warning ("pkj: skipping invalid line %d in DESCRIPTION file: '%s'", i, line);
-          else
-            colon = colon(1);
-            keyword = tolower (strtrim (line(1:colon-1)));
-            value = strtrim (line (colon+1:end));
-            if (length (value) == 0)
-                fclose (fid);
-                error ("pkj: The keyword '%s' of the package '%s' has an empty value",
-                        keyword, desc.name);
-            endif
-            if (isfield (desc, keyword))
-              warning ("pkj: duplicate keyword '%s' in DESCRIPTION, ignoring",
-                       keyword);
-            else
-              desc.(keyword) = value;
-            endif
-          endif
-        endif
-      endfor
-
-      ## Make sure all is okay.
-      needed_fields = {"name", "version", "date", "title", ...
-                       "author", "maintainer", "description"};
-      for f = needed_fields
-        if (! isfield (desc, f{1}))
-          error ("pkj: DESCRIPTION is missing needed field %s", f{1});
-        endif
-      endfor
-
-      if (! this.is_valid_pkg_version_string (desc.version))
-        error ("pkj: invalid version string '%s'", desc.version);
-      endif
-
-      if (isfield (desc, "depends"))
-        desc.depends = fix_depends (desc.depends);
-      else
-        desc.depends = "";
-      endif
-      desc.name = tolower (desc.name);
-      out = desc;
-    endfunction
-
-    function out = all_installed_packages (this, format = "pkgver")
-      # Returns list as PkgVers
-      inst_dirs = this.world.get_all_installdirs;
-      switch format
-        case "pkgver"
-          out = inst_dirs(1).get_package_list;
-          for i = 2:numel (inst_dirs)
-            out = packajoozle.internal.Util.objcat (out, ...
-              inst_dirs(i).get_package_list);
-          endfor
-        case "desc"
-          out = inst_dirs(1).get_package_list_descs;
-          for i = 2:numel (inst_dirs)
-            out = [out inst_dirs(i).get_package_list_descs];
-          endfor
-        otherwise
-          error ("PkgManager.all_installed_packages: invalid format: '%s'", format);
-      endswitch
-    endfunction
-    
-    function out = descs_for_installed_package (this, pkgver)
-      descs = this.all_installed_packages ("desc");
-      out = {};
-      for i = 1:numel (descs)
-        desc = descs{i};
-        desc_pkgver = packajoozle.internal.PkgVer (desc.name, desc.version);
-        if desc_pkgver == pkgver
-          out{end+1} = desc;
-        endif
-      endfor
     endfunction
 
     function uninstall_all_versions (this, pkg_name)
@@ -498,7 +363,7 @@ classdef PkgManager
     endfunction
 
     function out = unload_packages (this, pkgreqs)
-      descs = this.all_installed_packages ("desc");
+      descs = this.world.list_all_installed_packages ("desc");
       # TODO: Pick packages and then sort in reverse dependency order
       out = {};
       for i_req = 1:numel (pkgreqs)
@@ -550,57 +415,6 @@ function rm_rf_safe (path)
   end_try_catch
 endfunction
 
-% ======================================================
-%
-% Code copied from Octave's pkg/pkg.m
-
-## Make sure the depends field is of the right format.
-## This function returns a cell of structures with the following fields:
-##   package, version, operator
-function deps_cell = fix_depends (depends)
-
-  deps = strtrim (ostrsplit (tolower (depends), ","));
-  deps_cell = cell (1, length (deps));
-  dep_pat = ...
-  '\s*(?<name>[-\w]+)\s*(\(\s*(?<op>[<>=]+)\s*(?<ver>\d+\.\d+(\.\d+)*)\s*\))*\s*';
-
-  ## For each dependency.
-  for i = 1:length (deps)
-    dep = deps{i};
-    [start, nm] = regexp (dep, dep_pat, 'start', 'names');
-    ## Is the dependency specified
-    ## in the correct format?
-    if (! isempty (start))
-      package = tolower (strtrim (nm.name));
-      ## Does the dependency specify a version
-      ## Example: package(>= version).
-      if (! isempty (nm.ver))
-        operator = nm.op;
-        if (! any (strcmp (operator, {">", ">=", "<=", "<", "=="})))
-          error ("pkj: unsupported operator in dependency: %s", operator);
-        endif
-        pkgman = packajoozle.internal.PkgManager;
-        if (! pkgman.is_valid_pkg_version_string (nm.ver))
-          error ("pkj: invalid version string in dependency: '%s'", nm.ver);
-        endif
-      else
-        ## If no version is specified for the dependency
-        ## we say that the version should be greater than
-        ## or equal to "0.0.0".
-        package = tolower (strtrim (dep));
-        operator = ">=";
-        nm.ver  = "0.0.0";
-      endif
-      deps_cell{i} = struct ("package", package,
-                             "operator", operator,
-                             "version", nm.ver);
-    else
-      error ("pkj: incorrect syntax for dependency '%s' in the DESCRIPTION file\n",
-             dep);
-    endif
-  endfor
-
-endfunction
 
 % ======================================================
 % My special functions
@@ -941,14 +755,14 @@ function generate_index (desc, dir, index_file)
     files = [files; files2];
   endif
 
-  functions = {};
+  fcns = {};
   for i = 1:length (files)
     file = files{i};
     lf = length (file);
     if (lf > 2 && strcmp (file(end-1:end), ".m"))
-      functions{end+1} = file(1:end-2);
+      fcns{end+1} = file(1:end-2);
     elseif (lf > 4 && strcmp (file(end-3:end), ".oct"))
-      functions{end+1} = file(1:end-4);
+      fcns{end+1} = file(1:end-4);
     endif
   endfor
 
@@ -965,7 +779,7 @@ function generate_index (desc, dir, index_file)
   fid = packajoozle.internal.Util.fopen (index_file);
   fprintf (fid, "%s >> %s\n", desc.name, desc.title);
   fprintf (fid, "%s\n", categories{1});
-  fprintf (fid, "  %s\n", functions{:});
+  fprintf (fid, "  %s\n", fcns{:});
   fclose (fid);
 
 endfunction
