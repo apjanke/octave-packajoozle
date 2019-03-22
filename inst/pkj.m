@@ -570,25 +570,36 @@ function opts = parse_inputs (args_in)
     "help" "test"};
   valid_options = {"forge", "nodeps", "local", "global", "forge", "verbose", ...
     "listversions", "help"};
+  aliases = {
+    "ls"      "list"
+    "rm"      "uninstall"
+    "remove"  "uninstall"
+    "-v"      "-verbose"
+  };
   opt_flags = strcat("-", valid_options);
 
   args = args_in;
 
   command = [];
   for i = 1:numel (args)
-    if ismember (args{i}, opt_flags)
-      opt = args{i}(2:end);
+    arg = args{i};
+    [tf, loc] = ismember (arg, aliases(:,1));
+    if tf
+      arg = aliases{loc,2};
+    endif
+    if ismember (arg, opt_flags)
+      opt = arg(2:end);
       opts.(opt) = true;
     else
-      if args{i}(1) == "-"
+      if arg(1) == "-"
         error ("pkj: invalid option: %s", args{i});
       endif
       if isempty (command)
         # First non-option arg is command
-        command = args{i};
+        command = arg;
       else
         # The rest are targets
-        opts.targets{end+1} = args{i};
+        opts.targets{end+1} = arg;
       endif
     endif
   endfor
