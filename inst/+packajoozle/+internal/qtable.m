@@ -22,6 +22,9 @@
 ## You can think of it as a glorified struct with tabular pretty-printing
 ## support.
 ##
+## This class is not for data analysis; it's just for convenient variable
+## arrangement and display.
+##
 ## Limitations of this class:
 ##  - A qtable object is a scalar object; it does not emulate a 2-D array
 ##    like Matlab's @@table does. 
@@ -127,19 +130,36 @@ classdef qtable
       out = [nrows(this) ncols(this)];
     endfunction
 
-    function prettyprint (this)
+    function prettyprint (this, format = "A")
       %PRETTYPRINT Display table values, formatted as a table
       if isempty (this)
         fprintf ('Empty %s %s\n', size2str (size (this)), class (this));
         return;
       end
-      nVars = ncols (this);
+      switch format
+        case "A"
+          prettyprint_A (this);
+        case "B"
+          prettyprint_B (this);
+        otherwise
+          error ("qtable.prettyprint: invalid format: '%s'", format);
+      endswitch
+    end
+
+    function prettyprint2 (this, opts)
+    endfunction
+
+  endmethods
+
+  methods (Access = private)
+    function prettyprint_A (this)
+      n_cols = ncols (this);
       varNames = this.col_names;
       % Here, "cols" means output columns, not data columns. Each data variable
       % will be displayed in a single output column.
       colNames = varNames;
-      colStrs = cell (1, nVars);
-      colWidths = NaN (1, nVars);
+      colStrs = cell (1, n_cols);
+      colWidths = NaN (1, n_cols);
       for iVar = 1:numel (this.col_values)
         vals = this.col_values{iVar};
         strs = dispstrs (vals);
@@ -153,12 +173,16 @@ classdef qtable
       colWidths;
       nameWidths = cellfun ('numel', varNames);
       colWidths = max ([nameWidths; colWidths]);
-      totalWidth = sum (colWidths) + 4 + (3 * (nVars - 1));
+      totalWidth = sum (colWidths) + 4 + (3 * (n_cols - 1));
       elementStrs = cat (2, colStrs{:});
       
-      rowFmts = cell (1, nVars);
-      for i = 1:nVars
-        rowFmts{i} = ['%-' num2str(colWidths(i)) 's'];
+      rowFmts = cell (1, n_cols);
+      for i = 1:n_cols
+        if isnumeric (this.col_vals{i})
+          rowFmts{i} = ['%' num2str(colWidths(i)) 's'];
+        else
+          rowFmts{i} = ['%-' num2str(colWidths(i)) 's'];
+        endif
       end
       rowFmt = ['| ' strjoin(rowFmts, ' | ')  ' |' sprintf('\n')];
       fprintf ('%s\n', repmat ('-', [1 totalWidth]));
@@ -168,8 +192,52 @@ classdef qtable
         fprintf (rowFmt, elementStrs{i,:});
       end
       fprintf ('%s\n', repmat ('-', [1 totalWidth]));
-    end
-    
+    endfunction
+
+    function prettyprint_B (this)
+      n_cols = ncols (this);
+      varNames = this.col_names;
+      % Here, "cols" means output columns, not data columns. Each data variable
+      % will be displayed in a single output column.
+      colNames = varNames;
+      colStrs = cell (1, n_cols);
+      colWidths = NaN (1, n_cols);
+      for iVar = 1:numel (this.col_values)
+        vals = this.col_values{iVar};
+        strs = dispstrs (vals);
+        lines = cell (ncols(this), 1);
+        for iRow = 1:size (strs, 1)
+          lines{iRow} = strjoin (strs(iRow,:), '   ');
+        end
+        colStrs{iVar} = lines;
+        colWidths(iVar) = max (cellfun ('numel', lines));
+      end
+      colWidths;
+      nameWidths = cellfun ('numel', varNames);
+      colWidths = max ([nameWidths; colWidths]);
+      totalWidth = sum (colWidths) + 4 + (3 * (n_cols - 1));
+      elementStrs = cat (2, colStrs{:});
+      
+      rowFmts = cell (1, n_cols);
+      for i = 1:n_cols
+        if isnumeric (this.col_values{i})
+          rowFmts{i} = ['%' num2str(colWidths(i)) 's'];
+        else
+          rowFmts{i} = ['%-' num2str(colWidths(i)) 's'];
+        endif
+      end
+      rowFmt = [ strjoin(rowFmts, ' | ')  sprintf('\n')];
+      fprintf (rowFmt, varNames{:});
+      line_bits = {};
+      line_bits{1} = repmat("-", [1 colWidths(1)+1]);
+      line_bits(2:n_cols-1) = arrayfun (@(x) {repmat("-", [1 x+2])}, colWidths(2:end-1));
+      line_bits{n_cols} = repmat("-", [1 colWidths(end)+1]);
+      divider_line = strjoin (line_bits, '+');
+      fprintf ("%s\n", divider_line);
+      for i = 1:nrows (this)
+        fprintf (rowFmt, elementStrs{i,:});
+      end
+    endfunction
 
   endmethods
 
