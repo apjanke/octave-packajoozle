@@ -172,7 +172,7 @@ classdef qtable
       
       rowFmts = cell (1, n_cols);
       for i = 1:n_cols
-        if isnumeric (this.col_vals{i})
+        if isnumeric (this.col_values{i})
           rowFmts{i} = ['%' num2str(colWidths(i)) 's'];
         else
           rowFmts{i} = ['%-' num2str(colWidths(i)) 's'];
@@ -249,17 +249,19 @@ classdef qtable
     endfunction
 
     function [out, ix] = sortrecords (this, cols)
-      if nargin < 3; cols = 1:ncols (this); endif
+      if nargin < 2; cols = 1:ncols (this); endif
       ix_sort_cols = this.resolve_colref (cols);
 
       # Radix sort!
+      tmp = this;
       ix = 1:nrows(this);
       for i_col = numel(ix_sort_cols):-1:1
         ix_sort_col = ix_sort_cols(i_col);
-        [~,ix_i] = sort (this.col_values{ix_sort_col});
+        [~,ix_i] = sort (tmp.col_values{ix_sort_col});
         ix = ix(ix_i);
+        tmp = restrict(tmp, ix_i);
       endfor
-      out = this.restrict (ix);
+      out = tmp;
     endfunction
   endmethods
 
