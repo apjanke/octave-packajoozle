@@ -83,6 +83,14 @@ classdef DependencyResolver
       dep_path = [];  % current path in the graph traversal we're doing
 
       function ok = step (p)
+        if ismember (p, dep_path)
+          cycle_path = objcat (dep_path, p);
+          this.emit ("dependency cycle detected: %s", dep_path_str (cycle_path));
+          ok = false;
+          error_msgs{end+1} = sprintf ("dependency cycle: %s", ...
+            dep_path_str (cycle_path));
+          return
+        endif
         dep_path = objcat (dep_path, p); % push
         unwind_protect
           desc = this.meta_source.get_package_description_meta (p);
