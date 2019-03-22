@@ -1,10 +1,9 @@
 Packajoozle for GNU Octave
 ==========================
 
-Packajoozle is a re-factoring/re-working of Octave’s `pkg` package management tool to use OOP. It provides the `pkj` command, a drop-in replacement for `pkg`.
+Packajoozle is a re-working of Octave’s `pkg` package management tool to use OOP. It provides the `pkj` command, a drop-in replacement for `pkg`.
 
-I’m just doing this as a fun exercise.
-I don’t plan on submitting this back up for inclusion in core Octave.
+I started this as just a fun exercise, but it kind of got out of hand, and now it’s almost a real, usable package.
 
 ## New features
 
@@ -15,6 +14,7 @@ Compared to Octave’s `pkg`, Packajoozle’s `pkj` also provides:
   * Installation of multiple versions side-by-side
 * More metadata available from Octave Forge
 * Capturing of package build logs
+* A `pkj test` command for running package unit tests
 
 ## Installation
 
