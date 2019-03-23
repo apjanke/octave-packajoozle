@@ -534,7 +534,7 @@ function prepare_installation (desc, build_dir)
   if (! isfolder (inst_dir))
     [status, msg] = mkdir (inst_dir);
     if (status != 1)
-      rmdir (desc.dir, "s");
+      packajoozle.internal.Util.rm_rf (desc.dir);
       error ("pkj: the 'inst' directory did not exist and could not be created: %s",
              msg);
     endif
@@ -601,7 +601,7 @@ function copy_built_files (desc, build_dir, verbose)
         endif
         [status, output] = copyfile (archindependent, instdir);
         if (status != 1)
-          rmdir (desc.dir, "s");
+          packajoozle.internal.Util.rm_rf (desc.dir);
           error ("pkj: couldn't copy files from 'src' to 'inst': %s", output);
         endif
       endif
@@ -616,7 +616,7 @@ function copy_built_files (desc, build_dir, verbose)
         endif
         [status, output] = copyfile (archdependent, archdir);
         if (status != 1)
-          rmdir (desc.dir, "s");
+          packajoozle.internal.Util.rm_rf (desc.dir);
           error ("pkj: couldn't copy files from 'src' to 'inst': %s", output);
         endif
       endif
@@ -667,7 +667,7 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
   if (! dirempty (instdir))
     [status, output] = copyfile (fullfile (instdir, "*"), desc.dir);
     if (status != 1)
-      rmdir (desc.dir, "s");
+      packajoozle.internal.Util.rm_rf (desc.dir);
       error ("pkj: couldn't copy files to the installation directory");
     endif
     if (isfolder (fullfile (desc.dir, getarch ()))
@@ -675,10 +675,10 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
                      canonicalize_file_name (octfiledir)))
       packajoozle.internal.Util.mkdir (octfiledir)
       [ok, output] = movefile (fullfile (desc.dir, getarch (), "*"), octfiledir);
-      rmdir (fullfile (desc.dir, getarch ()), "s");
+      packajoozle.internal.Util.rm_rf (fullfile (desc.dir, getarch ()));
       if ! ok
-        rmdir (desc.dir, "s");
-        rmdir (octfiledir, "s");
+        packajoozle.internal.Util.rm_rf (desc.dir);
+        packajoozle.internal.Util.rm_rf (octfiledir);
         error ("pkj: couldn't copy files to the installation directory");
       endif
     endif
@@ -971,7 +971,7 @@ function out = configure_make (desc, build_dir, verbose)
       [status, output] = shell (cmd, verbose);
       packajoozle.internal.Util.filewrite (fullfile (log_dir, 'configure.log'), output);
       if (status != 0)
-        rmdir (desc.dir, "s");
+        packajoozle.internal.Util.rm_rf (desc.dir);
         disp (output);
         out.success = false;
         out.error_message = sprintf("pkj: error running the configure script for %s.", desc.name);
@@ -991,7 +991,7 @@ function out = configure_make (desc, build_dir, verbose)
                                          scenv, jobs, src), verbose);
       packajoozle.internal.Util.filewrite (fullfile (log_dir, 'make.log'), output);
       if (status != 0)
-        rmdir (desc.dir, "s");
+        packajoozle.internal.Util.rm_rf (desc.dir);
         disp (output);
         out.success = false;
         out.error_message = sprintf("pkj: error running `make' for the %s package.", desc.name);

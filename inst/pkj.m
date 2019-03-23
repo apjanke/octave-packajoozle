@@ -353,6 +353,8 @@ function out = pkj (varargin)
       unload_packages (opts)
     case "uninstall"
       uninstall_packages (opts);
+    case "contents"
+      list_package_contents (opts);
     case "test"
       test_packages (opts);
     case ""
@@ -506,7 +508,6 @@ function out = load_packages (opts)
   printf ("pkj: loaded packages: %s\n", strjoin (dispstrs (matched), " "));
 endfunction
 
-
 function out = unload_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
   pkgreqs = parse_forge_targets (opts.targets);
@@ -521,6 +522,20 @@ function out = unload_packages (opts)
     printf ("pkj: unloaded: %s\n", strjoin (dispstrs (unloaded), ", "));
   endif
 endfunction
+
+function list_package_contents (opts)
+  pkgreqs = parse_forge_targets (opts.targets);
+  pkgvers = installed_packages_matching (pkgreqs, opts);
+  for i = 1:numel (pkgvers)
+    list_package_contents_single (pkgvers(i), opts);
+  endfor
+endfunction
+
+function list_package_contents_single (pkgver, opts)
+  printf ("Package %s provides:\n", char (pkgver));
+  
+endfunction
+
 
 function test_packages (opts)
   #TODO: What to do about package loading? e.g. if io 2.3.1 is installed and loaded,
