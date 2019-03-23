@@ -605,6 +605,10 @@ function describe_packages (opts)
   endfor
 endfunction
 
+function describe_forge_packages (opts)
+  error ("describe_forge_packages is not yet implemented. Sorry!\n");
+endfunction
+
 function display_package_description (desc)
   printf ("---\n");
   printf ("Package name:\n\t%s\n", desc.name);
