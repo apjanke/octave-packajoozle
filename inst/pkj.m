@@ -365,6 +365,8 @@ function out = pkj (varargin)
       list_package_contents (opts);
     case "test"
       test_packages (opts);
+    case "describe"
+      describe_packages (opts);
     case ""
       error ("pkj: you must supply a command");
     otherwise
@@ -579,6 +581,36 @@ function test_packages (opts)
       # TODO: Add doctest support
     endfor
   endfor
+endfunction
+
+function describe_packages (opts)
+  if opts.forge
+    describe_forge_packages (opts);
+    return
+  endif
+
+  pkgman = packajoozle.internal.PkgManager;
+  pkgreqs = parse_forge_targets (opts.targets);
+  if isempty (pkgreqs)
+    pkgvers = pkgman.world.list_all_installed_packages;
+  else
+    pkgvers = installed_packages_matching (pkgreqs, opts);
+  endif
+
+  for i = 1:numel (pkgvers)
+    pkgver = pkgvers(i);
+    descs = pkgman.world.descs_for_installed_package (pkgver);
+    desc = descs{1}; % aww, screw it
+    display_package_description (desc);
+  endfor
+endfunction
+
+function display_package_description (desc)
+  printf ("---\n");
+  printf ("Package name:\n\t%s\n", desc.name);
+  printf ("Version:\n\t%s\n", desc.version);
+  printf ("Short description:\n%s\n", desc.description);
+  printf ("\n");
 endfunction
 
 function out = installed_packages_matching (pkgreqs, opts)
