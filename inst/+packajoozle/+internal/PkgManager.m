@@ -169,7 +169,6 @@ classdef PkgManager
         error ("pkj: already installed: %s", char (pkgver));
       endif
 
-
       build_dir_parent = tempname (tempdir, "packajoozle-build-");
       packajoozle.internal.Util.mkdir (build_dir_parent);
       #RAII.build_dir_parent = onCleanup (@() rm_rf_safe (build_dir_parent));
@@ -661,15 +660,7 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
   install_dir = target.dir;
   octfiledir = target.arch_dir;
 
-  ## Create the installation directory.
-  if (! isfolder (install_dir))
-    [status, output] = mkdir (install_dir);
-    if (status != 1)
-      error ("pkj: couldn't create installation directory %s : %s",
-      install_dir, output);
-    endif
-  endif
-
+  packajoozle.internal.Util.mkdir (install_dir);
 
   ## Copy the files from "inst" to installdir.
   instdir = fullfile (build_dir, "inst");
@@ -682,47 +673,10 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
     if (isfolder (fullfile (desc.dir, getarch ()))
         && ! strcmp (canonicalize_file_name (fullfile (desc.dir, getarch ())),
                      canonicalize_file_name (octfiledir)))
-      if (! isfolder (octfiledir))
-        ## Can be required to create up to three levels of dirs.
-        octm1 = fileparts (octfiledir);
-        if (! isfolder (octm1))
-          octm2 = fileparts (octm1);
-          if (! isfolder (octm2))
-            octm3 = fileparts (octm2);
-            if (! isfolder (octm3))
-              [status, output] = mkdir (octm3);
-              if (status != 1)
-                rmdir (desc.dir, "s");
-                error ("pkj: couldn't create installation directory %s : %s",
-                       octm3, output);
-              endif
-            endif
-            [status, output] = mkdir (octm2);
-            if (status != 1)
-              rmdir (desc.dir, "s");
-              error ("pkj: couldn't create installation directory %s : %s",
-                     octm2, output);
-            endif
-          endif
-          [status, output] = mkdir (octm1);
-          if (status != 1)
-            rmdir (desc.dir, "s");
-            error ("pkj: couldn't create installation directory %s : %s",
-                   octm1, output);
-          endif
-        endif
-        [status, output] = mkdir (octfiledir);
-        if (status != 1)
-          rmdir (desc.dir, "s");
-          error ("pkj: couldn't create installation directory %s : %s",
-          octfiledir, output);
-        endif
-      endif
-      [status, output] = movefile (fullfile (desc.dir, getarch (), "*"),
-                                   octfiledir);
+      packajoozle.internal.Util.mkdir (octfiledir)
+      [ok, output] = movefile (fullfile (desc.dir, getarch (), "*"), octfiledir);
       rmdir (fullfile (desc.dir, getarch ()), "s");
-
-      if (status != 1)
+      if ! ok
         rmdir (desc.dir, "s");
         rmdir (octfiledir, "s");
         error ("pkj: couldn't copy files to the installation directory");
