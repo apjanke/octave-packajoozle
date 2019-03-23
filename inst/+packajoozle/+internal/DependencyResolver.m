@@ -59,7 +59,7 @@ classdef DependencyResolver
       out = cell (size (this));
       for i = 1:numel (this)
         out{i} = sprintf ("[%s: meta_source=%s, verbose=%d, ignored_special_pseudopackages=%s]", ...
-          dispstr (this.meta_source), this.verbose, strjoin (this.ignored_special_pseudopackages ", "));
+          dispstr (this.meta_source), this.verbose, strjoin (this.ignored_special_pseudopackages, ", "));
       endfor
     endfunction
 
