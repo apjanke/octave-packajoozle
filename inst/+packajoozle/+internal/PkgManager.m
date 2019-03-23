@@ -802,7 +802,7 @@ function generate_index (desc, dir, index_file)
   endfor
 
   ## Check for architecture dependent files.
-  arch_dir = desc.arch_dir;
+  arch_dir = desc.archprefix;
   if (isfolder (tmpdir))
     files2 = packajoozle.internal.Util.readdir (arch_dir);
     files = [files; files2];
