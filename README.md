@@ -67,6 +67,8 @@ pkj install -forge statistics@1.4.0 statistics@1.3.0 statistics@1.2.4
 pkj load statistics@1.3.0
 ```
 
+You can also do `pkj test <package>` to run the tests in a package, but I haven’t been able to find any Octave Forge packages which actually have tests.
+
 ## Compatibility with Octave `pkg`
 
 Packajoozle `pkj` is pretty well compatible with `pkg`.
