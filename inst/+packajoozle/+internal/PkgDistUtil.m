@@ -28,7 +28,7 @@ classdef PkgDistUtil
 
   methods (Static)
 
-    function out = get_pkg_description_from_pkg_archive_file (file)
+    function [out,descr_txt] = get_pkg_description_from_pkg_archive_file (file)
       % Extracts the DESCRIPTION info from a package distro tarball file
       tmp_dir = tempname (tempdir, "packajoozle/PkgDistUtil/pkg-archive-work-");
       packajoozle.internal.Util.mkdir (tmp_dir);

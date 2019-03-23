@@ -229,10 +229,14 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
             "for %s; downloading...\n"], ...
           char (pkgver));
         dist_file = this.download_cached_pkg_distribution (pkgver);
-        out = packajoozle.internal.PkgDistUtil.get_pkg_description_from_pkg_archive_file (dist_file);
+        [out, descr_txt] = packajoozle.internal.PkgDistUtil.get_pkg_description_from_pkg_archive_file (dist_file);
+        packajoozle.internal.Util.mkdir (cache_dir_for_this_pkgver);
+        packajoozle.internal.Util.filewrite (cached_file, descr_txt);
       else
         printf ("OctaveForgeClient.get_package_description_meta: cache hit: %s\n",
           char (pkgver));
+        out = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (...
+          packajoozle.internal.Util.fileread (cached_file));
       endif
     endfunction
 

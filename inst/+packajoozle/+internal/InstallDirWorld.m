@@ -147,6 +147,21 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
       endfor
     endfunction
 
+    function out = is_installed (this, pkgvers)
+      pkgver = makeItBeA (pkgvers, "packajoozle.internal.PkgVer");
+      out = false (size (pkgvers));
+      installdirs = this.get_all_installdirs;
+      for i_pkg = 1:numel (pkgvers)
+        pkgver = pkgvers(i_pkg);
+        for i_dir = 1:numel (installdirs)
+          if installdirs(i_dir).is_installed (pkgver)
+            out(i_pkg) = true;
+            break;
+          endif
+        endfor
+      endfor
+    endfunction
+
     % IPackageMetaSource implementation
 
     function out = list_available_packages (this)

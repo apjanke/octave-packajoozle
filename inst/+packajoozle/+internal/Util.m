@@ -53,6 +53,11 @@ classdef Util
       fclose (fid);
     endfunction
 
+    function out = fileread (file)
+      % This method just exists because I keep calling it out of habit. -apjanke
+      out = fileread (file);
+    endfunction
+
     function out = basename (file)
       ix = find (file == filesep, 1, "last");
       if isempty (ix)

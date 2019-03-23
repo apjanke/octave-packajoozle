@@ -97,12 +97,15 @@ classdef PkgManager
       if ! res.ok
         error ("pkj: unsatisfiable dependencies: %s", strjoin (res.error_msgs));
       endif
-      to_install = res.resolved;
+      need_installed = res.resolved;
       if ! isempty (res.added_deps)
-        printf ("pkj: picked up dependencies: %s\n", strjoin (dispstrs (to_install), ", "));
+        printf ("pkj: picked up dependencies: %s\n", ...
+          strjoin (dispstrs (res.added_deps), ", "));
       endif
 
       # Install selected packages
+      tf_installed = this.world.is_installed (need_installed);
+      to_install = need_installed(~tf_installed);
       printf ("pkj: installing: %s\n", strjoin (dispstrs (to_install), ", "));
       for i = 1:numel (to_install)
         pkgver = to_install(i);

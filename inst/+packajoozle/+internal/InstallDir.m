@@ -174,7 +174,8 @@ classdef InstallDir
     endfunction
 
     function out = is_installed (this, pkgver)
-      #TODO: This should probably use the package index instead
+      pkgver = makeItBeA (pkgver, "packajoozle.internal.PkgVer");
+      mustBeScalar (pkgver);
       installed = this.get_package_list;
       out = ismember (pkgver, installed);
     endfunction
