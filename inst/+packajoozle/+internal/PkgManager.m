@@ -746,7 +746,7 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
   if (exist (index_file, "file"))
     packinfo_copy_file ("INDEX", "required", build_dir, packinfo_dir);
   else
-    generate_index (desc, fullfile (build_dir, "inst"), fullfile (packinfo, "INDEX"));
+    generate_index (desc, fullfile (build_dir, "inst"), fullfile (packinfo_dir, "INDEX"));
   endif
 
   ## Is there an 'on_uninstall.m' to install?
