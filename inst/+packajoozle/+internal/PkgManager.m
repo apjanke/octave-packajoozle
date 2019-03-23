@@ -388,15 +388,27 @@ classdef PkgManager
       error ("pkj: package not installed: %s\n", char (pkgver));
     endfunction
 
-    function out = addpath_safe (this, dir)
+    function addpath_safe (this, varargin)
       % We have to do this becase PKG_ADD might raise errors
       try
-        addpath (dir);
+        addpath (varargin{:});
       catch err
         warning (["pkj: error (probably from PKG_ADD) when adding directory to path:\n" ...
           "  Dir: %s\n" ...
           "  Error: %s\n"], ...
-          dir, err.message);
+          strjoin (varargin, ", "), err.message);
+      end_try_catch
+    endfunction
+
+    function rmpath_safe (this, varargin)
+      % We have to do this because PKG_DEL might raise errors
+      try
+        rmpath (varargin{});
+      catch err
+        warning (["pkj: error (probably from PKG_DEL) when removing directory from path:\n" ...
+          "  Dir: %s\n" ...
+          "  Error: %s\n"], ...
+          strjoin (varargin, ", "), err.message);
       end_try_catch
     endfunction
 
@@ -412,7 +424,7 @@ classdef PkgManager
           if pkgreq.matches (pkgver)
             [is_loaded, dirs_on_path] = is_pkg_loaded (desc);
             if is_loaded
-              rmpath (dirs_on_path{:});
+              this.rmpath_safe (dirs_on_path{:});
               out{end+1} = pkgver;
             endif
           endif
