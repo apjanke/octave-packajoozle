@@ -489,6 +489,9 @@ function display_pkg_desc_list (descs)
   s.CurrentVersion = cellfun (@(x) {x.version}, descs);
   s.InstallationDir = cellfun (@(x) {x.dir}, descs);
 
+  home_dir = getenv("HOME");
+  s.InstallationDir = regexprep (s.InstallationDir, ["^" home_dir], "~");
+
   tbl = packajoozle.internal.qtable (s);
   tbl = sortrecords (tbl, [1 2]);
   tbl = tbl.remove_successive_duplicates;
