@@ -204,7 +204,6 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       out = vers;
     endfunction
     
-
     function out = resolve_latest_version (this, pkg_req)
       ver = this.get_latest_matching_pkg_version (pkg_req);
       out = packajoozle.internal.PkgVer (pkg_req.package, ver);
@@ -229,6 +228,21 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
         out{i} = packajoozle.internal.PkgVer (pkgs{i}, ver);
       endfor
       out = packajoozle.internal.Util.objcatc (out);
+      out = sort (out);
+    endfunction
+
+    function out = list_all_current_releases (this)
+      x = this.list_all_releases;
+      out = {};
+      x_name = {x.name};
+      pkg_names = unique (x_name);
+      for i = 1:numel (pkg_names)
+        pkg_name = pkg_names{i};
+        ix = find (strcmp (pkg_name, x_name));
+        pkgvers = x(ix);
+        out{i} = newest (pkgvers);
+      endfor
+      out = packajoozle.internal.Util.objcat (out{:});
       out = sort (out);
     endfunction
 

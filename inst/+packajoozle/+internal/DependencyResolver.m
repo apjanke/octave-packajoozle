@@ -87,6 +87,8 @@ classdef DependencyResolver
       %   added_deps - (PkgVer) packages that were not in the original list
       %        that were added due to dependencies
       %   error_msgs - (cellstr) list of messages describing resolution failures
+      %   concrete_deps - (cell of [PkgVer, PkgVer]) - the concrete resolved dependencies
+      %        in the solved graph.
 
       % This uses a naive algorithm that only considers dependencies one at a time,
       % and just picks the newest version of a package that satisfies a given dependency,
@@ -108,6 +110,7 @@ classdef DependencyResolver
       order = [];
       added_deps = [];
       error_msgs = {};
+      concrete_deps = {};
 
       avail = this.meta_source.list_available_packages;
       to_go = pkgvers;
@@ -141,10 +144,11 @@ classdef DependencyResolver
               continue;
             endif
             % Already in resolved packages?
-            tf = dep.matches (order);
-            if any (tf)
+            ix = find (dep.matches (order));
+            if ! isempty (ix)
               this.emit ("    already satisfied by already-resolved pkg order (%s)", ...
                 dispstr (order(tf)));
+              concrete_deps{end+1} = objcat (p, order(ix(1)));
               continue;
             end
             % In our request list?
@@ -154,6 +158,7 @@ classdef DependencyResolver
                 char (to_go(ix(1))));
               do_this_next = to_go(ix(1));
               to_go(ix(1)) = [];
+              concrete_deps{end+1} = objcat (p, do_this_next);
               step (do_this_next);
               continue
             endif
@@ -164,6 +169,7 @@ classdef DependencyResolver
               picked = newest (candidates);
               this.emit ("    satisfied by package found in source: %s; adding dep", char (picked));
               added_deps = objcat (added_deps, picked);
+              concrete_deps{end+1} = objcat (p, picked);
               step (picked);
               continue
             endif
@@ -195,6 +201,7 @@ classdef DependencyResolver
       out.resolved = order;
       out.added_deps = added_deps;
       out.error_msgs = error_msgs;
+      out.concrete_deps = concrete_deps;
     endfunction
 
     function emit (this, fmt, varargin)

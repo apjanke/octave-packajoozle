@@ -367,6 +367,8 @@ function out = pkj (varargin)
       test_packages (opts);
     case "describe"
       describe_packages (opts);
+    case "depdiagram"
+      show_depdiagram (opts);
     case ""
       error ("pkj: you must supply a command");
     otherwise
@@ -609,13 +611,7 @@ function describe_forge_packages (opts)
   forge = packajoozle.internal.OctaveForgeClient;
 
   pkgreqs = parse_forge_targets (opts.targets);
-  c = {};
-  for i = 1:numel (pkgreqs)
-    ver = forge.get_latest_matching_pkg_version (pkgreqs(i));
-    pkgver = packajoozle.internal.PkgVer (pkgreqs(i).package, ver);
-    c{end+1} = pkgver;
-  endfor
-  pkgvers = packajoozle.internal.Util.objcat (c{:});
+  pkgvers = latest_forge_packages_for_reqs (pkgreqs, opts);
 
   for i = 1:numel (pkgvers)
     pkgver = pkgvers(i);
@@ -624,12 +620,71 @@ function describe_forge_packages (opts)
   endfor
 endfunction
 
+function out = latest_forge_packages_for_reqs (pkgreqs, opts)
+  c = {};
+  for i = 1:numel (pkgreqs)
+    ver = forge.get_latest_matching_pkg_version (pkgreqs(i));
+    pkgver = packajoozle.internal.PkgVer (pkgreqs(i).package, ver);
+    c{end+1} = pkgver;
+  endfor
+  out = packajoozle.internal.Util.objcat (c{:});
+endfunction
+
 function display_package_description (desc)
   printf ("---\n");
   printf ("Package name:\n\t%s\n", desc.name);
   printf ("Version:\n\t%s\n", desc.version);
   printf ("Short description:\n%s\n", desc.description);
   printf ("\n");
+endfunction
+
+function show_depdiagram (opts)
+  if opts.forge
+    show_forge_depdiagram (opts);
+  else
+    error ("unimplemented");
+    show_installed_depdiagram (opts);
+  endif
+endfunction
+
+function out = show_forge_depdiagram (opts)
+  forge = packajoozle.internal.OctaveForgeClient;
+  pkgreqs = parse_forge_targets (opts.targets);
+  pkgvers = latest_forge_packages_for_reqs (pkgreqs, opts);
+  if isempty (pkgvers)
+    error ("pkj: pkg reqs resolved to nothing.\n");
+  endif
+
+  resolver = packajoozle.internal.DependencyResolver (forge);
+  res = resolver.resolve_deps (pkgvers);
+  dot = concrete_deps_to_dot (pkgvers, res.concrete_deps);
+  printf ("DOT diagram:\n");
+  printf ("%s\n", dot);
+endfunction
+
+function out = concrete_deps_to_dot (pkgvers, deps)
+  nodes = {};
+  edges = {};
+
+  % Make sure each package is a node
+  for i = 1:numel (pkgvers)
+    nodes{end+1} = ['"' char (pkgvers(i)) '"'];
+  endfor
+  % Put in all the edges
+  for i = 1:numel (deps)
+    [a, b] = deal (deps{i}(1), deps{i}(2));
+    edges{end+1} = sprintf ("\"%s\" -> \"%s\"", ...
+      char (a), char (b));
+  endfor
+  % And make the file
+  dot = ["digraph D {\n" ...
+    strjoin(nodes, "\n") ...
+    "\n" ...
+    strjoin(edges, "\n") ...
+    "\n"
+  "}\n"];
+
+  out = dot;
 endfunction
 
 function out = installed_packages_matching (pkgreqs, opts)
@@ -671,7 +726,7 @@ function opts = parse_inputs (args_in)
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
     "describe", "prefix", "local_list", "global_list", "build", "rebuild", ...
-    "help", "test", "contents"};
+    "help", "test", "contents", "depdiagram"};
   valid_options = {"forge", "file", "nodeps", "local", "global", "forge", "verbose", ...
     "listversions", "help"};
   aliases = {
