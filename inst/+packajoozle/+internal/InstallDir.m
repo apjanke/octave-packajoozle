@@ -74,15 +74,19 @@ classdef InstallDir
       out.arch_dir = fullfile (this.arch_prefix, arch, name_ver);
     endfunction
 
-    function out = disp (this)
-      if isscalar (this)
-        strs = dispstrs (this);
-        disp (strs{1});
-      else
-        disp (sprintf ("%s %s", size2str (size (this)), class (this)));
-      endif
+    function disp (this)
+      disp (dispstr (this));
     endfunction
 
+    function out = dispstr (this)
+      if isscalar (this)
+        strs = dispstrs (this);
+        out = strs{1};
+      else
+        out = sprintf ("%s %s", size2str (size (this)), class (this));
+      endif
+    endfunction
+    
     function out = dispstrs (this)
       out = cell (size (this));
       for i = 1:numel (this)

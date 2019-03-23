@@ -42,6 +42,37 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       endif
     endfunction
 
+    function disp (this)
+      disp (dispstr (this));
+    endfunction
+
+    function out = dispstr (this)
+      if isscalar (this)
+        strs = dispstrs (this);
+        out = strs{1};
+      else
+        out = sprintf ("%s %s", size2str (size (this)), class (this));
+      endif
+    endfunction
+
+    function out = dispstrs (this)
+      out = cell (size (this));
+      for i = 1:numel (this)
+        out{i} = sprintf ("[%s: forge_url=%s, cached_meta_ttl=%.6f, download_cache_dir=%s]", ...
+          class (this), this.forge_url, this.cached_meta_ttl, this.download_cache_dir));
+      endfor
+    endfunction
+
+    function out = char (this)
+      if ! isscalar (this)
+        error ("%s: char() only works on scalar %s objects; this is %s", ...
+          class (this), class (this), size2str (size (this)));
+      endif
+      strs = dispstrs (this);
+      out = strs{1};
+    endfunction
+
+
     function out = get_cached_package_download (this, pkg_name)
       % Download package distribution file, caching downloads.
       % Returns path to the cached downloaded file.

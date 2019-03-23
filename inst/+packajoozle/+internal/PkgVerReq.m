@@ -62,16 +62,16 @@ classdef PkgVerReq
       endif
     endfunction
 
+    function out = dispstr (this)
+      out = strjoin (dispstrs (this), ", ");
+    endfunction
+
     function out = dispstrs (this)
       out = cell (size (this));
       for i = 1:numel (this)
         ver_filter_str = strjoin (dispstrs (this(i).ver_filters, ", "));
         out{i} = sprintf ("%s %s", this(i).package, ver_filter_str);
       endfor
-    endfunction
-
-    function out = dispstr (this)
-      out = strjoin (dispstrs (this), ", ");
     endfunction
 
     function out = char (this)

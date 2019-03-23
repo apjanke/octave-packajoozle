@@ -41,6 +41,36 @@ classdef DependencyResolver
       this.meta_source = meta_source;      
     endfunction
 
+    function disp (this)
+      disp (dispstr (this));
+    endfunction
+
+    function out = dispstr (this)
+      if isscalar (this)
+        strs = dispstrs (this);
+        out = strs{1};
+      else
+        out = sprintf ("%s %s", size2str (size (this)), class (this));
+      endif
+    endfunction
+    
+    function out = dispstrs (this)
+      out = cell (size (this));
+      for i = 1:numel (this)
+        out{i} = sprintf ("[%s: meta_source=%s, verbose=%d, ignored_special_pseudopackages=%s]", ...
+          dispstr (this.meta_source), this.verbose, strjoin (this.ignored_special_pseudopackages ", "));
+      endfor
+    endfunction
+
+    function out = char (this)
+      if ! isscalar (this)
+        error ("%s: char() only works on scalar %s objects; this is %s", ...
+          class (this), class (this), size2str (size (this)));
+      endif
+      strs = dispstrs (this);
+      out = strs{1};
+    endfunction
+
     function out = resolve_deps (this, pkgvers, opts)
       %RESOLVE_DEPS Resolves dependencies for a set of packages
       %

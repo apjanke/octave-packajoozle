@@ -72,10 +72,14 @@ classdef Version
     endfunction
 
     function disp (this)
+      disp (dispstr (this));
+    endfunction
+
+    function out = dispstr (this)
       if isscalar (this)
-        disp (char (this));
+        out = char (this);
       else
-        disp (sprintf ("%s %s", size2str (size (this)), class (this)));
+        out = sprintf ("%s %s", size2str (size (this)), class (this));
       endif
     endfunction
 

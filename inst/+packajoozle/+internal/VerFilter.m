@@ -70,7 +70,7 @@ classdef VerFilter
         case "~="
           out = "!=";
         case "="
-          ouct = "==";
+          out = "==";
         otherwise
           error ("VerFilter: invalid operator: '%s'", operator);
       end
@@ -92,11 +92,15 @@ classdef VerFilter
     endfunction
 
     function disp (this)
+      disp (dispstr (this));
+    endfunction
+
+    function out = dispstr (this)
       if (isscalar (this))
         s = this.dispstrs;
-        disp (["  " s{1}]);
+        out = s{1};
       else
-        disp (sprintf ("%s %s", size2str (size (this)), class (this)));
+        out = sprintf ("%s %s", size2str (size (this)), class (this));
       endif
     endfunction
 

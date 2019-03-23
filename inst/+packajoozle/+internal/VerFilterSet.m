@@ -56,11 +56,15 @@ classdef VerFilterSet
     endfunction
 
     function out = disp (this)
+      disp (disptr (this));
+    endfunction
+
+    function out = dispstr (this)
       if isscalar (this)
         strs = dispstrs (this);
-        disp (strs{1});
+        out = strs{1};
       else
-        disp (sprintf ("%s %s", size2str (size (this)), class (this)));
+        out = sprintf ("%s %s", size2str (size (this)), class (this));
       endif
     endfunction
 
