@@ -26,7 +26,7 @@
 classdef DependencyResolver
 
   properties
-    verbose = true
+    verbose = false
     ignored_special_pseudopackages = {"octave"}
     meta_source = packajoozle.internal.NullPackageMetaSource
   endproperties
