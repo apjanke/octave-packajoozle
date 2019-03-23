@@ -36,7 +36,7 @@ classdef PkgManager
 
   methods (Static)
     function out = parse_forge_target (str)
-      ix = regexp (str, '^[\w]+$');
+      ix = regexp (str, '^[\w-]+$');
       if ! isempty (ix)
         out = packajoozle.internal.PkgVerReq (str);
         return
