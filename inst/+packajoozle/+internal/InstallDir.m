@@ -51,6 +51,7 @@ classdef InstallDir
       if nargin == 0
         return
       endif
+      narginchk (2, 4);
       if nargin < 3 || isempty (arch_prefix)
         arch_prefix = prefix;
       endif
