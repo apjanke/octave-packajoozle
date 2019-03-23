@@ -1215,6 +1215,6 @@ function tf = dirempty (path, ignore_files = {})
   endif
   kids = packajoozle.internal.Util.readdir (path);
   found = setdiff (kids, ignore_files);
-  tf = ! isempty (found);
+  tf = isempty (found);
 endfunction
 
