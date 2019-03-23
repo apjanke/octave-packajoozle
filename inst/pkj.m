@@ -429,7 +429,7 @@ endfunction
 
 function descs = list_installed_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
-  descs = pkgman.all_installed_packages ("desc");
+  descs = pkgman.world.list_all_installed_packages ("desc");
 
   ## Add loaded state info
   p = strrep (path (), '\', '/');

@@ -131,7 +131,7 @@ classdef DependencyResolver
             if ! isempty (ix)
               candidates = avail(ix);
               picked = newest (candidates);
-              this.emit ("    satisfied by package found in source: %s", char (picked));
+              this.emit ("    satisfied by package found in source: %s; adding dep", char (picked));
               added_deps = objcat (added_deps, picked);
               step (picked);
               continue

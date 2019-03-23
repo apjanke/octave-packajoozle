@@ -92,10 +92,20 @@ classdef PkgManager
       # TODO: Resolve dependencies
       # Consider all packages to be installed
 
+      dr = packajoozle.internal.DependencyResolver (this.forge);
+      res = dr.resolve_deps (pkgvers);
+      if ! res.ok
+        error ("pkj: unsatisfiable dependencies: %s", strjoin (res.error_msgs));
+      endif
+      to_install = res.resolved;
+      if ! isempty (res.added_deps)
+        printf ("pkj: picked up dependencies: %s\n", strjoin (dispstrs (to_install), ", "));
+      endif
+
       # Install selected packages
-      printf ("pkj: installing: %s\n", strjoin (dispstrs (pkgvers), ", "));
-      for i = 1:numel (pkgvers)
-        pkgver = pkgvers(i);
+      printf ("pkj: installing: %s\n", strjoin (dispstrs (to_install), ", "));
+      for i = 1:numel (to_install)
+        pkgver = to_install(i);
         this.install_forge_pkg_single (pkgver);
       endfor
 
@@ -171,7 +181,7 @@ classdef PkgManager
       target = inst_dir.install_paths_for_pkg (pkgver);
       verify_directory (build_dir);
       desc_file = fullfile (build_dir, "DESCRIPTION");
-      orig_desc = this.parse_pkg_description_file (fileread (desc_file));
+      orig_desc = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (fileread (desc_file));
       desc = orig_desc;
       # For back-compatibility with old pkg code
       desc.dir = target.dir;
