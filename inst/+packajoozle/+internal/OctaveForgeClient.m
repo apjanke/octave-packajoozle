@@ -59,7 +59,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       out = cell (size (this));
       for i = 1:numel (this)
         out{i} = sprintf ("[%s: forge_url=%s, cached_meta_ttl=%.6f, download_cache_dir=%s]", ...
-          class (this), this.forge_url, this.cached_meta_ttl, this.download_cache_dir));
+          class (this), this.forge_url, this.cached_meta_ttl, this.download_cache_dir);
       endfor
     endfunction
 
