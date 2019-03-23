@@ -6,3 +6,7 @@ inst_dir = fileparts (mfilename ("fullpath"));
 if compare_versions (version, "5.0.0", "<")
   addpath (fullfile (inst_dir, "shims", "pre-5.0"));
 endif
+
+# Add "all" compatibility shims
+
+addpath (fullfile (inst_dir, "shims", "all"));

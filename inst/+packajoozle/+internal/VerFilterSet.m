@@ -102,7 +102,7 @@ classdef VerFilterSet
           endif
         endfor
         if ! subsumed
-          this.filters = packajoozle.internal.Util.objcat (this.filters, filter(i_new));
+          this.filters = objvcat (this.filters, filter(i_new));
         endif
       endfor
     endfunction

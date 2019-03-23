@@ -88,7 +88,7 @@ classdef PkgManager
         req = pkgreqs(i);
         c{i} = this.forge.resolve_latest_version (req);
       endfor
-      pkgvers = packajoozle.internal.Util.objcat (c{:});
+      pkgvers = objvcat (c{:});
 
       # TODO: Resolve dependencies
       # Consider all packages to be installed
@@ -286,7 +286,7 @@ classdef PkgManager
           endif
         endif
       endfor
-      out = packajoozle.internal.Util.objcat (bad_deps{:});
+      out = objvcat (bad_deps{:});
     endfunction
 
     function uninstall_all_versions (this, pkg_name)
@@ -433,7 +433,7 @@ classdef PkgManager
           endif
         endfor
       endfor
-      out = packajoozle.internal.Util.objcat (out{:});
+      out = objvcat (out{:});
     endfunction
 
   endmethods

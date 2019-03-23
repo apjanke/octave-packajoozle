@@ -204,7 +204,7 @@ function out = descs_to_pkgvers (descs)
   for i = 1:numel (descs)
     c{i} = packajoozle.internal.PkgVer (descs{i}.name, descs{i}.version);
   endfor
-  out = packajoozle.internal.Util.objcat (c{:});
+  out = objvcat (c{:});
 endfunction
 
 function out = normalize_desc_save_order (descs)

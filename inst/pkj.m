@@ -414,7 +414,7 @@ function out = parse_forge_targets (targets)
     if i == 1
       out = req;
     else
-      out = packajoozle.internal.Util.objcat (out, req);
+      out = objvcat (out, req);
     endif
   endfor
 endfunction
@@ -516,7 +516,7 @@ function out = load_packages (opts)
     endif
     matched{end+1} = inst_pkgvers(tf).newest;
   endfor
-  matched = packajoozle.internal.Util.objcat (matched{:});
+  matched = objvcat (matched{:});
   pkgman.load_packages (matched);
   # TODO: Different output and return value for packages that are already
   # loaded. The operation is idempotent, but the path taken may be relevant.
@@ -627,7 +627,7 @@ function out = latest_forge_packages_for_reqs (pkgreqs, opts)
     pkgver = packajoozle.internal.PkgVer (pkgreqs(i).package, ver);
     c{end+1} = pkgver;
   endfor
-  out = packajoozle.internal.Util.objcat (c{:});
+  out = objvcat (c{:});
 endfunction
 
 function display_package_description (desc)
@@ -650,9 +650,11 @@ endfunction
 function out = show_forge_depdiagram (opts)
   forge = packajoozle.internal.OctaveForgeClient;
   pkgreqs = parse_forge_targets (opts.targets);
-  pkgvers = latest_forge_packages_for_reqs (pkgreqs, opts);
-  if isempty (pkgvers)
-    error ("pkj: pkg reqs resolved to nothing.\n");
+  if isempty (pkgreqs)
+    % That means everything!
+    pkgvers = forge.list_all_current_releases;
+  else
+    pkgvers = latest_forge_packages_for_reqs (pkgreqs, opts);
   endif
 
   resolver = packajoozle.internal.DependencyResolver (forge);
@@ -699,7 +701,7 @@ function out = installed_packages_matching (pkgreqs, opts)
       matched{end+1} = inst_pkgvers(tf).newest;
     endif
   endfor
-  matched = packajoozle.internal.Util.objcat (matched{:});
+  matched = objvcat (matched{:});
   out = matched;
 endfunction
 
@@ -708,7 +710,7 @@ function out = descs_to_pkgvers (descs)
   for i = 1:numel (descs)
     out{i} = packajoozle.internal.PkgVer (descs{i}.name, descs{i}.version);
   endfor
-  out = packajoozle.internal.Util.objcat (out{:});
+  out = objvcat (out{:});
 endfunction
 
 function opts = parse_inputs (args_in)

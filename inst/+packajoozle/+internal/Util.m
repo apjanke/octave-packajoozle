@@ -156,25 +156,18 @@ classdef Util
     function out = objcatc (c)
       %OBJCATC Hack to allow one-liners like objcatc({myobj.propname})
       mustBeA (c, "cell");
-      out = packajoozle.internal.Util.objcat (c{:});
+      out = objvcat (c{:});
     endfunction
 
-    function out = objcat (varargin)
-      # Hack to concatenate objects because Octave doesn't support it as of 5.1
-      if isempty (varargin)
-        out = [];
-        return
+    function out = objdel (x, ix)
+      if islogical (ix)
+        ix = find (ix);
       endif
-      out = varargin{1};
-      for i_arg = 2:numel (varargin)
-        B = varargin{i_arg};
-        if isempty (out)
-          out = B;
-        else
-          for i_B = 1:numel (B)
-            out(end+1) = B(i_B);
-          endfor
-        endif
+      if ismember (1, ix)
+        error ("objdel: oh, shit, ix=1 is not supported yet. sorry.");
+      endif
+      out = x(1);
+      for i = 1:numel ()
       endfor
     endfunction
 

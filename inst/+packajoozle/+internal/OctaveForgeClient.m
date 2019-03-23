@@ -242,7 +242,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
         pkgvers = x(ix);
         out{i} = newest (pkgvers);
       endfor
-      out = packajoozle.internal.Util.objcat (out{:});
+      out = objvcat (out{:});
       out = sort (out);
     endfunction
 

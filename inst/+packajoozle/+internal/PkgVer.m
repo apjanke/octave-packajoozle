@@ -108,7 +108,7 @@ classdef PkgVer
           strjoin (u_names, ", "));
       endif
       vers = {this.version};
-      vers = packajoozle.internal.Util.objcat (vers{:});
+      vers = objvcat (vers{:});
       [newest_ver, ix] = max (vers);
       out = this(ix);
     endfunction

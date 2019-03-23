@@ -61,7 +61,7 @@ classdef VerFilter
         tok = tok{1};
         c{i} = packajoozle.internal.VerFilter (tok{2}, tok{1});
       endfor
-      out = packajoozle.internal.Util.objcat (c{:});
+      out = objvcat (c{:});
     endfunction
 
     function out = canonicalize_operator (operator)

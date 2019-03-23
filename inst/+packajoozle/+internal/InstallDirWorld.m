@@ -117,7 +117,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
       for i = 1:numel (this.search_order)
         c{i} = this.inst_dir_map.(this.search_order{i});
       endfor
-      out = packajoozle.internal.Util.objcat (c{:});
+      out = objvcat (c{:});
     endfunction
 
     function out = list_all_installed_packages (this, format = "pkgver")
@@ -127,8 +127,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
         case "pkgver"
           out = inst_dirs(1).get_package_list;
           for i = 2:numel (inst_dirs)
-            out = packajoozle.internal.Util.objcat (out, ...
-              inst_dirs(i).get_package_list);
+            out = objvcat (out, inst_dirs(i).get_package_list);
           endfor
         case "desc"
           out = inst_dirs(1).get_package_list_descs;

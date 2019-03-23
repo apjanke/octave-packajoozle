@@ -118,14 +118,14 @@ classdef DependencyResolver
 
       function ok = step (p)
         if ismember (p, dep_path)
-          cycle_path = objcat (dep_path, p);
+          cycle_path = objvcat (dep_path, p);
           this.emit ("dependency cycle detected: %s", dep_path_str (cycle_path));
           ok = false;
           error_msgs{end+1} = sprintf ("dependency cycle: %s", ...
             dep_path_str (cycle_path));
           return
         endif
-        dep_path = objcat (dep_path, p); % push
+        dep_path = objvcat (dep_path, p); % push
         unwind_protect
           desc = this.meta_source.get_package_description_meta (p);
           deps = get_deps_as_pkgreqs (desc);
@@ -148,7 +148,7 @@ classdef DependencyResolver
             if ! isempty (ix)
               this.emit ("    already satisfied by already-resolved pkg order (%s)", ...
                 dispstr (order(tf)));
-              concrete_deps{end+1} = objcat (p, order(ix(1)));
+              concrete_deps{end+1} = objvcat (p, order(ix(1)));
               continue;
             end
             % In our request list?
@@ -158,7 +158,7 @@ classdef DependencyResolver
                 char (to_go(ix(1))));
               do_this_next = to_go(ix(1));
               to_go(ix(1)) = [];
-              concrete_deps{end+1} = objcat (p, do_this_next);
+              concrete_deps{end+1} = objvcat (p, do_this_next);
               step (do_this_next);
               continue
             endif
@@ -168,8 +168,8 @@ classdef DependencyResolver
               candidates = avail(ix);
               picked = newest (candidates);
               this.emit ("    satisfied by package found in source: %s; adding dep", char (picked));
-              added_deps = objcat (added_deps, picked);
-              concrete_deps{end+1} = objcat (p, picked);
+              added_deps = objvcat (added_deps, picked);
+              concrete_deps{end+1} = objvcat (p, picked);
               step (picked);
               continue
             endif
@@ -180,7 +180,7 @@ classdef DependencyResolver
             ok = false;
             return
           endfor
-          order = objcat (order, p);
+          order = objvcat (order, p);
           ok = true;
         unwind_protect_cleanup
           dep_path = dep_path(1:numel (dep_path)-1); % pop
@@ -237,11 +237,7 @@ function out = get_deps_as_pkgreqs (desc)
     out{i} = packajoozle.internal.PkgVerReq (d.package, ...
       packajoozle.internal.VerFilter (d.version, d.operator));
   endfor 
-  out = objcat (out{:});
-endfunction
-
-function out = objcat (varargin)
-  out = packajoozle.internal.Util.objcat (varargin{:});
+  out = objvcat (out{:});
 endfunction
 
 function out = pkgreqs_to_char (pkgreqs)
