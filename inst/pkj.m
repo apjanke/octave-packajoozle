@@ -529,15 +529,16 @@ function test_packages (opts)
   pkgreqs = parse_forge_targets (opts.targets);
   pkgvers = installed_packages_matching (pkgreqs, opts);
   for i = 1:numel (pkgvers)
-    printf ("pkj: testing package %s %s\n", desc.name, desc.version);
     pkgver = pkgvers(i);
-    descs = pkgman.descs_for_installed_package (pkgver);
+    printf ("pkj: testing package %s\n", char (pkgver));
+    descs = pkgman.world.descs_for_installed_package (pkgver);
     if numel (descs) > 1
       # I just don't want to handle this case
       fprintf ("pkj: multiple installs exist of package %s; just testing the one in %s\n", ...
         char (pkgver), descs{1}.dir);
+      desc = descs{1};
     endif
-    desc = descs{1};
+    # TODO: Check if package (and its dependencies) is loaded
     # Actual test code here
     dirs_to_test = {desc.dir};
     if ! isequal (desc.archprefix, desc.dir)
@@ -545,6 +546,7 @@ function test_packages (opts)
     endif
     for i = 1:numel (dirs_to_test)
       runtests (dirs_to_test{i});
+      # TODO: Add doctest support
     endfor
   endfor
 endfunction
