@@ -13,19 +13,24 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
-function out = objvcat (varargin)
-  # Hack to concatenate object vectorss because Octave doesn't support it as of 5.1
-  #
-  # The "v" in "objvcat" is for "vector" concatenation, not "vertical".
+function out = objdel (x, ix)
+  %OBJDEL Delete selected indexes from object vector
+  %
+  % This is a hack that exists only because Octave does not support the
+  % `x(ix) = []` element deletion syntax for objects.
+  
+  if islogical (ix)
+    ix = find (ix);
+  endif
   out = [];
-  for i_arg = 1:numel (varargin)
-    B = varargin{i_arg};
-    if isempty (out)
-      out = B;
-    else
-      for i_B = 1:numel (B)
-        out(end+1) = B(i_B);
-      endfor
+  for i = 1:numel (x)
+    if ismember (i, ix)
+      if isempty (out)
+        out = x(i);
+      else
+        out(end+1) = x(i);
+      endif
     endif
   endfor
 endfunction
+

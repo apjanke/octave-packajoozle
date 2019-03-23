@@ -159,18 +159,6 @@ classdef Util
       out = objvcat (c{:});
     endfunction
 
-    function out = objdel (x, ix)
-      if islogical (ix)
-        ix = find (ix);
-      endif
-      if ismember (1, ix)
-        error ("objdel: oh, shit, ix=1 is not supported yet. sorry.");
-      endif
-      out = x(1);
-      for i = 1:numel ()
-      endfor
-    endfunction
-
     function mustBeCompatibleSizes (a, b)
       if ! isscalar (a) && ! isscalar (b)
         if ! isequal (size (a), size (b))
