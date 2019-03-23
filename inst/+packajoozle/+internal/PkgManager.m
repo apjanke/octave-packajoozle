@@ -336,14 +336,14 @@ classdef PkgManager
           cd (orig_pwd);
         catch err
           cd (orig_pwd);
-          error ("pkj: error while running on_uninstall hook for %s: %s", ...
+          error ("pkj: error while running on_uninstall hook for %s: %s\n", ...
             char (pkgver), err.message);
         end_try_catch
       endif
 
       # Delete package installation directories
       if ! isfolder (target.dir)
-        warning ("pkj: directory %s previously lost; marking %s as uninstalled", ...
+        warning ("pkj: directory %s previously lost; marking %s as uninstalled\n", ...
          target.dir, char (pkgver));
       endif
       packajoozle.internal.Util.rm_rf (target.arch_dir);
@@ -354,6 +354,22 @@ classdef PkgManager
 
     endfunction
     
+    function out = load_packages (this, pkgver)
+      # Resolve dependencies
+      dr = packajoozle.internal.DependencyResolver (this.world);
+      res = dr.resolve_deps (pkgver);
+      if ! res.ok
+        warning ("pkj: some dependencies are unmet: %s\n", ...
+          strjoin (res.error_msgs, "; "));
+      endif
+
+      # Load packages and dependencies
+      printf ("pkj: loading: %s\n", strjoin (dispstrs (res.resolved), ", "));
+      for i = 1:numel (res.resolved)
+        this.load_package (res.resolved(i));
+      endfor
+    endfunction
+
     function out = load_package (this, pkgver)
       inst_dirs = this.world.get_all_installdirs;
       for i = 1:numel (inst_dirs)
@@ -361,15 +377,27 @@ classdef PkgManager
         if inst_dir.is_installed (pkgver)
           desc = inst_dir.get_installed_package_desc (pkgver);
           if exist (desc.dir)
-            addpath (desc.dir);
+            this.addpath_safe (desc.dir);
           endif
           if exist (desc.archprefix)
-            addpath (desc.archprefix);
+            this.addpath_safe (desc.archprefix);
           endif
           return
         endif
       endfor
-      error ("pkj: package not installed: %s", char (pkgver));
+      error ("pkj: package not installed: %s\n", char (pkgver));
+    endfunction
+
+    function out = addpath_safe (this, dir)
+      % We have to do this becase PKG_ADD might raise errors
+      try
+        addpath (dir);
+      catch err
+        warning (["pkj: error (probably from PKG_ADD) when adding directory to path:\n" ...
+          "  Dir: %s\n" ...
+          "  Error: %s\n"], ...
+          dir, err.message);
+      end_try_catch
     endfunction
 
     function out = unload_packages (this, pkgreqs)

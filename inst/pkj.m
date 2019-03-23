@@ -481,9 +481,7 @@ function out = load_packages (opts)
     matched{end+1} = inst_pkgvers(tf).newest;
   endfor
   matched = packajoozle.internal.Util.objcat (matched{:});
-  for i = 1:numel (matched)
-    pkgman.load_package (matched(i));
-  endfor
+  pkgman.load_packages (matched);
   # TODO: Different output and return value for packages that are already
   # loaded. The operation is idempotent, but the path taken may be relevant.
   printf ("pkj: loaded packages: %s\n", strjoin (dispstrs (matched), " "));
