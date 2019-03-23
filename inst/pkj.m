@@ -606,7 +606,22 @@ function describe_packages (opts)
 endfunction
 
 function describe_forge_packages (opts)
-  error ("describe_forge_packages is not yet implemented. Sorry!\n");
+  forge = packajoozle.internal.OctaveForgeClient;
+
+  pkgreqs = parse_forge_targets (opts.targets);
+  c = {};
+  for i = 1:numel (pkgreqs)
+    ver = forge.get_latest_matching_pkg_version (pkgreqs(i));
+    pkgver = packajoozle.internal.PkgVer (pkgreqs(i).package, ver);
+    c{end+1} = pkgver;
+  endfor
+  pkgvers = packajoozle.internal.Util.objcat (c{:});
+
+  for i = 1:numel (pkgvers)
+    pkgver = pkgvers(i);
+    desc = forge.get_package_description_meta (pkgver);
+    display_package_description (desc);
+  endfor
 endfunction
 
 function display_package_description (desc)
