@@ -216,7 +216,7 @@ classdef PkgManager
       copy_files_from_build_to_inst (desc, target, build_dir);
       create_pkgadddel (desc, build_dir, "PKG_ADD", target);
       create_pkgadddel (desc, build_dir, "PKG_DEL", target);
-      finish_installation (desc, build_dir);
+      finish_installation (desc, build_dir, target);
       try
         generate_lookfor_cache (desc, target);
       catch err
@@ -865,6 +865,7 @@ endfunction
 
 
 function finish_installation (desc, build_dir, target)
+  narginchk (3, 3);
 
   ## Is there a post-install to call?
   if (exist (fullfile (build_dir, "post_install.m"), "file"))
@@ -896,8 +897,7 @@ endfunction
 
 % ======================================================
 %
-% Other functions copied from Octave's pkg/private
-
+% Other functions copied and adapted from Octave's pkg/private
 
 function out = configure_make (desc, build_dir, verbose)
   % Returns struct with fields:
@@ -909,8 +909,8 @@ function out = configure_make (desc, build_dir, verbose)
   % log_dir will still be populated and valid even if success is false.
 
   timestamp = datestr(now, 'yyyy-mm-dd_HH-MM-SS');
-  tmp_dir_name = ['octave-packajoozle-PkgManager-' timestamp];
-  log_dir = fullfile (tempdir, 'octave-packajoozle', tmp_dir_name);
+  log_dir = fullfile (packajoozle.internal.Util.xdg_octave_cache_dir, ...
+    "packajoozle", "build-logs", ["packajoozle-build-" desc.name "-" timestamp]);
   packajoozle.internal.Util.mkdir (log_dir);
   out.log_dir = log_dir;
   out.success = true;

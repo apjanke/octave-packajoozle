@@ -217,6 +217,16 @@ classdef Util
       valid = numel (regexp (str, '[^0-9a-zA-Z\.\+\-\~]')) == 0;
     endfunction
 
+    function out = xdg_octave_cache_dir ()
+      % Gets the XDG Cache dir for Octave. The actual directory may not exist.
+      f = getenv ("XDG_CACHE_HOME");
+      if ! isempty (f)
+        out = fullfile (f, "octave");
+        return
+      endif
+      out = fullfile (getenv ("HOME"), ".cache", "octave");
+    endfunction
+
   endmethods
 
 endclassdef
