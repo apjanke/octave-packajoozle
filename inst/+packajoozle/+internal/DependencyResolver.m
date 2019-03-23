@@ -133,6 +133,7 @@ classdef DependencyResolver
             dep_path_str (dep_path), pkgreqs_to_char (deps));
           if ! isempty (order) && ismember (p, order)
             this.emit ("already in order: %s", char (p));
+            ok = true;
             return
           endif
           for i = 1:numel (deps)
@@ -157,7 +158,7 @@ classdef DependencyResolver
               this.emit ("    satisfied by requested package %s; pulling that one up", ...
                 char (to_go(ix(1))));
               do_this_next = to_go(ix(1));
-              to_go(ix(1)) = [];
+              to_go = objdel (to_go, ix(1));
               concrete_deps{end+1} = objvcat (p, do_this_next);
               step (do_this_next);
               continue
