@@ -486,7 +486,7 @@ function display_pkg_desc_list (descs)
     endif
   endfor
   s.PackageName = name_with_load_indicator;
-  s.CurrentVersion = cellfun (@(x) {x.version}, descs);
+  s.Version = cellfun (@(x) {x.version}, descs);
   s.InstallationDir = cellfun (@(x) {x.dir}, descs);
 
   home_dir = getenv("HOME");
