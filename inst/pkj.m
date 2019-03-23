@@ -323,11 +323,15 @@ function out = pkj (varargin)
   # Do something
   switch opts.command
     case "install"
-      if opts.forge
-        install_forge_packages (opts);
-      else
-        install_files (opts);
-      endif
+      install_type = detect_install_type (opts);
+      switch install_type
+        case "forge"
+          install_forge_packages (opts);
+        case "file"
+          install_files (opts);
+        otherwise
+          error ("pkj: internal error: invalid install_type: '%s'", install_type);
+      endswitch
     case "list"
       if opts.forge
         if nargout == 0
@@ -357,6 +361,21 @@ function out = pkj (varargin)
       error ("pkj: the %s command is not yet implemented", opts.command);
   endswitch
   
+endfunction
+
+function install_type = detect_install_type (opts)
+  if opts.forge
+    install_type = "forge";
+  elseif opts.file
+    install_type = "file";
+  else
+    install_type = "forge";
+    for i = 1:numel (opts.targets)
+      if exist (opts.targets{i}, "file")
+        install_type = "file";
+      endif
+    endfor
+  endif
 endfunction
 
 function install_forge_packages (opts)
@@ -491,6 +510,9 @@ endfunction
 function out = unload_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
   pkgreqs = parse_forge_targets (opts.targets);
+  if isempty (pkgreqs)
+    error ("pkj: unload: no packages specified\n");
+  endif
   unloaded = pkgman.unload_packages (pkgreqs);
   if isempty (unloaded)
     printf ("pkj: no packages unloaded: no loaded packages matched request: %s\n", ...
@@ -555,6 +577,7 @@ function opts = parse_inputs (args_in)
   opts = struct;
   opts.command = [];
   opts.forge = false;
+  opts.file = false;
   opts.nodeps = false;
   opts.local = false;
   opts.global = false;
@@ -566,7 +589,7 @@ function opts = parse_inputs (args_in)
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
     "describe", "prefix", "local_list", "global_list", "build", "rebuild", ...
     "help" "test"};
-  valid_options = {"forge", "nodeps", "local", "global", "forge", "verbose", ...
+  valid_options = {"forge", "file", "nodeps", "local", "global", "forge", "verbose", ...
     "listversions", "help"};
   aliases = {
     "ls"      "list"
