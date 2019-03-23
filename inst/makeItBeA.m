@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Function File} {out = } makeItBeA (x, type)
+##
 ## Converts input to given type if it is not one already.
 ##
 ## Ensures that the input x is of the given type. If it is not already that

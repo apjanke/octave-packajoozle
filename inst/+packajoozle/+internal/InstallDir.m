@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} InstallDir ()
+##
 ## A local directory where pkg package installations reside.
 ##
 ## An InstallDir is a local filesystem directory hierarchy where pkg-installed

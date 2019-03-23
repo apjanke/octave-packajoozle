@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} PkgManager ()
+##
 ## Main package management object.
 ##
 ## All the top-level package management interaction logic goes in this class.

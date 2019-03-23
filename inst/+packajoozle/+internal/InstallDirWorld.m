@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} InstallDirWorld ()
+##
 ## A set of InstallDirs
 ##
 ## An InstallDirWorld represents the set of all InstallDirs known to an

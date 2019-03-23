@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} PkgVer (pkg_name, version)
+##
 ## A specification of a package of a particular version.
 ##
 ## A PkgVer specifies a package by its name and an exact version.

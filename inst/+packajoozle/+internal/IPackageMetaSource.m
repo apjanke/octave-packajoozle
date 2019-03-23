@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} IPackageMetaSource ()
+##
 ## A source of package metadata for a particular world of packages
 ##
 ## This is an abstract interface for classes that represent sets of

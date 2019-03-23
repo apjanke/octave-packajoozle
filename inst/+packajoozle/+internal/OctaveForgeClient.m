@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} OctaveForgeClient ()
+##
 ## Octave Forge client.
 ##
 ## A client for getting directory info, package metadata, and package

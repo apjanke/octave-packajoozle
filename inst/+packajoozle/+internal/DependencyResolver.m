@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} DependencyResolver ()
+##
 ## Dependency resolution logic
 ##
 ## This class provides support for resolving dependencies between classes,

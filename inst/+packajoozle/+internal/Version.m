@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj = } Version (ver_str)
+##
 ## An Octave-style version.
 ##
 ## An Version is an Octave-style version. This is a version in the form

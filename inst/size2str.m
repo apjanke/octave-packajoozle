@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Function File} {@code{out} =} size2str (sz)
+##
 ## Format an array size for display.
 ##
 ## sz is an array of dimension sizes, in the format returned by @code{size}.

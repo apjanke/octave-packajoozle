@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Function File} {} mustBeScalar (x)
+##
 ## Requires that input is a char row vector (Octave's normal string representation).
 ##
 ## Raises an error if the input @code{x} is not a char row vector.

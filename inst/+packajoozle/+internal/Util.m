@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} Util ()
+##
 ## Utility functions.
 ##
 ## Miscellaneous utility functions for Packajoozle.

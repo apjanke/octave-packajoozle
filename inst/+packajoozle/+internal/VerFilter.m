@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} VerFilter (version, operator)
+##
 ## A filter that compares versions
 ##
 ## A VerFilter specifies a version comparison that is done based on

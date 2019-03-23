@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} PkgVerReq (pkg_name, ver_filters)
+##
 ## A package version "request" or filter.
 ##
 ## Specifies a request or filter for a given package with version filtering

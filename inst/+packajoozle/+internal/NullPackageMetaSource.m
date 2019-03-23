@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} NullPackageMetaSource ()
+##
 ## A PackageMetaSource that contains no data
 ##
 ## This is a dummy "empty set" placeholder object for IPackageMetaSource

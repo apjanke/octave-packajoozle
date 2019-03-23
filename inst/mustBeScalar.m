@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Function File} {} mustBeScalar (x)
+##
 ## Requires that input is scalar.
 ##
 ## Raises an error if the input @code{x} is not scalar, as determined by

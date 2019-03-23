@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} VerFilterSet ()
+##
 ## A set of VerFilters that are considered together.
 ##
 ## A VerFilterSet is a set of VerFilters whose effect is considered in combination.

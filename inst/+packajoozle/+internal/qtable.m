@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} qtable (...)
+##
 ## Quasi-table object
 ##
 ## Qtable is a "quasi-table" class: it's like a table, but it's dumb and

@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} PkgDistUtil ()
+##
 ## Package distribution utilities
 ##
 ## This class contains methods that know how to work with an Octave pkg

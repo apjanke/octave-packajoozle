@@ -15,6 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn {Function File} {} mustBeA (x, type)
+##
 ## Requires that input is of a given type.
 ##
 ## Raises an error if the input @code{x} is not of the specified @code{type}
