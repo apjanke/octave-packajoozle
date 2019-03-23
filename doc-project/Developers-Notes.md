@@ -7,6 +7,11 @@ Packajoozle Developer’s Notes
 
 ## Code Stuff
 
+### The `private` directory
+
+All the stuff in the `private` directory is just copies of the legacy `pkg` code that is being kept around for reference, and to keep `pkj_old` working.
+It should all be eliminated, with useful functionality moved into objects in the `+packajoozle` namespace.
+
 ### The `dispstr` API
 
 The `dispstr` API is a convention apjanke came up with for converting arbitrary Octave types to displayable strings.
