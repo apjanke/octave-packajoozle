@@ -219,6 +219,14 @@
 ## @qcode{"Loaded"}, or
 ## @qcode{"Not loaded"} for each of the named packages.
 ##
+##
+## @item contents
+## List contents of named packages.  For example,
+##
+## @example
+## pkj contents image
+## @end example
+##
 ## @item test
 ## Test the named packages
 ##
@@ -533,9 +541,13 @@ endfunction
 
 function list_package_contents_single (pkgver, opts)
   printf ("Package %s provides:\n", char (pkgver));
-  
+  pkgman = packajoozle.internal.PkgManager;
+  descs = pkgman.world.descs_for_installed_package (pkgver);
+  desc = descs{1};
+  install_dir = desc.dir;
+  index_file = fullfile (install_dir, "packinfo", "INDEX");
+  disp (fileread (index_file));
 endfunction
-
 
 function test_packages (opts)
   #TODO: What to do about package loading? e.g. if io 2.3.1 is installed and loaded,
@@ -605,7 +617,7 @@ function opts = parse_inputs (args_in)
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
     "describe", "prefix", "local_list", "global_list", "build", "rebuild", ...
-    "help" "test"};
+    "help", "test", "contents"};
   valid_options = {"forge", "file", "nodeps", "local", "global", "forge", "verbose", ...
     "listversions", "help"};
   aliases = {
