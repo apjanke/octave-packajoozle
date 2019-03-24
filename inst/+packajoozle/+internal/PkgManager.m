@@ -158,7 +158,7 @@ classdef PkgManager
         this.display_user_messages (out);
       else
         printf ("Installation of %s from Octave Forge failed: %s\n", ...
-          out.error_message);
+          char (pkgver), out.error_message);
       endif
     endfunction
 
@@ -166,7 +166,7 @@ classdef PkgManager
       if nargin < 3; inst_dir = []; endif
       inst_dir = this.resolve_installdir (inst_dir);
       rslt = this.install_pkg_from_file_impl (file, inst_dir);
-      printf ("Installed %s %s from %s to %s pkg dir\n", ...
+      printf ("Installed %s from %s to %s pkg dir\n", ...
         char (rslt.pkgver), file, inst_dir.tag);
       this.display_user_messages (rslt);
       out = rslt;
