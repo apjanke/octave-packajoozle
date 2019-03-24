@@ -192,8 +192,6 @@ classdef DependencyResolver
       while ! isempty (to_go)
         next_up = to_go(1);
         to_go = to_go(2:numel (to_go));
-        this.emit ("calling step() for %s", char (next_up));
-        this.emit ("to_go = %s", dispstr (to_go));
         ok = step (next_up);
         if ! ok
           break
