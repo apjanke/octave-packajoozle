@@ -313,7 +313,7 @@
 ## @end deftypefn
 
 
-function out = pkj (varargin)
+function varargout = pkj (varargin)
   opts = parse_inputs (varargin);
 
   if opts.help || isequal (opts.command, "help")
@@ -334,25 +334,26 @@ function out = pkj (varargin)
       install_type = detect_install_type (opts);
       switch install_type
         case "forge"
-          install_forge_packages (opts);
+          rslt = install_forge_packages (opts);
         case "file"
-          install_files (opts);
+          rslt = install_files (opts);
         otherwise
           error ("pkj: internal error: invalid install_type: '%s'", install_type);
       endswitch
+      varargout = {rslt};
     case "list"
       if opts.forge
         if nargout == 0
           list_forge_packages (opts);
         else
-          out = list_forge_packages (opts);
+          varargout = {list_forge_packages(opts)};
         endif
       else
         pkg_list_descs = list_installed_packages (opts);
         if nargout == 0
           display_pkg_desc_list (pkg_list_descs);
         else
-          out = pkg_list_descs;
+          varargout = {pkg_list_descs};
         endif
       endif
     case "load"
@@ -392,16 +393,16 @@ function install_type = detect_install_type (opts)
   endif
 endfunction
 
-function install_forge_packages (opts)
+function out = install_forge_packages (opts)
   reqs = parse_forge_targets (opts.targets);
   pkgman = packajoozle.internal.PkgManager;
-  pkgman.install_forge_pkgs (reqs);
+  out = pkgman.install_forge_pkgs (reqs);
 endfunction
 
-function install_files (opts)
+function out = install_files (opts)
   files = opts.targets;
   pkgman = packajoozle.internal.PkgManager;
-  pkgman.install_file_pkgs (files);
+  out = pkgman.install_file_pkgs (files);
 endfunction
 
 function out = parse_forge_targets (targets)
