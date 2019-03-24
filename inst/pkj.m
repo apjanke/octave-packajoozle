@@ -400,7 +400,11 @@ function out = install_forge_packages (opts)
   reqs = parse_forge_targets (opts.targets);
   pkgman = packajoozle.internal.PkgManager;
   pkgman_opts.nodeps = opts.nodeps;
-  out = pkgman.install_forge_pkgs (reqs, [], pkgman_opts);
+  if opts.devel
+    out = pkgman.install_forge_pkgs_devel (reqs, [], pkgman_opts);
+  else
+    out = pkgman.install_forge_pkgs (reqs, [], pkgman_opts);
+  endif
 endfunction
 
 function out = install_files (opts)
@@ -721,13 +725,14 @@ endfunction
 function opts = parse_inputs (args_in)
   opts = struct;
   opts.command = [];
+  opts.targets = {};
   opts.forge = false;
   opts.file = false;
   opts.nodeps = false;
   opts.local = false;
   opts.global = false;
   opts.verbose = false;
-  opts.targets = {};
+  opts.devel = false;
   opts.listversions = false;
   opts.help = false;
 
@@ -735,7 +740,7 @@ function opts = parse_inputs (args_in)
     "describe", "prefix", "local_list", "global_list", "build", "rebuild", ...
     "help", "test", "contents", "depdiagram"};
   valid_options = {"forge", "file", "nodeps", "local", "global", "forge", "verbose", ...
-    "listversions", "help"};
+    "listversions", "help", "devel"};
   aliases = {
     "ls"      "list"
     "rm"      "uninstall"

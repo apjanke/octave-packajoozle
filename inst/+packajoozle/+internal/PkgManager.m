@@ -77,11 +77,81 @@ classdef PkgManager
       endif
     endfunction
 
-    function out = install_forge_pkgs (this, pkgreqs, inst_dir, opts)
+    function out = install_forge_pkgs_devel (this, pkgreqs, inst_dir, opts)
+      % This is a separate method because we can't represent a devel/head
+      % package with a Version object.
       if nargin < 3; inst_dir = []; endif
       if nargin < 4 || isempty (opts); opts = struct; endif
       opts = packajoozle.internal.Util.parse_options (opts, ...
         struct ("nodeps", false));
+      inst_dir = this.resolve_installdir (inst_dir);
+
+      # Ignore the versions in pkgreqs
+      pkg_names = arrayfun (@(x) {x.package}, pkgreqs);
+      tmp_dir = tempname (tempdir, "packajoozle/forge-devel-install/work-");
+      repos_tmp_dir = fullfile (tmp_dir, "repos");
+      tarballs_tmp_dir = fullfile (tmp_dir, "dist-tarballs");
+      packajoozle.internal.Util.mkdir (repos_tmp_dir);
+      packajoozle.internal.Util.mkdir (tarballs_tmp_dir);
+      RAII.tmpdir = onCleanup (@() packajoozle.internal.Util.rm_rf (tmp_dir));
+
+      # TODO: Resolve dependencies
+
+      dist_files = {};
+      for i = 1:numel (pkg_names)
+        pkg_name = pkg_names{i};
+        meta = this.forge.get_package_meta (pkg_name);
+        clone_basename = meta.suggested_repo_local_name;
+        local_repo_dir = fullfile (repos_tmp_dir, clone_basename);
+        switch meta.repo_type
+          case "hg"
+            sc_opts = "";
+          case "git"
+            % This is failing, e.g. for doctest repo:
+            %  error: Ambiguous option: shallow (could be --shallow-exclude or --shallow-submodules)
+            %sc_opts = "--shallow";
+            sc_opts = "";
+          otherwise
+            error ("PkgManager.install_forge_pkgs_devel: unsupported source control type: %s\n", ...
+              meta.repo_type);
+        endswitch
+        clone_cmd = sprintf ("%s clone %s '%s' '%s'", ...
+          meta.repo_type, sc_opts, meta.repo_url, local_repo_dir);
+        packajoozle.internal.Util.system (clone_cmd);
+        tar_file = fullfile (tarballs_tmp_dir, [pkg_name "-devel.tar"]);
+        tgz_file = [tar_file ".gz"];
+        orig_pwd = pwd;
+        unwind_protect
+          cd (repos_tmp_dir);
+          tar (tar_file, clone_basename);
+        unwind_protect_cleanup
+          cd (orig_pwd);
+        end_unwind_protect
+        gzip (tar_file);
+        dist_files{end+1} = tgz_file;
+      endfor
+
+      for i = 1:numel (dist_files)
+        rslt = this.install_pkg_from_file_impl (dist_files{i}, inst_dir);
+        if rslt.success
+          printf ("Installed %s (DEVEL) from Octave Forge to %s pkg dir\n", ...
+            char (rslt.pkgver), inst_dir.tag);
+          this.display_user_messages (rslt);
+        else
+          printf ("Installation of %s (DEVEL) from Octave Forge failed: %s\n", ...
+            pkg_names{i}, rslt.error_message);
+        endif
+        out{i} = rslt;
+      endfor
+      out = [out{:}];
+    endfunction
+
+    function out = install_forge_pkgs (this, pkgreqs, inst_dir, opts)
+      if nargin < 3; inst_dir = []; endif
+      if nargin < 4 || isempty (opts); opts = struct; endif
+      opts = packajoozle.internal.Util.parse_options (opts, ...
+        struct ("nodeps", false, ...
+          "devel", false));
 
       inst_dir = this.resolve_installdir (inst_dir);
 
@@ -132,10 +202,12 @@ classdef PkgManager
       # TODO: Resolve dependencies
       # Consider all packages to be installed
 
+      rslts = {};
       for i = 1:numel (files)
         file = files{i};
-        this.install_pkg_from_file (file, inst_dir);
+        rslts{i} = this.install_pkg_from_file (file, inst_dir);
       endfor
+      out = [rslts{:}];
     endfunction
 
     function display_user_messages (this, rslt)
