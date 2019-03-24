@@ -90,29 +90,35 @@ classdef PkgManager
       endfor
       pkgvers = objvcat (c{:});
 
-      # TODO: Resolve dependencies
+      # Resolve dependencies
       # Consider all packages to be installed
 
-      dr = packajoozle.internal.DependencyResolver (this.forge);
-      res = dr.resolve_deps (pkgvers);
-      if ! res.ok
-        error ("pkj: unsatisfiable dependencies: %s", strjoin (res.error_msgs));
-      endif
-      need_installed = res.resolved;
-      if ! isempty (res.added_deps)
-        printf ("pkj: picked up dependencies: %s\n", ...
-          strjoin (dispstrs (res.added_deps), ", "));
+      if opts.nodeps
+        # TODO: Maybe reorder these in dependency order
+        need_installed = pkgvers;
+      else
+        dr = packajoozle.internal.DependencyResolver (this.forge);
+        res = dr.resolve_deps (pkgvers);
+        if ! res.ok
+          error ("pkj: unsatisfiable dependencies: %s", strjoin (res.error_msgs));
+        endif
+        need_installed = res.resolved;
+        if ! isempty (res.added_deps)
+          printf ("pkj: picked up dependencies: %s\n", ...
+            strjoin (dispstrs (res.added_deps), ", "));
+        endif
       endif
 
       # Install selected packages
       tf_installed = this.world.is_installed (need_installed);
       to_install = need_installed(~tf_installed);
       printf ("pkj: installing: %s\n", strjoin (dispstrs (to_install), ", "));
+      rslts = {};
       for i = 1:numel (to_install)
         pkgver = to_install(i);
-        this.install_forge_pkg_single (pkgver);
+        rslts{i} = this.install_forge_pkg_single (pkgver);
       endfor
-
+      out = [rslts{:}];
     endfunction
 
     function out = install_file_pkgs (this, files, inst_dir)
