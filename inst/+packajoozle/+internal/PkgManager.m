@@ -142,9 +142,14 @@ classdef PkgManager
       dist_tgz = this.forge.download_cached_pkg_distribution (pkgver);
       out = this.install_pkg_from_file_impl (dist_tgz);
 
-      printf ("Installed %s from Octave Forge to %s pkg dir\n", ...
-        char (pkgver), inst_dir.tag);
-      this.display_user_messages (out);
+      if out.success
+        printf ("Installed %s from Octave Forge to %s pkg dir\n", ...
+          char (pkgver), inst_dir.tag);
+        this.display_user_messages (out);
+      else
+        printf ("Installation of %s from Octave Forge failed: %s\n", ...
+          out.error_message);
+      endif
     endfunction
 
     function out = install_pkg_from_file (this, file, inst_dir)
