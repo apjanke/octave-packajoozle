@@ -148,7 +148,7 @@ classdef DependencyResolver
             ix = find (dep.matches (order));
             if ! isempty (ix)
               this.emit ("    already satisfied by already-resolved pkg order (%s)", ...
-                dispstr (order(tf)));
+                dispstr (order(ix)));
               concrete_deps{end+1} = objvcat (p, order(ix(1)));
               continue;
             end
