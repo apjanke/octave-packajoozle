@@ -617,7 +617,7 @@ function describe_forge_packages (opts)
 
   for i = 1:numel (pkgvers)
     pkgver = pkgvers(i);
-    desc = forge.get_package_description_meta (pkgver);
+    desc = forge.get_package_description (pkgver);
     display_package_description (desc);
   endfor
 endfunction

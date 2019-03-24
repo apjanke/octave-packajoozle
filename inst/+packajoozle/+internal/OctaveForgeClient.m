@@ -262,7 +262,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       out = this.list_all_releases;
     endfunction
 
-    function out = get_package_description_meta (this, pkgver)
+    function out = get_package_description (this, pkgver)
       # Check cache
       pkg_meta_cache_dir = fullfile (this.download_cache_dir, ...
         "pkg-meta");

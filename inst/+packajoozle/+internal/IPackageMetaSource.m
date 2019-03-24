@@ -43,8 +43,8 @@ classdef IPackageMetaSource
     % Get the DESCRIPTION metadata for a single package/version.
     % Takes a scalar packajoozle.internal.PkgVer as input
     % Returns a scalar struct. Raises an error if pkgver is not available in this.
-    function out = get_package_description_meta (this, pkgver)
-      error ("IPackageMetaSource.get_package_description_meta: this is an abstract method.");
+    function out = get_package_description (this, pkgver)
+      error ("IPackageMetaSource.get_package_description: this is an abstract method.");
     endfunction
 
   endmethods

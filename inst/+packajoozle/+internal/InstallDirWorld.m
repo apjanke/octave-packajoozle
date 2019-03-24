@@ -172,10 +172,10 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
       out = this.list_all_installed_packages;
     endfunction
 
-    function out = get_package_description_meta (this, pkgver)
+    function out = get_package_description (this, pkgver)
       descs = this.descs_for_installed_package (pkgver);
       if isempty (descs)
-        error ("InstallDirWorld.get_package_description_meta: package not installed: %s", ...
+        error ("InstallDirWorld.get_package_description: package not installed: %s", ...
           char (pkgver));
       endif
       out = descs{1};

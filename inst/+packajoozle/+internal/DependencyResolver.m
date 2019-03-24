@@ -127,7 +127,7 @@ classdef DependencyResolver
         endif
         dep_path = objvcat (dep_path, p); % push
         unwind_protect
-          desc = this.meta_source.get_package_description_meta (p);
+          desc = this.meta_source.get_package_description (p);
           deps = get_deps_as_pkgreqs (desc);
           this.emit ("working %s (%s)\n  deps: %s", char (p), ...
             dep_path_str (dep_path), pkgreqs_to_char (deps));
