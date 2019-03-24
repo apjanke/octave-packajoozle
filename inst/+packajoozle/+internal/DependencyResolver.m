@@ -116,11 +116,11 @@ classdef DependencyResolver
       to_go = pkgvers;
       dep_path = [];  % current path in the graph traversal we're doing
 
-      function ok = step (p)
+      function step_ok = step (p)
         if ismember (p, dep_path)
           cycle_path = objvcat (dep_path, p);
           this.emit ("dependency cycle detected: %s", dep_path_str (cycle_path));
-          ok = false;
+          step_ok = false;
           error_msgs{end+1} = sprintf ("dependency cycle: %s", ...
             dep_path_str (cycle_path));
           return
@@ -133,7 +133,7 @@ classdef DependencyResolver
             dep_path_str (dep_path), pkgreqs_to_char (deps));
           if ! isempty (order) && ismember (p, order)
             this.emit ("already in order: %s", char (p));
-            ok = true;
+            step_ok = true;
             return
           endif
           for i = 1:numel (deps)
@@ -178,11 +178,11 @@ classdef DependencyResolver
             this.emit ("    could not be satisfied!");
             error_msgs{end+1} = sprintf("unsatisfied dependency: %s, required by %s", ...
               char (dep), char (p));
-            ok = false;
+            step_ok = false;
             return
           endfor
           order = objvcat (order, p);
-          ok = true;
+          step_ok = true;
         unwind_protect_cleanup
           dep_path = dep_path(1:numel (dep_path)-1); % pop
         end_unwind_protect
@@ -191,7 +191,9 @@ classdef DependencyResolver
       ok = true;
       while ! isempty (to_go)
         next_up = to_go(1);
-        to_go = to_go(2:end);
+        to_go = to_go(2:numel (to_go));
+        this.emit ("calling step() for %s", char (next_up));
+        this.emit ("to_go = %s", dispstr (to_go));
         ok = step (next_up);
         if ! ok
           break
