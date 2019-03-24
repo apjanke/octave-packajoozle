@@ -396,7 +396,8 @@ endfunction
 function out = install_forge_packages (opts)
   reqs = parse_forge_targets (opts.targets);
   pkgman = packajoozle.internal.PkgManager;
-  out = pkgman.install_forge_pkgs (reqs);
+  pkgman_opts.nodeps = opts.nodeps;
+  out = pkgman.install_forge_pkgs (reqs, [], pkgman_opts)
 endfunction
 
 function out = install_files (opts)
