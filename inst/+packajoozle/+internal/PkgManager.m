@@ -199,7 +199,7 @@ classdef PkgManager
       target = inst_dir.install_paths_for_pkg (pkgver);
       verify_directory (build_dir);
       desc_file = fullfile (build_dir, "DESCRIPTION");
-      orig_desc = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (fileread (desc_file));
+      orig_desc = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (desc_file);
       desc = orig_desc;
       # For back-compatibility with old pkg code
       desc.dir = target.dir;

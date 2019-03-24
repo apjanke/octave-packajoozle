@@ -275,8 +275,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
         packajoozle.internal.Util.mkdir (cache_dir_for_this_pkgver);
         packajoozle.internal.Util.filewrite (cached_file, descr_txt);
       else
-        out = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (...
-          packajoozle.internal.Util.fileread (cached_file));
+        out = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (cached_file);
       endif
     endfunction
 

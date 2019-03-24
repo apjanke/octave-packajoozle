@@ -44,15 +44,24 @@ classdef PkgDistUtil
         if ! exist (descr_file, "file")
           error ("pkj: Pkg file does not contain a DESCRIPTION file: %s", file);
         endif
-        descr_txt = fileread (descr_file);
-        out = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (descr_txt);
+        out = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (descr_file);
       unwind_protect_cleanup
         packajoozle.internal.Util.rm_rf (tmp_dir);
       end_unwind_protect
     endfunction
 
-    function out = parse_pkg_description_file (descr_txt)
+    function out = parse_pkg_description_file (descr_source, format = "file")
       % Returns a struct with standard packge description fields
+      switch format
+        case "file"
+          descr_txt = fileread (descr_source);
+          file = descr_source;
+        case "string"
+          descr_txt = descr_source;
+          file = "<string>";
+        otherwise
+          error ("PkgDistUtil.parse_pkg_description_file: invalid format: %s", format);
+      end
       desc = struct ();
 
       lines = regexp (descr_txt, "\r?\n", "split");
@@ -75,19 +84,21 @@ classdef PkgDistUtil
           ## Keyword/value pair
           colon = find (line == ":");
           if (length (colon) == 0)
-            warning ("pkj: skipping invalid line %d in DESCRIPTION file: '%s'\n", i, line);
+            warning (["pkj: skipping invalid line %d in DESCRIPTION:\n" ...
+              "  File: %s\n  Line: %s\n"], i, file, line);
           else
             colon = colon(1);
             keyword = tolower (strtrim (line(1:colon-1)));
             value = strtrim (line (colon+1:end));
             if (length (value) == 0)
                 fclose (fid);
-                error ("pkj: The keyword '%s' of the package '%s' has an empty value",
+                error ("pkj: The keyword '%s' of the package '%s' DESCRIPTION has an empty value\n",
                         keyword, desc.name);
             endif
             if (isfield (desc, keyword))
-              warning ("pkj: duplicate keyword '%s' in DESCRIPTION, ignoring\n",
-                       keyword);
+              warning (["pkj: duplicate keyword '%s' in DESCRIPTION, ignoring\n" ...
+                "  File %s\n  Line number: %s\n"], ...
+                       keyword, file, i);
             else
               desc.(keyword) = value;
             endif
@@ -100,12 +111,14 @@ classdef PkgDistUtil
                        "author", "maintainer", "description"};
       for f = needed_fields
         if (! isfield (desc, f{1}))
-          error ("pkj: DESCRIPTION is missing needed field %s", f{1});
+          error (["pkj: DESCRIPTION is missing needed field %s\n" ...
+            "  File: %s\n"], f{1}, file);
         endif
       endfor
 
       if (! packajoozle.internal.Util.is_valid_pkg_version_string (desc.version))
-        error ("pkj: invalid version string '%s'", desc.version);
+        error (["pkj: invalid version string in DESCRIPTION: '%s'\n" ...
+          "  File: %s\n"], desc.version, file);
       endif
 
       if (isfield (desc, "depends"))
