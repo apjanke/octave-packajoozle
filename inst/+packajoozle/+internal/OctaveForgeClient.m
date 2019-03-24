@@ -73,7 +73,6 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       out = strs{1};
     endfunction
 
-
     function out = get_cached_package_download (this, pkg_name)
       % Download package distribution file, caching downloads.
       % Returns path to the cached downloaded file.
