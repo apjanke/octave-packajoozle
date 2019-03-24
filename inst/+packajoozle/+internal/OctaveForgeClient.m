@@ -279,6 +279,58 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       endif
     endfunction
 
+    function out = get_package_meta (this, pkg_name)
+      % Metadata about the overall package, not just a particular version
+      out.name = pkg_name;
+      pkg_page = ["https://octave.sourceforge.io/" pkg_name "/index.html"];
+      out.forge_home_page = pkg_page;
+      html1 = packajoozle.internal.Util.urlread (pkg_page);
+      % This regexp is very sensitive to the exact page format
+      [ix, tok] = regexp (html1, [ ...
+        '<dt>Version</dt>\s*?<dd>(.*?)</dd>.*' ...
+        '<dt>Date</dt>\s*?<dd>\s*<time>\s*(.*?)\s*</time>\s*</dd>.*' ...
+        '<dt>Author</dt>\s*?<dd>(.*?)</dd>.*' ...
+        '<dt>Maintainer</dt>\s*?<dd>(.*?)</dd>.*' ...
+        '<dt>License</dt>\s*?<dd>.*?</span>(.*?)</a></dd>.*' ...
+        '<dt>Group</dt>\s*?<dd>.*?</span>(.*?)</a></dd>.*' ...
+        '<h3>\s*Description\s*</h3>\s*<p>\s*(.*?)</p>.*' ...
+        ], ...
+        "start", "tokens");
+      if isempty (ix)
+        error ("OctaveForgeClient.get_package_meta: error parsing SourceForge home page for package metadata");
+      endif
+      tok = tok{1};
+      out.current_version = tok{1};
+      out.current_version_date = tok{2};
+      out.author = unescape_html (tok{3});
+      out.maintainer = unescape_html (tok{4});
+      license = unescape_html (tok{5});
+      % Doesn't work - looks like \s is not Unicode-aware
+      %license = regexprep (license, '^\s+', '');
+      license(1) = [];
+      out.license = license;
+      group = unescape_html (tok{6});
+      %group = regexprep (group, '^\s+', '');
+      group(1) = [];
+      out.group = group;
+      description = tok{7};
+      description = regexprep (description, "  +", " ");
+      out.description = description;
+      pkg_repo_page = ["https://octave.sourceforge.io/pkg-repository/" pkg_name "/"];
+      out.forge_repo_home_page = pkg_repo_page;
+      html = packajoozle.internal.Util.urlread (pkg_repo_page);
+      [ix, tok] = regexp (html, 'value="(hg|git) clone (\S+?) ([\S]+)"', "start", "tokens");
+      if isempty (ix)
+        error ("OctaveForgeClient.get_package_meta: error parsing SourceForge page for repo link");
+      endif
+      tok = tok{1};
+      out.repo_type = tok{1};
+      out.repo_url = tok{2};
+      out.suggested_repo_local_name = tok{3};
+      out.repo_sourceforge_page = pkg_repo_page;
+    endfunction
+    
+
   endmethods
 
 endclassdef
@@ -300,6 +352,22 @@ function mustBeValidPkgName (name)
     error ("OctaveForgeClient: invalid package NAME: %s", name);
   endif
 endfunction
+
+function out = unescape_html (html)
+  % This is a total hack, just good enough for our local use with Forge
+  % pages
+  map = {
+    "&nbsp;"    char(160)
+    "&lt;"      "<"
+    "&gt;"      ">"
+  };
+  out = html;
+  for i = 1:size (map, 1)
+    [from, to] = map{i,:};
+    out = strrep (out, from, to);
+  endfor
+endfunction
+
 
 %==========================================================================
 % Local functions
