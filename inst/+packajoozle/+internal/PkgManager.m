@@ -77,8 +77,12 @@ classdef PkgManager
       endif
     endfunction
 
-    function out = install_forge_pkgs (this, pkgreqs, inst_dir)
+    function out = install_forge_pkgs (this, pkgreqs, inst_dir, opts)
       if nargin < 3; inst_dir = []; endif
+      if nargin < 4 || isempty (opts); opts = struct; endif
+      opts = packajoozle.internal.Util.parse_options (opts, ...
+        struct ("nodeps", false));
+
       inst_dir = this.resolve_installdir (inst_dir);
 
       # Resolve requests
