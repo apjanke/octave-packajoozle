@@ -376,6 +376,9 @@ function varargout = pkj (varargin)
       error ("pkj: the %s command is not yet implemented", opts.command);
   endswitch
   
+  if nargout == 0
+    clear varargout
+  endif
 endfunction
 
 function install_type = detect_install_type (opts)
