@@ -26,6 +26,25 @@ classdef Util
 
   methods (Static)
 
+    function out = parse_options (options, defaults)
+      opts = defaults;
+      if iscell (options)
+        s = struct;
+        for i = 1:2:numel (options)
+          s.(options{i}) = options{i+1};
+        endfor
+        options = s;
+      endif
+      if (! isstruct (options))
+        error ("parse_options: options must be a struct or name/val cell vector");
+      endif
+      opt_fields = fieldnames (options);
+      for i = 1:numel (opt_fields)
+        opts.(opt_fields{i}) = options.(opt_fields{i});
+      endfor
+      out = opts;
+    endfunction
+
     function out = packajoozle_data_dir
       out = fullfile (getenv("HOME"), "octave", "packajoozle");
     endfunction
