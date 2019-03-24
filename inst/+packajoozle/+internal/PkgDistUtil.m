@@ -75,7 +75,7 @@ classdef PkgDistUtil
           ## Keyword/value pair
           colon = find (line == ":");
           if (length (colon) == 0)
-            warning ("pkj: skipping invalid line %d in DESCRIPTION file: '%s'", i, line);
+            warning ("pkj: skipping invalid line %d in DESCRIPTION file: '%s'\n", i, line);
           else
             colon = colon(1);
             keyword = tolower (strtrim (line(1:colon-1)));
@@ -86,7 +86,7 @@ classdef PkgDistUtil
                         keyword, desc.name);
             endif
             if (isfield (desc, keyword))
-              warning ("pkj: duplicate keyword '%s' in DESCRIPTION, ignoring",
+              warning ("pkj: duplicate keyword '%s' in DESCRIPTION, ignoring\n",
                        keyword);
             else
               desc.(keyword) = value;
