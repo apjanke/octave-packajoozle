@@ -24,7 +24,7 @@ function out = objdel (x, ix)
   endif
   out = [];
   for i = 1:numel (x)
-    if ismember (i, ix)
+    if ! ismember (i, ix)
       if isempty (out)
         out = x(i);
       else
