@@ -101,7 +101,6 @@ classdef GraphVizDiagram
 
     function out = imshow (this)
       tmp_file = [tempname(tempdir, "packajoozle/graphviz/work-") ".png"];
-      # Can't do this? imshow is too slow on the uptake?
       RAII.tmp_file = onCleanup (@() packajoozle.internal.Util.rm_rf (tmp_file));
       this.export_to_file (tmp_file);
       fig = imshow (tmp_file);
