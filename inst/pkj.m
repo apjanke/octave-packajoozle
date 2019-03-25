@@ -316,7 +316,7 @@
 ## @example
 ## pkj review strings-1.2.0.tar.gz
 ## pkj review /path/to/my/local/clone/of/octave-strings
-## pkj review strings@1.2.0
+## pkj review strings@@1.2.0
 ## pkj review -verbose strings-1.2.0.tar.gz
 ## # Abort on first error
 ## pkj review -verbose -fail-fast strings-1.2.0.tar.gz
