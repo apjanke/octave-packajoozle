@@ -214,7 +214,7 @@ classdef PkgReviewer < handle
       pkgman = packajoozle.internal.PkgManager;
       pkgreq = packajoozle.internal.PkgVerReq (pkgver);
       if ! isempty (pkgman.world.list_installed_matching (pkgreq))
-        error ("pkj: review: Cannot install %s: it is already installed");
+        error ("pkj: review: Cannot install %s: it is already installed\n", char (pkgver));
       endif
       lastwarn("");
       inst_rslt = pkj ("install", "-file", tgz_file);

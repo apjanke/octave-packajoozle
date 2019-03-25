@@ -127,6 +127,17 @@ classdef PkgVer
       ix = ix(ix2);
     endfunction
 
+    function [out,ix] = unique (this)
+      out = this(1);
+      ix = 1;
+      for i = 2:numel (this)
+        if ! ismember (this(i), out)
+          out = objvcat (out, this(i));
+          ix(end+1) = i;
+        endif
+      endfor
+    endfunction
+
   endmethods
 
 endclassdef
