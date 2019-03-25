@@ -73,12 +73,13 @@ help:
 ## Recipes for release tarballs (package + html)
 ##
 
-.PHONY: dist html clean-tarbals
+.PHONY: dist html clean-tarbals release
 
 ## dist and html targets are only PHONY/alias targets to the release
 ## and html tarballs.
 dist: $(release_tarball)
 html: $(html_tarball)
+release: dist html
 
 ## An implicit rule with a recipe to build the tarballs correctly.
 %.tar.gz: %
@@ -124,6 +125,7 @@ run_in_place = $(OCTAVE) --eval ' pkg ("local_list", "$(package_list)"); ' \
 html_options = --eval 'options = get_html_options ("octave-forge");' \
                --eval 'options.package_doc = "$(package).texi";'
 $(html_dir): $(install_stamp)
+	echo Building html_dir
 	$(RM) -r "$@";
 	$(run_in_place)                    \
         --eval ' pkg load generate_html; ' \
