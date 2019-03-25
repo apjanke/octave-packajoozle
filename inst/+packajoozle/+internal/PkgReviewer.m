@@ -34,7 +34,10 @@ classdef PkgReviewer < handle
 
     forge = packajoozle.internal.OctaveForgeClient;
     pkg_spec = [];
+    pkgver = [];
+    tmp_dir = [];
     errors = {};
+    warnings = {};
   endproperties
 
   properties (Dependent)
@@ -68,17 +71,75 @@ classdef PkgReviewer < handle
       endif
     endfunction
 
+    function so_so (this, fmt, varargin)
+      this.warnings{end+1} = sprintf (fmt, varargin{:});
+    endfunction
+
     function display_results (this)
       if this.ok
         fprintf ("Package review passed for %s.\n", char (this.pkg_spec));
+        if ! isempty (this.warnings)
+          fprintf ("But there were warnings:\n  %s\n", strjoin (strcat ({"  "}, this.warnings), "\n"));
+        endif
       else
         fprintf ("Package review failed for %s.\n", char (this.pkg_spec));
         fprintf ("Errors:\n  %s\n", strjoin (strcat ({"  "}, this.errors), "\n"));
+        if ! isempty (this.warnings)
+          fprintf ("Warnings:\n  %s\n", strjoin (strcat ({"  "}, this.warnings), "\n"));
+        endif
       endif
+    endfunction
+
+    function [ok, tgz_file, dist_file] = make_dist_from_repo (this, repo_dir)
+      orig_pwd = pwd;
+      RAII.cd = onCleanup (@() cd (orig_pwd));
+      ok = false;
+      tgz_file = [];
+      cd (repo_dir);
+      this.say ("Creating distribution tarball from repo at %s", repo_dir);
+      this.say ("make dist");
+      [status, output] = system ("make dist");
+      if status != 0
+        this.bad("'make dist' failed. make output:\n%s", output);
+        return
+      endif
+      desc_file = fullfile (repo_dir, "DESCRIPTION");
+      desc = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (desc_file);
+      pkgver = packajoozle.internal.PkgVer (desc.name, desc.version);
+      this.pkgver = pkgver;
+      expected_tarball_basename = sprintf ("%s-%s.tar.gz", desc.name, desc.version);
+      if exist (fullfile (repo_dir, expected_tarball_basename), "file")
+        built_dist_file = fullfile (repo_dir, expected_tarball_basename);
+      else
+        this.so_so ("Expected dist file %s not created by 'make dist' in root of repo", ...
+          expected_tarball_basename);
+        legacy_tarball_dirs = {
+          'target'
+          'tmp'
+          'build'
+        };
+        built_dist_file = [];
+        for i = 1:numel (legacy_tarball_dirs)
+          candidate = fullfile (legacy_tarball_dirs{i}, expected_tarball_basename);
+          if exist (candidate, "file");
+            built_dist_file = candidate;
+            this.so_so ("Actual dist file was at %s", candidate);
+            break
+          endif
+        endfor
+        if isempty (built_dist_file)
+          error ("Cannot locate tarball produced by 'make dist'. Cannot continue.\n");
+        endif
+      endif
+      packajoozle.internal.Util.copyfile (built_dist_file, this.tmp_dir);
+      tgz_file = fullfile (this.tmp_dir, expected_tarball_basename);
+      dist_file = built_dist_file;
+      ok = true;
     endfunction
 
     function review_package_impl (this, pkg_spec)
       tmp_dir = tempname (tempdir, "packajoozle/pkj-review/work-");
+      this.tmp_dir = tmp_dir;
       packajoozle.internal.Util.mkdir (tmp_dir);
       RAII.tmp_dir = onCleanup (@() packajoozle.internal.Util.rm_rf (tmp_dir));
       orig_dir = pwd;
@@ -91,25 +152,11 @@ classdef PkgReviewer < handle
       if exist (pkg_spec, "dir")
         # This should be a local repo clone. Create the dist file in it
         repo_dir = pkg_spec;
-        cd (repo_dir);
-        this.say ("Creating distribution tarball from repo at %s", repo_dir);
-        this.say ("make dist");
-        status = system ("make dist");
-        if status != 0
-          this.bad("'make dist' failed");
-          return
+        [ok, tgz_file, dist_file] = this.make_dist_from_repo (repo_dir, tmp_dir);
+        if ! ok
+          error ("Failed creating distribution archive from repo. Cannot proceed.\n");
         endif
-        desc_file = fullfile (repo_dir, "DESCRIPTION");
-        desc = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (desc_file);
-        pkgver = packajoozle.internal.PkgVer (desc.name, desc.version);
-        expected_tarball = sprintf ("%s-%s.tar.gz", desc.name, desc.version);
-        dist_file = fullfile (repo_dir, "target", expected_tarball);
-        if ! exist (dist_file, "file")
-          this.bad ("Expected dist file target/%s not created by 'make dist'", expected_tarball);
-          return
-        endif
-        packajoozle.internal.Util.copyfile (dist_file, tmp_dir);
-        tgz_file = fullfile (tmp_dir, expected_tarball);
+        pkgver = this.pkgver;
       elseif exist(pkg_spec, "file")
         dist_file = pkg_spec;
         desc = packajoozle.internal.PkgDistUtil.get_pkg_description_from_pkg_archive_file (dist_file);
@@ -142,6 +189,10 @@ classdef PkgReviewer < handle
       kids = packajoozle.internal.Util.readdir (".");
       if numel (kids) > 1
         this.bad ("Multiple top-level dirs in tarball: %s", strjoin (kids, ", "));
+        return
+      endif
+      if isempty (kids)
+        this.bad ("Distribution tarball was empty");
         return
       endif
       top_level = kids{1};
