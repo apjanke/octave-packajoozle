@@ -37,6 +37,21 @@ classdef PkgVerReq
     ver_filters
   endproperties
 
+  methods (Static)
+
+    function out = parse_desc_deps (deps)
+      % Parses dependencies from a desc structure
+      out = {};
+      for i = 1:numel (deps)
+        dep = deps{i};
+        out{i} = packajoozle.internal.PkgVerReq (dep.package, ...
+          packajoozle.internal.VerFilter (dep.version, dep.operator));
+      endfor
+      out = objvcat (out{:});
+    endfunction
+
+  endmethods
+
   methods
 
     function this = PkgVerReq (pkg_name, ver_filters)

@@ -28,6 +28,9 @@ classdef Util
 
     function out = parse_options (options, defaults)
       opts = defaults;
+      if isempty (options)
+        options = {};
+      endif
       if iscell (options)
         s = struct;
         for i = 1:2:numel (options)
