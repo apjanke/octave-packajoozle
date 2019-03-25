@@ -230,12 +230,15 @@ classdef Util
       out = fullfile (getenv ("HOME"), ".cache", "octave");
     endfunction
 
-    function system (cmd)
+    function out = system (cmd)
       [status, output] = system (cmd);
       if status != 0
         error (["system: command failed:\n" ...
           "  Command: %s\n  Exit status: %d"], ...
           cmd, status);
+      endif
+      if nargout > 0
+        out = output;
       endif
     endfunction
     

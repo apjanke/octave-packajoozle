@@ -29,8 +29,22 @@
 classdef GraphVizDiagram
 
   properties
+    % The graph definition, in GraphViz DOT language, as a char
     dot = "";
+
+    layout = "dot";
+
   endproperties
+
+  methods (Static)
+
+    function out = graphviz_plugin_diagram ()
+      dot = packajoozle.internal.Util.system ("dot -P -Tdot");
+      dot = strrep (dot, 'rankdir=LR,', 'rankdir=LR, overlap=false,');
+      out = packajoozle.internal.GraphVizDiagram (dot);
+    endfunction
+
+  endmethods
 
   methods
 
@@ -38,11 +52,54 @@ classdef GraphVizDiagram
       if nargin == 0
         return
       endif
-      mustBeA (dot_txt, "char");
       this.dot = dot_txt;
     endfunction
 
-    function out = view_in_figure (this)
+    function this = set.layout (this, layout)
+      valid_layouts = {"dot" "neato" "twopi" "circo" "fdp" "sfdp" "patchwork" "osage"};
+      if ! ismember (layout, valid_layouts)
+        error ("GraphVizDiagram.set.layout: invalid layout: %s", layout);
+      endif
+      this.layout = layout;
+    endfunction
+
+    function this = set.dot (this, dot)
+      mustBeCharVec (dot, "char");
+      this.dot = dot;
+    endfunction
+
+    function disp (this)
+      disp (dispstr (this));
+    endfunction
+
+    function out = dispstr (this)
+      if isscalar (this)
+        strs = dispstrs (this);
+        out = strs{1};
+      else
+        out = sprintf ("%s %s", size2str (size (this)), class (this));
+      endif
+    endfunction
+
+    function out = dispstrs (this)
+      out = cell (size (this));
+      for i = 1:numel (this)
+        out{i} = sprintf ("%s: %d bytes of DOT, layout=%s", ...
+          class (this), numel (this.dot), this.layout);
+      endfor
+    endfunction
+
+    function out = char (this)
+      if ! isscalar (this)
+        error ("%s: char() only works on scalar %s objects; this is %s", ...
+          class (this), class (this), size2str (size (this)));
+      endif
+      strs = dispstrs (this);
+      out = strs{1};
+    endfunction
+
+
+    function out = imshow (this)
       tmp_file = [tempname(tempdir, "packajoozle/graphviz/work-") ".png"];
       # Can't do this? imshow is too slow on the uptake?
       RAII.tmp_file = onCleanup (@() packajoozle.internal.Util.rm_rf (tmp_file));
@@ -57,10 +114,10 @@ classdef GraphVizDiagram
       tmp_file = [tempname(tempdir, "packajoozle/graphviz/work-") ".gv"];
       RAII.tmp_file = onCleanup (@() packajoozle.internal.Util.rm_rf (tmp_file));
       packajoozle.internal.Util.filewrite (tmp_file, this.dot);
-      cmd = sprintf("dot -Tpng '%s' > '%s'", tmp_file, file);
+      cmd = sprintf("dot -K%s -Tpng '%s' > '%s'", this.layout, tmp_file, file);
       [status, output] = system (cmd);
       if status != 0
-        error ("view_in_figure: error calling dot: %s\n", output);
+        error ("GraphVizDiagram.export_to_file: error calling dot: %s\n", output);
       endif
     endfunction
 

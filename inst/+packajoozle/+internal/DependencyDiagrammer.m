@@ -83,21 +83,29 @@ classdef DependencyDiagrammer
       function d (varargin)
         dot{end+1} = sprintf(varargin{:});
       endfunction
-      d("digraph pkg_dependencies {")
+      d ("digraph pkg_dependencies {")
+      d ("graph [")
+      d ('  label = "\n\nOctave Forge Dependencies\n%s",', datestr(now))
+      d ('  overlap = false')
+      d ("];")
+      d ("node [")
+      d ("  shape = box")
+      d ("];")
       if opts.include_losers
-        d("  subgraph losers {")
+        d ("  subgraph losers {")
         for i = 1:numel (no_deps)
-          d('    "%s";', no_deps{i})
+          d ('    "%s";', no_deps{i})
         endfor
-        d("  }")
+        d ("  }")
       endif
       for i = 1:size (graph, 1)
-        d('  "%s" -> "%s";', graph{i,1}, graph{i,2});
+        d ('  "%s" -> "%s";', graph{i,1}, graph{i,2});
       endfor
-      d("}")
+      d ("}")
 
       dot = strjoin (dot, "\n");
       out = packajoozle.internal.GraphVizDiagram (dot);
+      out.layout = "neato";
 
     endfunction
   endmethods
