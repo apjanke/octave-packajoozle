@@ -60,10 +60,10 @@
 ## @emph{No support}: the GNU Octave community is not responsible for
 ## packages installed from foreign sites.  For support or for
 ## reporting bugs you need to contact the maintainers of the installed
-## package directly (see the @file{DESCRIPTION} file of the package)
+## package directly (see the @file{DESCRIPTION} file of the package).
 ##
 ## The @var{option} variable can contain options that affect the manner
-## in which a package is installed.  These options can be one or more of
+## in which a package is installed.  These options can be one or more of:
 ##
 ## @table @code
 ## @item -nodeps
@@ -111,7 +111,7 @@
 ## @end example
 ##
 ## @noindent
-## To update a single package use @code{pkj install -forge}
+## To update a single package use @code{pkj install -forge}.
 ##
 ## @item uninstall
 ## Uninstall named packages.  For example,
@@ -268,7 +268,7 @@
 ## pkj local_list ~/.octave_packages
 ## @end example
 ##
-## It is possible to get the current value of local_list with the following
+## It is possible to get the current value of local_list with the following:
 ##
 ## @example
 ## pkj local_list
@@ -283,7 +283,7 @@
 ## pkj global_list /usr/share/octave/octave_packages
 ## @end example
 ##
-## It is possible to get the current value of global_list with the following
+## It is possible to get the current value of global_list with the following:
 ##
 ## @example
 ## pkj global_list
@@ -292,7 +292,7 @@
 ## @item build
 ## Build a binary form of a package or packages.  The binary file produced
 ## will itself be an Octave package that can be installed normally with
-## @code{pkj}.  The form of the command to build a binary package is
+## @code{pkj}.  The form of the command to build a binary package is:
 ##
 ## @example
 ## pkj build builddir image-1.0.0.tar.gz @dots{}
