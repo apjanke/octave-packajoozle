@@ -274,7 +274,7 @@ classdef PkgReviewer < handle
         this.bad ("Warnings during package installation: %s", msg);
       endif
       if ! inst_rslt.success
-        this.bad ("Installation failed: %s", err.message);
+        this.bad ("Installation failed: %s", inst_rslt.error_message);
         return
       endif
 
