@@ -84,7 +84,7 @@ classdef GraphVizDiagram
     function out = dispstrs (this)
       out = cell (size (this));
       for i = 1:numel (this)
-        out{i} = sprintf ("%s: %d bytes of DOT, layout=%s", ...
+        out{i} = sprintf ("%s: %d bytes of dot, layout=%s", ...
           class (this), numel (this.dot), this.layout);
       endfor
     endfunction
