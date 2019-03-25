@@ -29,25 +29,25 @@ classdef PkgDistUtil
 
   methods (Static)
 
-    function [out,descr_txt] = get_pkg_description_from_pkg_archive_file (file)
+    function [out, descr_txt] = get_pkg_description_from_pkg_archive_file (file)
       % Extracts the DESCRIPTION info from a package distro tarball file
       tmp_dir = tempname (tempdir, "packajoozle/PkgDistUtil/pkg-archive-work-");
+      RAII.tmp_dir = onCleanup (@() packajoozle.internal.Util.rm_rf (tmp_dir));
       packajoozle.internal.Util.mkdir (tmp_dir);
-      unwind_protect
-        unpack (file, tmp_dir);
-        kids = packajoozle.internal.Util.readdir (tmp_dir);
-        if numel (kids) > 1
-          error ("pkj: Multiple top-level directories found in pkg file: %s", file);
-        endif
-        subdir = fullfile (tmp_dir, kids{1});
-        descr_file = fullfile (subdir, "DESCRIPTION");
-        if ! exist (descr_file, "file")
-          error ("pkj: Pkg file does not contain a DESCRIPTION file: %s", file);
-        endif
-        out = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (descr_file);
-      unwind_protect_cleanup
-        packajoozle.internal.Util.rm_rf (tmp_dir);
-      end_unwind_protect
+      unpack (file, tmp_dir);
+      kids = packajoozle.internal.Util.readdir (tmp_dir);
+      if numel (kids) > 1
+        error ("pkj: Multiple top-level directories found in pkg file: %s", file);
+      endif
+      subdir = fullfile (tmp_dir, kids{1});
+      descr_file = fullfile (subdir, "DESCRIPTION");
+      if ! exist (descr_file, "file")
+        error ("pkj: Pkg file does not contain a DESCRIPTION file: %s", file);
+      endif
+      out = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (descr_file);
+      if nargout > 1
+        descr_txt = fileread (descr_file);
+      endif
     endfunction
 
     function out = parse_pkg_description_file (descr_source, format = "file")
