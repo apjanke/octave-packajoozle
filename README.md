@@ -5,6 +5,10 @@ Packajoozle is a re-working of Octave’s `pkg` package management tool to use O
 
 I started this as just a fun exercise, but it kind of got out of hand, and now it’s almost a real, usable package.
 
+## Requirements
+
+* Octave 4.4.1 or later
+
 ## New features
 
 Compared to Octave’s `pkg`, Packajoozle’s `pkj` also provides:
