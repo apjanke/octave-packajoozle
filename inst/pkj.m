@@ -366,6 +366,7 @@ function varargout = pkj (varargin)
         pkg_list_descs = list_installed_packages (opts);
         if nargout == 0
           display_pkg_desc_list (pkg_list_descs);
+          list_non_installed_packages_on_path (pkg_list_descs, opts);
         else
           varargout = {pkg_list_descs};
         endif
@@ -471,6 +472,63 @@ function out = list_forge_packages (opts)
   endif
 endfunction
 
+function list_non_installed_packages_on_path (pkg_list_descs, opts)
+  dirs = strsplit (path, pathsep);
+  inst_pkg_dirs = {};
+  for i = 1:numel (pkg_list_descs)
+    inst_pkg_dirs{end+1} = pkg_list_descs{i}.dir;
+    inst_pkg_dirs{end+1} = pkg_list_descs{i}.archprefix;
+  endfor
+  inst_pkg_dirs = unique(inst_pkg_dirs);
+  s.Name = {};
+  s.Version = {};
+  s.Dir = {};
+  s.Status = {};
+  for i = 1:numel (dirs)
+    d_on_path = dirs{i};
+    if strncmp (d_on_path, matlabroot, numel (matlabroot)) ...
+      || ismember (d_on_path, inst_pkg_dirs)
+      continue
+    endif
+    [d, last_el] = fileparts (d_on_path);
+    if ! isequal (last_el, "inst")
+      continue
+    endif
+    [~, dir_name] = fileparts (d);
+    desc_file = fullfile (d, "DESCRIPTION");
+    if ! exist (desc_file, "file")
+      continue
+    endif
+    is_repo = packajoozle.internal.DistScmClient.looks_like_repo (d);
+    status_str = "";
+    if is_repo
+      scm = packajoozle.internal.DistScmClient.client_for (d);
+      status = get_status (scm);
+      status_str = status.status_display;
+    endif
+    try
+      desc = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (desc_file);
+      name = desc.name;
+      version = desc.version;
+    catch err
+      name = "???";
+      version = "???";
+    end_try_catch
+    s.Name{end+1} = name;
+    s.Version{end+1} = version;
+    s.Dir{end+1} = abbreviate_dir_path (d);
+    s.Status{end+1} = status_str;
+  endfor
+
+  if ! isempty (s.Name)
+    tbl = packajoozle.internal.qtable (s);
+    fprintf ("\nNon-installed packages on Octave load path:\n");
+    prettyprint (tbl, "B");
+  endif
+
+endfunction
+
+
 function descs = list_installed_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
   descs = pkgman.world.list_all_installed_packages ("desc");
@@ -504,13 +562,17 @@ function display_pkg_desc_list (descs)
   s.Version = cellfun (@(x) {x.version}, descs);
   s.InstallationDir = cellfun (@(x) {x.dir}, descs);
 
-  home_dir = getenv("HOME");
-  s.InstallationDir = regexprep (s.InstallationDir, ["^" home_dir], "~");
-
+  s.InstallationDir = abbreviate_dir_path (s.InstallationDir);
   tbl = packajoozle.internal.qtable (s);
   tbl = sortrecords (tbl, [1 2]);
   tbl = tbl.remove_successive_duplicates;
   prettyprint (tbl, "B");
+endfunction
+
+function out = abbreviate_dir_path (dir)
+  persistent home_dir = getenv("HOME");
+  out = regexprep (dir, ["^" home_dir], "~");
+  out = strrep (out, matlabroot, "<OCTAVE>");
 endfunction
 
 function out = load_packages (opts)

@@ -274,6 +274,14 @@ classdef Util
 
       step (file);
     endfunction
+
+    function out = local_cd_change (path)
+      orig_pwd = pwd;
+      out.dir = path;
+      out.cleanup = onCleanup (@() cd (orig_pwd));
+      cd (path);
+    endfunction
+
   endmethods
 
 endclassdef
