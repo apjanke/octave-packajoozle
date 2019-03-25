@@ -240,15 +240,28 @@ classdef Util
       out = fullfile (getenv ("HOME"), ".cache", "octave");
     endfunction
 
-    function out = system (cmd)
-      [status, output] = system (cmd);
-      if status != 0
+    function [std_out, std_err, status] = system (cmd)
+      if nargout >= 2
+        tmp_dir = tempname (tempdir, "packajoozle/util/system/work-");
+        packajoozle.internal.Util.mkdir (tmp_dir);
+        RAII.tmp_dir = onCleanup (@() packajoozle.internal.Util.rm_rf (tmp_dir));
+        # This assumes the caller is not doing their own redirection
+        stdout_tmp = fullfile (tmp_dir, "stdout.txt");
+        stderr_tmp = fullfile (tmp_dir, "stderr.txt");
+        redirected_cmd = sprintf('%s > "%s" 2> "%s"', cmd, stdout_tmp, stderr_tmp);
+        [status, leftover_stdout] = system (redirected_cmd);
+        std_out = fileread (stdout_tmp);
+        std_err = fileread (stderr_tmp);
+      else
+        [status, std_out] = system (cmd);
+      endif
+      if status != 0 && nargout < 3
         error (["system: command failed:\n" ...
           "  Command: %s\n  Exit status: %d"], ...
           cmd, status);
       endif
-      if nargout > 0
-        out = output;
+      if nargout == 0
+        clear std_out std_err status
       endif
     endfunction
     
