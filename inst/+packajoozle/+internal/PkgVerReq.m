@@ -43,6 +43,11 @@ classdef PkgVerReq
       if nargin == 0
         return
       endif
+      if nargin == 1 && isa (pkg_name, "packajoozle.internal.PkgVer")
+        this.package = pkg_name.name;
+        this.ver_filters = packajoozle.internal.VerFilterSet;
+        return
+      endif
       mustBeCharVec (pkg_name);
       if nargin < 2
         ver_filters = packajoozle.internal.VerFilterSet;

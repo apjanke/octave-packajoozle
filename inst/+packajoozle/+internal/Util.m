@@ -236,6 +236,39 @@ classdef Util
       endif
     endfunction
     
+    function [found, map_out] = file_find (file, filter, map_operation)
+      %FILE_FIND Recursively find files and operate on them
+      if nargin < 2; filter = []; endif
+      if nargin < 3; operation = []; endif
+      if isempty (filter)
+        filter = @(x) true;
+      endif
+      if isempty (map_operation)
+        map_operation = @deal;
+      endif
+
+      # TODO: Decide how search pruning should work
+
+      found = {};
+      selected = {};
+      map_out = {};
+      function step (file1)
+        found{end+1} = file1;
+        if filter (file1)
+          selected{end+1} = file1;
+          map_out{end+1} = map_operation (file1);
+        endif
+        if exist (file1, "dir")
+          kids = packajoozle.internal.Util.readdir (file1);
+          for i = 1:numel (kids)
+            step (fullfile (file1, kids{i}));
+          endfor
+        endif
+      endfunction
+
+      step (file);
+    endfunction
   endmethods
 
 endclassdef
+

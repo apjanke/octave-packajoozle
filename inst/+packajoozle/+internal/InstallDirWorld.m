@@ -166,6 +166,20 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
       endfor
     endfunction
 
+    function out = list_installed_matching (this, pkgreqs)
+      mustBeA (pkgreqs, "packajoozle.internal.PkgVerReq");
+      installed = this.list_all_installed_packages;
+      out = {};
+      for i = 1:numel (pkgreqs)
+        tf = pkgreqs(i).matches (installed);
+        if any (tf)
+          out{end+1} = installed(tf);
+        endif
+      endfor
+      out = objvcat (out{:});
+      out = unique (out);
+    endfunction
+
     % IPackageMetaSource implementation
 
     function out = list_available_packages (this)

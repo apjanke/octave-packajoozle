@@ -52,6 +52,10 @@ classdef VerFilterSet
       if iscellstr (filters)
         filters = packajoozle.internal.VerFilter.parse_ver_filter (filters);
       endif
+      if isa (filters, "packajoozle.internal.Version")
+        mustBeScalar (filters);
+        filters = packajoozle.internal.VerFilter(filters.version, "==");
+      endif
       mustBeA (filters, "packajoozle.internal.VerFilter");
       this.filters = filters;
     endfunction

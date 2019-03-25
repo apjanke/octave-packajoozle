@@ -15,6 +15,7 @@ Compared to Octave’s `pkg`, Packajoozle’s `pkj` also provides:
 * More metadata available from Octave Forge
 * Capturing of package build logs
 * A `pkj test` command for running package unit tests
+* A `pkj review` command to quality check Forge package distributions before publishing
 
 ## Installation
 

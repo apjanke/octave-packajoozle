@@ -330,6 +330,25 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       out.repo_sourceforge_page = pkg_repo_page;
     endfunction
     
+  endmethods
+
+  methods (Static)
+
+    function out = parse_forge_targets (targets)
+      if isempty (targets)
+        out = [];
+        return
+      endif
+      targets = cellstr (targets);
+      for i = 1:numel (targets)
+        req = packajoozle.internal.PkgManager.parse_forge_target (targets{i});
+        if i == 1
+          out = req;
+        else
+          out = objvcat (out, req);
+        endif
+      endfor
+    endfunction
 
   endmethods
 

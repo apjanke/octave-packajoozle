@@ -308,6 +308,20 @@
 ## Rebuild the package database from the installed directories.  This can
 ## be used in cases where the package database has been corrupted.
 ##
+##
+## @item review
+## Review a package distribution tarball to see if it meets Octave Forge's
+## quality standards.
+##
+## @example
+## pkj review strings-1.2.0.tar.gz
+## pkj review /path/to/my/local/clone/of/octave-strings
+## pkj review strings@1.2.0
+## pkj review -verbose strings-1.2.0.tar.gz
+## # Abort on first error
+## pkj review -verbose -fail-fast strings-1.2.0.tar.gz
+## @end example
+##
 ## @end table
 ## @seealso{ver, news}
 ## @end deftypefn
@@ -370,6 +384,8 @@ function varargout = pkj (varargin)
       describe_packages (opts);
     case "depdiagram"
       show_depdiagram (opts);
+    case "review"
+      review_package (opts);
     case ""
       error ("pkj: you must supply a command");
     otherwise
@@ -397,7 +413,7 @@ function install_type = detect_install_type (opts)
 endfunction
 
 function out = install_forge_packages (opts)
-  reqs = parse_forge_targets (opts.targets);
+  reqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   pkgman = packajoozle.internal.PkgManager;
   pkgman_opts.nodeps = opts.nodeps;
   if opts.devel
@@ -413,24 +429,10 @@ function out = install_files (opts)
   out = pkgman.install_file_pkgs (files);
 endfunction
 
-function out = parse_forge_targets (targets)
-  if isempty (targets)
-    out = [];
-    return
-  endif
-  for i = 1:numel (targets)
-    req = packajoozle.internal.PkgManager.parse_forge_target (targets{i});
-    if i == 1
-      out = req;
-    else
-      out = objvcat (out, req);
-    endif
-  endfor
-endfunction
 
 function uninstall_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
-  reqs = parse_forge_targets (opts.targets);
+  reqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   inst_dir = ifelse (opts.global, "global", "user");
   pkgman.uninstall_packages (reqs);
 endfunction
@@ -513,7 +515,7 @@ endfunction
 
 function out = load_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
-  pkgreqs = parse_forge_targets (opts.targets);
+  pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   inst_descs = list_installed_packages (opts);
   inst_pkgvers = descs_to_pkgvers (inst_descs);
   matched = {};
@@ -534,7 +536,7 @@ endfunction
 
 function out = unload_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
-  pkgreqs = parse_forge_targets (opts.targets);
+  pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   if isempty (pkgreqs)
     error ("pkj: unload: no packages specified\n");
   endif
@@ -548,7 +550,7 @@ function out = unload_packages (opts)
 endfunction
 
 function list_package_contents (opts)
-  pkgreqs = parse_forge_targets (opts.targets);
+  pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   pkgvers = installed_packages_matching (pkgreqs, opts);
   for i = 1:numel (pkgvers)
     list_package_contents_single (pkgvers(i), opts);
@@ -569,7 +571,7 @@ function test_packages (opts)
   #TODO: What to do about package loading? e.g. if io 2.3.1 is installed and loaded,
   # but a test of io 2.2.0 is requested?
   pkgman = packajoozle.internal.PkgManager;
-  pkgreqs = parse_forge_targets (opts.targets);
+  pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   pkgvers = installed_packages_matching (pkgreqs, opts);
   for i = 1:numel (pkgvers)
     pkgver = pkgvers(i);
@@ -594,6 +596,17 @@ function test_packages (opts)
   endfor
 endfunction
 
+function review_package (opts)
+  reviewer = packajoozle.internal.PkgReviewer;
+  reviewer.verbose = opts.verbose;
+  reviewer.fail_fast = opts.fail_fast;
+  if ! isscalar (opts.targets)
+    error ("pkj: review command takes exactly 1 target; got %d", ...
+      numel (opts.targets));
+  endif
+  reviewer.review_package (opts.targets{1});
+endfunction
+
 function describe_packages (opts)
   if opts.forge
     describe_forge_packages (opts);
@@ -601,7 +614,7 @@ function describe_packages (opts)
   endif
 
   pkgman = packajoozle.internal.PkgManager;
-  pkgreqs = parse_forge_targets (opts.targets);
+  pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   if isempty (pkgreqs)
     pkgvers = pkgman.world.list_all_installed_packages;
   else
@@ -619,7 +632,7 @@ endfunction
 function describe_forge_packages (opts)
   forge = packajoozle.internal.OctaveForgeClient;
 
-  pkgreqs = parse_forge_targets (opts.targets);
+  pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   pkgvers = latest_forge_packages_for_reqs (pkgreqs, opts);
 
   for i = 1:numel (pkgvers)
@@ -658,7 +671,7 @@ endfunction
 
 function out = show_forge_depdiagram (opts)
   forge = packajoozle.internal.OctaveForgeClient;
-  pkgreqs = parse_forge_targets (opts.targets);
+  pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   if isempty (pkgreqs)
     % That means everything!
     pkgvers = forge.list_all_current_releases;
@@ -735,12 +748,13 @@ function opts = parse_inputs (args_in)
   opts.devel = false;
   opts.listversions = false;
   opts.help = false;
+  opts.fail_fast = false;
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
     "describe", "prefix", "local_list", "global_list", "build", "rebuild", ...
-    "help", "test", "contents", "depdiagram"};
+    "help", "test", "contents", "depdiagram", "review"};
   valid_options = {"forge", "file", "nodeps", "local", "global", "forge", "verbose", ...
-    "listversions", "help", "devel"};
+    "listversions", "help", "devel", "fail-fast"};
   aliases = {
     "ls"      "list"
     "rm"      "uninstall"
@@ -759,7 +773,7 @@ function opts = parse_inputs (args_in)
       arg = aliases{loc,2};
     endif
     if ismember (arg, opt_flags)
-      opt = arg(2:end);
+      opt = strrep (arg(2:end), "-", "_");
       opts.(opt) = true;
     else
       if arg(1) == "-"
