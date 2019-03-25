@@ -170,6 +170,13 @@ classdef PkgReviewer < handle
       endif
       pkgver = packajoozle.internal.PkgVer (desc.name, desc.version);
 
+      tgz_basename = my_basename (tgz_file);
+      expect_tgz_basename = sprintf ("%s-%s.tar.gz", desc.name, desc.version);
+      if ! isequal (tgz_basename, expect_tgz_basename);
+        this.bad ("Dist file name '%s' doesn't match name/version from DESCRIPTION (should be %s)", ...
+          tgz_basename, expect_tgz_basename);
+      endif
+
       naughty_files = {
         "configure.log"
         "config.guess"
@@ -282,7 +289,7 @@ function out = my_basename (file)
   out = file;
   ix = find(out == filesep);
   if ! isempty (ix)
-    out(i:ix(end)) = [];
+    out(1:ix(end)) = [];
   endif
 endfunction
 
