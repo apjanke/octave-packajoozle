@@ -104,7 +104,7 @@ classdef DependencyDiagrammer
       d ("}")
 
       dot = strjoin (dot, "\n");
-      out = packajoozle.internal.GraphVizDiagram (dot);
+      out = packajoozle.internal.GraphvizDiagram (dot);
       out.layout = "neato";
 
     endfunction

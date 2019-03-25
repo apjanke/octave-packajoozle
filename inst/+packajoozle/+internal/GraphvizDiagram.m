@@ -14,25 +14,25 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Class Constructor} {obj =} GraphVizDiagram (dot_txt)
+## @deftypefn {Class Constructor} {obj =} GraphvizDiagram (dot_txt)
 ##
-## A GraphViz diagram
+## A Graphviz diagram
 ##
-## Holds a GraphViz diagram definition in the DOT language, and knows how to
-## do some display and export of it. Requires GraphViz be installed on your
+## Holds a Graphviz diagram definition in the DOT language, and knows how to
+## do some display and export of it. Requires Graphviz be installed on your
 ## machine.
 ##
 ## @end deftypefn
 
 ## Author:  Andrew Janke
 
-classdef GraphVizDiagram
+classdef GraphvizDiagram
 
   properties
-    % The graph definition, in GraphViz DOT language, as a char
+    % The graph definition, in Graphviz DOT language, as a char
     dot = "";
     % The layout format to export in. May be "dot", "neato", "twopi",
-    % or another valid GraphViz export format.
+    % or another valid Graphviz export format.
     layout = "dot";
   endproperties
 
@@ -41,14 +41,14 @@ classdef GraphVizDiagram
     function out = graphviz_plugin_diagram ()
       dot = packajoozle.internal.Util.system ("dot -P -Tdot");
       dot = strrep (dot, 'rankdir=LR,', 'rankdir=LR, overlap=false,');
-      out = packajoozle.internal.GraphVizDiagram (dot);
+      out = packajoozle.internal.GraphvizDiagram (dot);
     endfunction
 
   endmethods
 
   methods
 
-    function this = GraphVizDiagram (dot_txt)
+    function this = GraphvizDiagram (dot_txt)
       if nargin == 0
         return
       endif
@@ -58,7 +58,7 @@ classdef GraphVizDiagram
     function this = set.layout (this, layout)
       valid_layouts = {"dot" "neato" "twopi" "circo" "fdp" "sfdp" "patchwork" "osage"};
       if ! ismember (layout, valid_layouts)
-        error ("GraphVizDiagram.set.layout: invalid layout: %s", layout);
+        error ("GraphvizDiagram.set.layout: invalid layout: %s", layout);
       endif
       this.layout = layout;
     endfunction
@@ -116,7 +116,7 @@ classdef GraphVizDiagram
       cmd = sprintf("dot -K%s -Tpng '%s' > '%s'", this.layout, tmp_file, file);
       [status, output] = system (cmd);
       if status != 0
-        error ("GraphVizDiagram.export_to_file: error calling dot: %s\n", output);
+        error ("GraphvizDiagram.export_to_file: error calling dot: %s\n", output);
       endif
     endfunction
 
