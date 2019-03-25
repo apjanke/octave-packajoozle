@@ -45,7 +45,7 @@ classdef PkgManager
       ix = find (str == '@');
       if ! isempty (ix)
         if numel (ix) > 1
-          error ("Too many @s in target: '%s'", str);
+          error ("parse_forge_target: Too many @s in target: '%s'\n", str);
         endif
         pkg_name = str(1:ix-1);
         ver_filter_str = str(ix+1:end);
@@ -53,7 +53,7 @@ classdef PkgManager
         out = packajoozle.internal.PkgVerReq (pkg_name, ver_filter);
         return
       endif
-      error ("Invalid forge target string: '%s'", str);
+      error ("parse_forge_target: Invalid forge target string: '%s'\n", str);
     endfunction
   endmethods
 
@@ -112,7 +112,7 @@ classdef PkgManager
             %sc_opts = "--shallow";
             sc_opts = "";
           otherwise
-            error ("PkgManager.install_forge_pkgs_devel: unsupported source control type: %s\n", ...
+            error ("PkgManager.install_forge_pkgs_devel: unsupported source control type: %s", ...
               meta.repo_type);
         endswitch
         clone_cmd = sprintf ("%s clone %s '%s' '%s'", ...
@@ -174,7 +174,7 @@ classdef PkgManager
         dr = packajoozle.internal.DependencyResolver (this.forge);
         res = dr.resolve_deps (pkgvers);
         if ! res.ok
-          error ("pkj: unsatisfiable dependencies: %s", strjoin (res.error_msgs));
+          error ("pkj: unsatisfiable dependencies: %s\n", strjoin (res.error_msgs));
         endif
         need_installed = res.resolved;
         if ! isempty (res.added_deps)
@@ -253,7 +253,7 @@ classdef PkgManager
       pkgver = packajoozle.internal.PkgVer (info.name, info.version);
       out.pkgver = pkgver;
       if inst_dir.is_installed (pkgver)
-        error ("pkj: already installed: %s", char (pkgver));
+        error ("pkj: already installed: %s\n", char (pkgver));
       endif
 
       build_dir_parent = tempname (tempdir, "packajoozle-build-");
@@ -262,7 +262,7 @@ classdef PkgManager
       files = unpack (file, build_dir_parent);
       kids = packajoozle.internal.Util.readdir (build_dir_parent);
       if numel (kids) > 1
-        error ("pkj: bundles of packages are not allowed");
+        error ("pkj: bundles of packages are not allowed. bad file: %s\n", file);
       endif
       build_dir = fullfile (build_dir_parent, kids{1});
 
@@ -377,7 +377,7 @@ classdef PkgManager
     endfunction
 
     function uninstall_all_versions (this, pkg_name)
-      error ("this is not yet implemented")
+      error ("PkgManager.uninstall_all_versions: this is not yet implemented")
     endfunction
 
     function uninstall_packages (this, pkgreqs, inst_dir)
@@ -411,7 +411,7 @@ classdef PkgManager
 
       found = false;
       if ! inst_dir.is_installed (pkgver)
-        error ("pkj: package %s is not installed", char (pkgver));
+        error ("pkj: package %s is not installed\n", char (pkgver));
       endif
       
       #TODO: Get desc for installed package
@@ -594,7 +594,7 @@ function verify_directory (dir)
   needed_files = {"COPYING", "DESCRIPTION"};
   for f = needed_files
     if (! exist (fullfile (dir, f{1}), "file"))
-      error ("pkj: package is missing file: %s", f{1});
+      error ("pkj: package is missing file: %s\n", f{1});
     endif
   endfor
 
@@ -622,7 +622,7 @@ function prepare_installation (desc, build_dir)
     [status, msg] = mkdir (inst_dir);
     if (status != 1)
       packajoozle.internal.Util.rm_rf (desc.dir);
-      error ("pkj: the 'inst' directory did not exist and could not be created: %s",
+      error ("pkj: the 'inst' directory did not exist and could not be created: %s\n",
              msg);
     endif
   endif
@@ -689,7 +689,7 @@ function copy_built_files (desc, build_dir, verbose)
         [status, output] = copyfile (archindependent, instdir);
         if (status != 1)
           packajoozle.internal.Util.rm_rf (desc.dir);
-          error ("pkj: couldn't copy files from 'src' to 'inst': %s", output);
+          error ("pkj: couldn't copy files from 'src' to 'inst': %s\n", output);
         endif
       endif
       if (! all (isspace ([archdependent{:}])))
@@ -704,7 +704,7 @@ function copy_built_files (desc, build_dir, verbose)
         [status, output] = copyfile (archdependent, archdir);
         if (status != 1)
           packajoozle.internal.Util.rm_rf (desc.dir);
-          error ("pkj: couldn't copy files from 'src' to 'inst': %s", output);
+          error ("pkj: couldn't copy files from 'src' to 'inst': %s\n", output);
         endif
       endif
   endif
@@ -755,7 +755,8 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
     [status, output] = copyfile (fullfile (instdir, "*"), desc.dir);
     if (status != 1)
       packajoozle.internal.Util.rm_rf (desc.dir);
-      error ("pkj: couldn't copy files to the installation directory");
+      error ("pkj: couldn't copy files to the installation directory '%s': %s\n", ...
+        desc.dir, output);
     endif
     if (myisfolder (fullfile (desc.dir, getarch ()))
         && ! strcmp (canonicalize_file_name (fullfile (desc.dir, getarch ())),
@@ -766,7 +767,8 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
       if ! ok
         packajoozle.internal.Util.rm_rf (desc.dir);
         packajoozle.internal.Util.rm_rf (octfiledir);
-        error ("pkj: couldn't copy files to the installation directory");
+        error ("pkj: couldn't copy files to the installation oct-file directory '%s': %s\n", ...
+          octfiledir, desc.dir);
       endif
     endif
 
@@ -863,11 +865,11 @@ function generate_index (desc, dir, index_file)
 
   ## Does desc have a categories field?
   if (! isfield (desc, "categories"))
-    error ("pkj: the DESCRIPTION file must have a Categories field, when no INDEX file is given");
+    error ("pkj: the DESCRIPTION file must have a Categories field, when no INDEX file is given: %s\n", dir);
   endif
   categories = strtrim (strsplit (desc.categories, ","));
   if (length (categories) < 1)
-    error ("pkj: the Category field in DESCRIPTION is empty");
+    error ("pkj: the Category field in DESCRIPTION is empty: %s\n", dir);
   endif
 
   ## Write INDEX.
