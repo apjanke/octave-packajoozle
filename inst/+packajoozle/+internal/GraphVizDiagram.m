@@ -31,9 +31,9 @@ classdef GraphVizDiagram
   properties
     % The graph definition, in GraphViz DOT language, as a char
     dot = "";
-
+    % The layout format to export in. May be "dot", "neato", "twopi",
+    % or another valid GraphViz export format.
     layout = "dot";
-
   endproperties
 
   methods (Static)
