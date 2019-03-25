@@ -79,13 +79,13 @@ classdef PkgReviewer < handle
       if this.ok
         fprintf ("Package review passed for %s.\n", char (this.pkg_spec));
         if ! isempty (this.warnings)
-          fprintf ("But there were warnings:\n  %s\n", strjoin (strcat ({"  "}, this.warnings), "\n"));
+          fprintf ("But there were warnings:\n%s\n", strjoin (strcat ({"  "}, this.warnings), "\n"));
         endif
       else
         fprintf ("Package review failed for %s.\n", char (this.pkg_spec));
-        fprintf ("Errors:\n  %s\n", strjoin (strcat ({"  "}, this.errors), "\n"));
+        fprintf ("Errors:\n%s\n", strjoin (strcat ({"  "}, this.errors), "\n"));
         if ! isempty (this.warnings)
-          fprintf ("Warnings:\n  %s\n", strjoin (strcat ({"  "}, this.warnings), "\n"));
+          fprintf ("Warnings:\n%s\n", strjoin (strcat ({"  "}, this.warnings), "\n"));
         endif
       endif
     endfunction
