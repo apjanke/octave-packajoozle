@@ -871,7 +871,7 @@ function generate_index (desc, dir, index_file)
   endif
 
   ## Write INDEX.
-  fid = packajoozle.internal.Util.fopen (index_file);
+  fid = packajoozle.internal.Util.fopen (index_file, "w");
   fprintf (fid, "%s >> %s\n", desc.name, desc.title);
   fprintf (fid, "%s\n", categories{1});
   fprintf (fid, "  %s\n", fcns{:});
