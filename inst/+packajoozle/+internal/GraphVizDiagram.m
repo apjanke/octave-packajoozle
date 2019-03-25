@@ -104,9 +104,9 @@ classdef GraphVizDiagram
       # Can't do this? imshow is too slow on the uptake?
       RAII.tmp_file = onCleanup (@() packajoozle.internal.Util.rm_rf (tmp_file));
       this.export_to_file (tmp_file);
-      out = imshow (tmp_file);
-      if nargout == 0
-        clear out
+      fig = imshow (tmp_file);
+      if nargout > 0
+        out = fig;
       endif
     endfunction
 
