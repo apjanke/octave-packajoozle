@@ -432,7 +432,7 @@ classdef PkgManager
       endif
 
       # Delete package installation directories
-      if ! isfolder (target.dir)
+      if ! myisfolder (target.dir)
         warning ("pkj: directory %s previously lost; marking %s as uninstalled\n", ...
          target.dir, char (pkgver));
       endif
@@ -618,7 +618,7 @@ function prepare_installation (desc, build_dir)
 
   ## If the directory "inst" doesn't exist, we create it.
   inst_dir = fullfile (build_dir, "inst");
-  if (! isfolder (inst_dir))
+  if (! myisfolder (inst_dir))
     [status, msg] = mkdir (inst_dir);
     if (status != 1)
       packajoozle.internal.Util.rm_rf (desc.dir);
@@ -634,7 +634,7 @@ function copy_built_files (desc, build_dir, verbose)
   % Copies built files from src/ to inst/ within a build dir
 
   src = fullfile (build_dir, "src");
-  if (! isfolder (src))
+  if (! myisfolder (src))
     return
   endif
 
@@ -677,7 +677,7 @@ function copy_built_files (desc, build_dir, verbose)
 
   ## Copy the files.
   if (! all (isspace ([filenames{:}])))
-      if (! isfolder (instdir))
+      if (! myisfolder (instdir))
         mkdir (instdir);
       endif
       if (! all (isspace ([archindependent{:}])))
@@ -698,7 +698,7 @@ function copy_built_files (desc, build_dir, verbose)
           printf (" %s", archdependent{:});
           printf (" %s\n", archdir);
         endif
-        if (! isfolder (archdir))
+        if (! myisfolder (archdir))
           mkdir (archdir);
         endif
         [status, output] = copyfile (archdependent, archdir);
@@ -757,7 +757,7 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
       packajoozle.internal.Util.rm_rf (desc.dir);
       error ("pkj: couldn't copy files to the installation directory");
     endif
-    if (isfolder (fullfile (desc.dir, getarch ()))
+    if (myisfolder (fullfile (desc.dir, getarch ()))
         && ! strcmp (canonicalize_file_name (fullfile (desc.dir, getarch ())),
                      canonicalize_file_name (octfiledir)))
       packajoozle.internal.Util.mkdir (octfiledir)
@@ -796,14 +796,14 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
 
   ## Is there a doc/ directory that needs to be installed?
   docdir = fullfile (build_dir, "doc");
-  if (isfolder (docdir) && ! dirempty (docdir))
+  if (myisfolder (docdir) && ! dirempty (docdir))
     [status, output] = copyfile (docdir, desc.dir);
   endif
 
   ## Is there a bin/ directory that needs to be installed?
   ## FIXME: Need to treat architecture dependent files in bin/
   bindir = fullfile (build_dir, "bin");
-  if (isfolder (bindir) && ! dirempty (bindir))
+  if (myisfolder (bindir) && ! dirempty (bindir))
     [status, output] = copyfile (bindir, desc.dir);
   endif
 
@@ -836,7 +836,7 @@ function generate_index (desc, dir, index_file)
   for k = 1:length (class_idx)
     class_name = files {class_idx(k)};
     class_dir = fullfile (dir, class_name);
-    if (isfolder (class_dir))
+    if (myisfolder (class_dir))
       files2 = packajoozle.internal.Util.readdir (class_dir);
       files2 = strcat (class_name, filesep (), files2);
       files = [files; files2];
@@ -845,7 +845,7 @@ function generate_index (desc, dir, index_file)
 
   ## Check for architecture dependent files.
   arch_dir = desc.archprefix;
-  if (isfolder (arch_dir))
+  if (myisfolder (arch_dir))
     files2 = packajoozle.internal.Util.readdir (arch_dir);
     files = [files; files2];
   endif
@@ -890,7 +890,7 @@ function create_pkgadddel (desc, build_dir, nm, target)
   ## commands work as expected.  The only part that doesn't is the
   ## part in the main directory.
   archdir = target.arch_dir;
-  if isfolder (archdir) && ! isequal (inst_dir, archdir)
+  if myisfolder (archdir) && ! isequal (inst_dir, archdir)
     archpkg = fullfile (archdir, nm);
     archfid = fopen (archpkg, "at");
   else
@@ -1005,7 +1005,7 @@ function out = configure_make (desc, build_dir, verbose)
   out.exception = [];
   
   ## Perform ./configure, make, make install in "src".
-  if (isfolder (fullfile (build_dir, "src")))
+  if (myisfolder (fullfile (build_dir, "src")))
     src = fullfile (build_dir, "src");
     octave_bindir = __octave_config_info__ ("bindir");
     ver = version ();
@@ -1250,12 +1250,16 @@ function [out1, out2] = installed_packages (local_list, global_list, pkgname = {
 endfunction
 
 function tf = dirempty (path, ignore_files = {})
-  if ! isfolder (path)
+  if ! myisfolder (path)
     tf = false;
     return;
   endif
   kids = packajoozle.internal.Util.readdir (path);
   found = setdiff (kids, ignore_files);
   tf = isempty (found);
+endfunction
+
+function out = myisfolder (path)
+  out = packajoozle.internal.Util.isfolder (path);
 endfunction
 

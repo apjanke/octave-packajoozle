@@ -26,6 +26,16 @@ classdef Util
 
   methods (Static)
 
+    function out = isfolder (path)
+      %ISFOLDER Back-compatibility wrapper for isdir/isfolder
+      persistent octave_is_old = compare_versions (OCTAVE_VERSION, '5.0.0', '<');
+      if octave_is_old
+        out = isdir (path);
+      else
+        out = isfolder (path);
+      end
+    endfunction
+
     function out = parse_options (options, defaults)
       opts = defaults;
       if isempty (options)
