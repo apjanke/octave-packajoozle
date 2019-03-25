@@ -7,3 +7,4 @@ Maintainer: Andrew Janke <floss@apjanke.net>
 Description: Enhanced replacement for pkj
 Categories: package-management
 Url: https://github.com/apjanke/octave-packajoozle
+Depends: octave (>= 4.4)
