@@ -16,7 +16,7 @@
 ## -*- texinfo -*-
 ## @deftypefn {Class Constructor} {obj =} InstallDirWorld ()
 ##
-## A set of InstallDirs
+## A set of named InstallDirs.
 ##
 ## An InstallDirWorld represents the set of all InstallDirs known to an
 ## Octave installation/session, and the set of packages in this "world".
@@ -211,6 +211,30 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
           char (pkgver));
       endif
       out = descs{1};
+    endfunction
+
+    function out = loaded_packages (this)
+      inst_dirs = this.get_all_installdirs;
+      out = {};
+      for i = 1:numel (inst_dirs)
+        inst_dir = inst_dirs(i);
+        out{i} = inst_dir.loaded_packages;
+      endfor
+      out = unique (objvcat (out{:}));
+    endfunction
+
+    function out = unload_packages (this, pkgvers)
+      unloaded = {};
+      inst_dirs = this.get_all_installdirs;
+      for i = 1:numel (inst_dir)
+        inst_dir = inst_dirs(i);
+        tf = inst_dir.is_loaded (pkgvers);
+        inst_dir.unload_packages (pkgvers(tf));
+        unloaded{end+1} = pkgvers(tf);
+      endfor
+      unloaded = unique(objvcat (unloaded{:}));
+      out.unloaded = unloaded;
+      out.not_loaded_in_the_first_place = setdiff (pkgvers, unloaded);
     endfunction
 
   endmethods
