@@ -259,6 +259,7 @@ classdef PkgManager
       build_dir_parent = tempname (tempdir, "packajoozle-build-");
       packajoozle.internal.Util.mkdir (build_dir_parent);
       #RAII.build_dir_parent = onCleanup (@() rm_rf_safe (build_dir_parent));
+      say("build temp dir: %s", build_dir_parent);
       files = unpack (file, build_dir_parent);
       kids = packajoozle.internal.Util.readdir (build_dir_parent);
       if numel (kids) > 1
