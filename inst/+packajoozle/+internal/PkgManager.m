@@ -256,7 +256,7 @@ classdef PkgManager
         error ("pkj: already installed: %s\n", char (pkgver));
       endif
 
-      build_dir_parent = tempname (tempdir, "packajoozle-build-");
+      build_dir_parent = tempname (tempdir, "packajoozle/packajoozle-build-");
       packajoozle.internal.Util.mkdir (build_dir_parent);
       #RAII.build_dir_parent = onCleanup (@() rm_rf_safe (build_dir_parent));
       say("build temp dir: %s", build_dir_parent);
