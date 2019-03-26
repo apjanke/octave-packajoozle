@@ -241,7 +241,7 @@ classdef PkgReviewer < handle
       if exist ("src/configure.ac", "file")
         config_ac_txt = fileread ("src/configure.ac");
         # TODO: Check for version definition
-        ac_init_pat = '^AC_INIT\(\[(.*?)\], +\[(.*?)\]';
+        ac_init_pat = '^AC_INIT\( *\[(.*?)\], *\[(.*?)\]';
         [ix, tok] = regexp (config_ac_txt, ac_init_pat, 'start', 'tokens', 'lineanchors');
         if isempty (ix)
           this.bad ("Could not find valid AC_INIT(...) line in configure.ac");
