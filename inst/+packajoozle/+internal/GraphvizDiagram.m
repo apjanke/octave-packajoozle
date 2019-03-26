@@ -64,7 +64,7 @@ classdef GraphvizDiagram
     endfunction
 
     function this = set.dot (this, dot)
-      mustBeCharVec (dot, "char");
+      mustBeCharvec (dot, "char");
       this.dot = dot;
     endfunction
 

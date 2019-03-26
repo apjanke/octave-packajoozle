@@ -45,7 +45,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
 
       [prefix, arch_prefix] = pkg ("prefix", "-global");
       meta_dir = fileparts (pkg ("global_list"));
-      global_dir = packajoozle.internal.InstallDir (prefix, arch_prefix, "global");
+      global_dir = packajoozle.internal.InstallDir (meta_dir, prefix, arch_prefix, "global");
       #TODO: If global install location has been aliased to user install location,
       # this will break. Probably need to probe the package index file to see
       # what's there
@@ -63,7 +63,23 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
     endfunction
 
     function out = disp (this)
-      disp (dispstr (this));
+      if isscalar (this)
+        str = {sprintf("%s: %s", class(this), strjoin(this.search_order, ", "))};
+        for i_tag = 1:numel (this.search_order)
+          tag = this.search_order{i_tag};
+          inst_dir = this.get_installdir_by_tag (tag);
+          str = [str; {
+            ["  " tag ":"]
+            sprintf("    meta_dir: %s", inst_dir.meta_dir)
+            sprintf("    prefix: %s", inst_dir.prefix)
+            sprintf("    arch_prefix: %s", inst_dir.arch_prefix)
+            sprintf("    package_list_var_name: %s", inst_dir.package_list_var_name)
+          }];
+        endfor
+        printf("%s", strjoin (str, "\n"));
+      else
+        disp (dispstr (this));
+      endif
     endfunction
 
     function out = dispstr (this)
@@ -78,7 +94,8 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
     function out = dispstrs (this)
       out = cell (size (this));
       for i = 1:numel (this)
-        out{i} = sprintf ("%s: %s", class (this), strjoin (this.search_order, ", "));
+        o = this(i);
+        out{i} = sprintf("[%s: %s]", class (o), strjoin (o.tags, ", "));
       endfor
     endfunction
 
@@ -187,6 +204,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
     endfunction
 
     function out = get_package_description (this, pkgver)
+      pkgver = makeItBeA(pkgver, "packajoozle.internal.PkgVer");
       descs = this.descs_for_installed_package (pkgver);
       if isempty (descs)
         error ("InstallDirWorld.get_package_description: package not installed: %s", ...

@@ -503,6 +503,10 @@ classdef PkgManager
       end_try_catch
     endfunction
 
+    function out = unload_packages_exact (this, pkgvers)
+      
+    endfunction
+
     function out = unload_packages (this, pkgreqs)
       descs = this.world.list_all_installed_packages ("desc");
       # TODO: Pick packages and then sort in reverse dependency order
@@ -513,7 +517,7 @@ classdef PkgManager
           desc = descs{i_desc};
           pkgver = packajoozle.internal.PkgVer (desc.name, desc.version);
           if pkgreq.matches (pkgver)
-            [is_loaded, dirs_on_path] = is_pkg_loaded (desc);
+            [is_loaded, dirs_on_path] = is_pkg_loaded_by_desc (desc);
             if is_loaded
               this.rmpath_safe (dirs_on_path{:});
               out{end+1} = pkgver;
@@ -524,11 +528,15 @@ classdef PkgManager
       out = objvcat (out{:});
     endfunction
 
+    function [out, pkg_dirs_on_path] = is_pkg_loaded (this, pkgver)
+    endfunction
+
   endmethods
 
 endclassdef
 
-function [out, pkg_dirs_on_path] = is_pkg_loaded (desc)
+
+function [out, pkg_dirs_on_path] = is_pkg_loaded_by_desc (desc)
   dirs = {desc.dir};
   if ! isempty (desc.archprefix)
     dirs{end+1} = desc.archprefix;

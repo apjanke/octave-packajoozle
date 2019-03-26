@@ -86,7 +86,7 @@ classdef VerFilter
         return
       endif
       version = packajoozle.internal.Version (version);
-      mustBeCharVec (operator);
+      mustBeCharvec (operator);
       operator = packajoozle.internal.VerFilter.canonicalize_operator (operator);
       this.version = version;
       this.operator = operator;

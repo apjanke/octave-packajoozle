@@ -63,7 +63,7 @@ classdef PkgVerReq
         this.ver_filters = packajoozle.internal.VerFilterSet;
         return
       endif
-      mustBeCharVec (pkg_name);
+      mustBeCharvec (pkg_name);
       if nargin < 2
         ver_filters = packajoozle.internal.VerFilterSet;
       endif

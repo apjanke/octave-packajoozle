@@ -142,7 +142,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
     endfunction
 
     function out = get_current_pkg_version (this, pkg_name)
-      mustBeCharVec (pkg_name);
+      mustBeCharvec (pkg_name);
       mustBeValidPkgName (pkg_name);
       name = tolower (pkg_name);
 

@@ -14,7 +14,7 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {} mustBeScalar (x)
+## @deftypefn {Function File} {} mustBeCharvec (x)
 ##
 ## Requires that input is a char row vector (Octave's normal string representation).
 ##
@@ -22,8 +22,8 @@
 ##
 ## @end deftypefn
 
-function mustBeCharVec (x)
-  if ! (ischar (x) && isrow (x))
+function mustBeCharvec (x)
+  if ! (ischar (x) && (isrow (x) || isequal (size (x), [0 0])))
     name = inputname (1);
     if isempty (name)
       name = "input";

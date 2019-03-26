@@ -31,12 +31,27 @@
 
 classdef PkgVer
 
-  properties
+  properties (SetAccess = private)
     % The package name
 		name
     % The version, as an Version object
     version
   endproperties
+
+  methods (Static)
+
+    function out = parse_str (pkg_ver_str)
+      mustBeCharvec (pkg_ver_str);
+      [ix, tok] = regexp (pkg_ver_str, '^(\S+)@(\S+)$', "start", "tokens");
+      if isempty (ix)
+        error ("Invalid pkgver string: '%s'", pkg_ver_str);
+      endif
+      tok = tok{1};
+      [name, ver_str] = tok{:};
+      out = packajoozle.internal.PkgVer (name, ver_str);
+    endfunction
+
+  endmethods
 
   methods
 
@@ -44,7 +59,13 @@ classdef PkgVer
       if nargin == 0
         return
       endif
-      mustBeCharVec (pkg_name);
+      mustBeCharvec (pkg_name);
+      if nargin == 1
+        in_pkgver = packajoozle.internal.PkgVer.parse_str (pkg_name);
+        this.name = in_pkgver.name;
+        this.version = in_pkgver.version;
+        return
+      endif
       version = packajoozle.internal.Version (version);
       this.name = pkg_name;
       this.version = version;

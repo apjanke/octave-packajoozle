@@ -92,19 +92,22 @@ classdef InstallDir
     function out = dispstrs (this)
       out = cell (size (this));
       for i = 1:numel (this)
+        t = this(i);
         out{i} = sprintf(["InstallDir: %s\n" ...
-          "Prefix:      %s\n" ...
-          "Arch Prefix: %s"], ...
-          this.tag, this.prefix, this.arch_prefix);
+          "prefix:      %s\n" ...
+          "arch_prefix: %s\n" ...
+          "package_list_var_name: %s"], ...
+          t.tag, t.prefix, t.arch_prefix, t.package_list_var_name);
       endfor
     endfunction
 
     function out = get_package_list_descs (this)
+      # Gets list of instlled packages as "descs"
       out = this.get_package_list ("desc");
     endfunction
 
     function out = get_package_list (this, format = "pkgver")
-      # Gets package list as "descs" (a cell array of structs)
+      # Gets list of instlled packages
       if ! exist (this.pkg_list_file, "file")
         out = [];
         return
@@ -194,10 +197,59 @@ classdef InstallDir
       endfor
       out = all_pkgs(tf);
     endfunction
-            
+    
+    function out = loaded_packages (this)
+      installed = this.get_package_list_descs;
+      out = installed(this.isloaded_installed);
+    endfunction
+
+    function out = is_loaded (this, pkgvers)
+      pkgvers = makeItBeA (pkgvers, "packajoozle.internal.PkgVer");
+      load_path = strsplit (path, pathsep);
+      out = false (size (pkgvers));
+      for i = 1:numel (pkgvers)
+        if ! this.is_installed (pkgvers(i))
+          continue
+        endif
+        desc = this.get_installed_package_desc (pkgvers(i));
+        out(i) = any (ismember ({desc.dir desc.darchprefix}, load_path));
+      endfor
+    endfunction
+
+    function unload_packages (this, pkgvers)
+      pkgvers = makeItBeA (pkgvers, "packajoozle.internal.PkgVer");
+      objfun (@(x) this.unload_package (x), pkgvers);
+    endfunction
+
+    function out = unload_package (this, pkgver)
+      out.status = true;
+      out.message = [];
+      pkgver = makeItBeA (pkgver, "packajoozle.internal.PkgVer");
+      mustBeScalar (pkgver);
+      if this.isloaded (pkgver)
+        desc = this.get_installed_package_desc (pkgver);
+        for the_dir = {desc.dir desc.archprefix}
+          the_dir = the_dir{1};
+          if is_on_octave_load_path (the_dir)
+            # try/catch because PKG_DEL might misbehave
+            try
+              rmpath (the_dir);
+            catch err
+              error ("pkj: failed unloading package %s from %s: %s", ...
+                char (pkgver), the_dir, err.message);
+            end_try_catch
+          endif
+        endfor
+      endif
+    endfunction
+
   endmethods
 
 endclassdef
+
+function out = is_on_octave_load_path (dir)
+  out = ismember (strsplit (path, pathsep));
+endfunction
 
 function out = descs_to_pkgvers (descs)
   c = cell (size (descs));

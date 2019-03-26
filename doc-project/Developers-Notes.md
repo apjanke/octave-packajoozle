@@ -63,3 +63,32 @@ The canonical implementation of the `dispstr` API for a given object is the foll
     endfunction
 
 ```
+
+# Data Structures and Whatnot
+
+## The `desc` structure format
+
+A `desc` array is a cell vector, each containing a struct with fields:
+
+* `name`
+* `version`
+* `date`
+* `author`
+* `maintainer`
+* `title`
+* `description`
+* `categories`
+* `problems`
+* `depends`
+  * A cell vector of structs of (`package`, `operator`, `version`)
+* `suggested`
+* `autoload`
+* `license`
+* `url`
+
+And possibly:
+* `dir`
+* `archprefix` – which is really the arch-specific _dir_ for the package installation, not the prefix
+* `loaded` – this field may or may not make it into the descs in the saved package index file, depending on when it was created with respect to their installation.
+
+This structure is defined by Octave's `pkg`, not by Packajoozle.
