@@ -406,7 +406,7 @@ function install_type = detect_install_type (opts)
   else
     install_type = "forge";
     for i = 1:numel (opts.targets)
-      if exist (opts.targets{i}, "file")
+      if packajoozle.internal.Util.isfile (opts.targets{i})
         install_type = "file";
       endif
     endfor

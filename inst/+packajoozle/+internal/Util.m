@@ -36,6 +36,11 @@ classdef Util
       end
     endfunction
 
+    function out = isfile (path)
+      st = stat (path);
+      out = (! isempty (st)) && st.modestr(1) != 'd';
+    endfunction
+
     function out = parse_options (options, defaults)
       opts = defaults;
       if isempty (options)
