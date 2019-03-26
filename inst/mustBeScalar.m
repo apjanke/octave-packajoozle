@@ -29,6 +29,6 @@ function x = mustBeScalar (x)
     if isempty (label)
       label = "input";
     endif
-    error ("%s must be scalar; got a %s", label, size2str (size (x));
+    error ("%s must be scalar; got a %s", label, size2str (size (x)));
   endif
 endfunction
