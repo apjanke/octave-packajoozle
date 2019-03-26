@@ -23,7 +23,7 @@
 ## @end deftypefn
 
 function mustBeCharVec (x)
-  if ! ischar (x) && isrow (x)
+  if ! (ischar (x) && isrow (x))
     name = inputname (1);
     if isempty (name)
       name = "input";
