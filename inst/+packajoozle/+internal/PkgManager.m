@@ -540,7 +540,7 @@ endfunction
 
 function say (varargin)
   fprintf ("%s: %s\n", "pkj", sprintf (varargin{:}));
-  flush_diary
+  packajoozle.internal.Util.flush_diary
 endfunction
 
 function out = chomp (str)
