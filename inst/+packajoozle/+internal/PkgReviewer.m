@@ -108,7 +108,7 @@ classdef PkgReviewer < handle
       pkgver = packajoozle.internal.PkgVer (desc.name, desc.version);
       this.pkgver = pkgver;
       expected_tarball_basename = sprintf ("%s-%s.tar.gz", desc.name, desc.version);
-      if exist (fullfile (repo_dir, expected_tarball_basename), "file")
+      if packajoozle.internal.Util.isfile (fullfile (repo_dir, expected_tarball_basename))
         built_dist_file = fullfile (repo_dir, expected_tarball_basename);
       else
         this.so_so ("Expected dist file %s not created by 'make dist' in root of repo", ...
@@ -121,7 +121,7 @@ classdef PkgReviewer < handle
         built_dist_file = [];
         for i = 1:numel (legacy_tarball_dirs)
           candidate = fullfile (legacy_tarball_dirs{i}, expected_tarball_basename);
-          if exist (candidate, "file");
+          if packajoozle.internal.Util.isfile (candidate);
             built_dist_file = candidate;
             this.so_so ("Actual dist file was at %s", candidate);
             break
@@ -233,12 +233,12 @@ classdef PkgReviewer < handle
         "config.guess"
       };
       for i = 1:numel (naughty_files)
-        if exist ([ "./" naughty_files{i}], "file")
+        if packajoozle.internal.Util.isfile ([ "./" naughty_files{i}])
           this.bad ("Bad file in dist tarball: %s", naughty_files{i});
         endif
       endfor
 
-      if exist ("src/configure.ac", "file")
+      if packajoozle.internal.Util.isfile ("src/configure.ac")
         config_ac_txt = fileread ("src/configure.ac");
         # TODO: Check for version definition
         ac_init_pat = '^AC_INIT\( *\[(.*?)\], *\[(.*?)\]';

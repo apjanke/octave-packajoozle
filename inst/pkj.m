@@ -496,7 +496,7 @@ function list_non_installed_packages_on_path (pkg_list_descs, opts)
     endif
     [~, dir_name] = fileparts (d);
     desc_file = fullfile (d, "DESCRIPTION");
-    if ! exist (desc_file, "file")
+    if ! packajoozle.internal.Util.isfile (desc_file)
       continue
     endif
     is_repo = packajoozle.internal.DistScmClient.looks_like_repo (d);

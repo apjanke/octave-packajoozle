@@ -40,13 +40,13 @@ function configure_make (desc, packdir, verbose)
       octave_binary = fullfile (octave_bindir, sprintf ("octave-%s%s", ver, ext));
     endif
 
-    if (! exist (mkoctfile_program, "file"))
+    if (! packajoozle.internal.Util.isfile (mkoctfile_program))
       __gripe_missing_component__ ("pkj", "mkoctfile");
     endif
-    if (! exist (octave_config_program, "file"))
+    if (! packajoozle.internal.Util.isfile (octave_config_program))
       __gripe_missing_component__ ("pkj", "octave-config");
     endif
-    if (! exist (octave_binary, "file"))
+    if (! packajoozle.internal.Util.isfile (octave_binary))
       __gripe_missing_component__ ("pkj", "octave");
     endif
 
@@ -60,7 +60,7 @@ function configure_make (desc, packdir, verbose)
     scenv = sprintf ("%s='%s' ", cenv{:});
 
     ## Configure.
-    if (exist (fullfile (src, "configure"), "file"))
+    if (packajoozle.internal.Util.isfile (fullfile (src, "configure")))
       flags = "";
       if (isempty (getenv ("CC")))
         flags = [flags ' CC="' mkoctfile("-p", "CC") '"'];
@@ -90,7 +90,7 @@ function configure_make (desc, packdir, verbose)
       jobs = nproc ("overridable");
     endif
 
-    if (exist (fullfile (src, "Makefile"), "file"))
+    if (packajoozle.internal.Util.isfile (fullfile (src, "Makefile")))
       [status, output] = shell (sprintf ("%s make --jobs %i --directory '%s'",
                                          scenv, jobs, src), verbose);
       if (status != 0)

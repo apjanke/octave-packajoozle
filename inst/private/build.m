@@ -64,8 +64,8 @@ function build (builddir, tarballs, verbose)
     ## If there is no configure or Makefile within src/, there is nothing
     ## to do to prepare a "binary" package.  We only repackage to add more
     ## info to the tarball filename (version and arch).
-    if (! exist (fullfile (build_root, "src", "configure"), "file")
-        && ! exist (fullfile (build_root, "src", "Makefile"), "file"))
+    if (! packajoozle.internal.Util.isfile (fullfile (build_root, "src", "configure"))
+        && ! packajoozle.internal.Util.isfile (fullfile (build_root, "src", "Makefile")))
       arch_abi = "any-none";
     else
       arch_abi = getarch ();

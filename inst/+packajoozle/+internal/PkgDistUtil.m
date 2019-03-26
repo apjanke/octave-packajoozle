@@ -41,7 +41,7 @@ classdef PkgDistUtil
       endif
       subdir = fullfile (tmp_dir, kids{1});
       descr_file = fullfile (subdir, "DESCRIPTION");
-      if ! exist (descr_file, "file")
+      if ! packajoozle.internal.Util.isfile (descr_file)
         error ("pkj: Pkg file does not contain a DESCRIPTION file: %s", file);
       endif
       out = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (descr_file);

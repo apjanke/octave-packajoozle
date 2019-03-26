@@ -101,7 +101,7 @@ function uninstall (pkgnames, handle_deps, verbose, local_list,
     for i = delete_idx
       desc = installed_pkgs_lst{i};
       ## If an 'on_uninstall.m' exist, call it!
-      if (exist (fullfile (desc.dir, "packinfo", "on_uninstall.m"), "file"))
+      if (packajoozle.internal.Util.isfile (fullfile (desc.dir, "packinfo", "on_uninstall.m")))
         wd = pwd ();
         cd (fullfile (desc.dir, "packinfo"));
         on_uninstall (desc);

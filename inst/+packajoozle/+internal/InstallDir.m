@@ -108,7 +108,7 @@ classdef InstallDir
 
     function out = get_package_list (this, format = "pkgver")
       # Gets list of instlled packages
-      if ! exist (this.pkg_list_file, "file")
+      if ! packajoozle.internal.Util.isfile (this.pkg_list_file)
         out = [];
         return
       endif

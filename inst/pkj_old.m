@@ -477,7 +477,7 @@ function [local_packages, global_packages] = pkj_old (varargin)
 
       unwind_protect_cleanup
         cellfun ("unlink", local_files);
-        if (exist (tmp_dir, "file"))
+        if (packajoozle.internal.Util.isfile (tmp_dir))
           rmdir (tmp_dir, "s");
         endif
       end_unwind_protect
@@ -525,7 +525,7 @@ function [local_packages, global_packages] = pkj_old (varargin)
         local_packages = local_list;
       elseif (numel (files) == 1 && ! nargout && ischar (files{1}))
         local_list = files{1};
-        if (! exist (local_list, "file"))
+        if (! packajoozle.internal.Util.isfile (local_list))
           try
             ## Force file to be created
             fclose (fopen (local_list, "wt"));
@@ -545,7 +545,7 @@ function [local_packages, global_packages] = pkj_old (varargin)
         local_packages = global_list;
       elseif (numel (files) == 1 && ! nargout && ischar (files{1}))
         global_list = files{1};
-        if (! exist (global_list, "file"))
+        if (! packajoozle.internal.Util.isfile (global_list))
           try
             ## Force file to be created
             fclose (fopen (files{1}, "wt"));

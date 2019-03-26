@@ -81,7 +81,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       local_basename = packajoozle.internal.Util.basename (local_file);
       cached_file = fullfile (this.download_cache_dir, local_basename);
       out = cached_file;
-      if exist (cached_file, "file")
+      if packajoozle.internal.Util.isfile (cached_file)
         return
       endif
       say ("Downloading %s from %s to %s", pkg_name, url, cached_file);
@@ -109,7 +109,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
     function cached_file = download_cached_meta_file (this, tag, url)
       cache_dir = fullfile (this.download_cache_dir, "meta");
       cached_file = fullfile (cache_dir, tag);
-      if exist (cached_file, "file")
+      if packajoozle.internal.Util.isfile (cached_file)
         [st, err, msg] = stat (cached_file);
         mtime = packajoozle.internal.Util.posixtime2datenum (st.mtime);
         expiry_time = mtime + this.cached_meta_ttl;
@@ -133,7 +133,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       cache_dir = fullfile (this.download_cache_dir, "distributions");
       packajoozle.internal.Util.mkdir (cache_dir);
       cached_file = fullfile (cache_dir, tgz_file);
-      if exist (cached_file, "file")
+      if packajoozle.internal.Util.isfile (cached_file)
         return
       endif
       tmp_file = [cached_file ".download.tmp"];
@@ -269,7 +269,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       cache_dir_for_this_pkgver = fullfile (pkg_meta_cache_dir, ...
         pkgver.name, sprintf ("%s-%s", pkgver.name, char (pkgver.version)));
       cached_file = fullfile (cache_dir_for_this_pkgver, "DESCRIPTION");
-      if ! exist (cached_file, "file")
+      if ! packajoozle.internal.Util.isfile (cached_file)
         dist_file = this.download_cached_pkg_distribution (pkgver);
         [out, descr_txt] = packajoozle.internal.PkgDistUtil.get_pkg_description_from_pkg_archive_file (dist_file);
         packajoozle.internal.Util.mkdir (cache_dir_for_this_pkgver);

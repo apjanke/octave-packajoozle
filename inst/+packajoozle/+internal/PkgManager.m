@@ -340,7 +340,7 @@ classdef PkgManager
       # Pick up user notifications
 
       news_file = fullfile (target.dir, "packinfo", "NEWS");
-      if exist (news_file, "file")
+      if packajoozle.internal.Util.isfile (news_file)
         msg = sprintf (["For information about changes from previous versions " ...
                  "of the %s package, run 'news %s'."],
                 desc.name, desc.name);
@@ -419,7 +419,7 @@ classdef PkgManager
       target = inst_dir.install_paths_for_pkg (pkgver);
 
       # Run pre-uninstall hooks
-      if exist (fullfile (target.dir, "packinfo", "on_uninstall.m"), "file")
+      if packajoozle.internal.Util.isfile (fullfile (target.dir, "packinfo", "on_uninstall.m"))
         orig_pwd = pwd;
         try
           cd (fullfile (target.dir, "packinfo"));
@@ -602,7 +602,7 @@ function verify_directory (dir)
 
   needed_files = {"COPYING", "DESCRIPTION"};
   for f = needed_files
-    if (! exist (fullfile (dir, f{1}), "file"))
+    if (! packajoozle.internal.Util.isfile (fullfile (dir, f{1})))
       error ("pkj: package is missing file: %s\n", f{1});
     endif
   endfor
@@ -613,7 +613,7 @@ endfunction
 function prepare_installation (desc, build_dir)
 
   ## Is there a pre_install to call?
-  if (exist (fullfile (build_dir, "pre_install.m"), "file"))
+  if (packajoozle.internal.Util.isfile (fullfile (build_dir, "pre_install.m")))
     wd = pwd ();
     try
       cd (build_dir);
@@ -653,7 +653,7 @@ function copy_built_files (desc, build_dir, verbose)
   archdir = fullfile (build_dir, "inst", packajoozle.internal.Util.get_system_arch ());
 
   ## Get filenames.
-  if (exist (files, "file"))
+  if (packajoozle.internal.Util.isfile (files))
     filenames = chomp (fileread (files));
     filenames = strtrim (ostrsplit (filenames, "\n"));
     delete_idx = [];
@@ -796,7 +796,7 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
 
   ## Is there an INDEX file to copy or should we generate one?
   index_file = fullfile (build_dir, "INDEX");
-  if (exist (index_file, "file"))
+  if (packajoozle.internal.Util.isfile (index_file))
     packinfo_copy_file ("INDEX", "required", build_dir, packinfo_dir);
   else
     generate_index (desc, fullfile (build_dir, "inst"), fullfile (packinfo_dir, "INDEX"));
@@ -824,7 +824,7 @@ endfunction
 function packinfo_copy_file (filename, requirement, build_dir, packinfo_dir)
 
   filepath = fullfile (build_dir, filename);
-  if (! exist (filepath, "file") && strcmpi (requirement, "optional"))
+  if (! packajoozle.internal.Util.isfile (filepath) && strcmpi (requirement, "optional"))
     ## do nothing, it's still OK
   else
     packajoozle.internal.Util.copyfile (filepath, packinfo_dir);
@@ -930,7 +930,7 @@ function create_pkgadddel (desc, build_dir, nm, target)
 
     ## Add developer included PKG commands.
     build_dirnm = fullfile (build_dir, nm);
-    if (exist (build_dirnm, "file"))
+    if (packajoozle.internal.Util.isfile (build_dirnm))
       fid = fopen (build_dirnm, "rt");
       if (fid >= 0)
         while (! feof (fid))
@@ -966,7 +966,7 @@ function finish_installation (desc, build_dir, target)
   narginchk (3, 3);
 
   ## Is there a post-install to call?
-  if (exist (fullfile (build_dir, "post_install.m"), "file"))
+  if (packajoozle.internal.Util.isfile (fullfile (build_dir, "post_install.m")))
     orig_pwd = pwd ();
     try
       cd (build_dir);
@@ -1031,13 +1031,13 @@ function out = configure_make (desc, build_dir, verbose)
       octave_binary = fullfile (octave_bindir, sprintf ("octave-%s%s", ver, ext));
     endif
 
-    if (! exist (mkoctfile_program, "file"))
+    if (! packajoozle.internal.Util.isfile (mkoctfile_program))
       __gripe_missing_component__ ("pkg", "mkoctfile");
     endif
-    if (! exist (octave_config_program, "file"))
+    if (! packajoozle.internal.Util.isfile (octave_config_program))
       __gripe_missing_component__ ("pkg", "octave-config");
     endif
-    if (! exist (octave_binary, "file"))
+    if (! packajoozle.internal.Util.isfile (octave_binary))
       __gripe_missing_component__ ("pkg", "octave");
     endif
 
@@ -1051,7 +1051,7 @@ function out = configure_make (desc, build_dir, verbose)
     scenv = sprintf ("%s='%s' ", cenv{:});
 
     ## Configure.
-    if (exist (fullfile (src, "configure"), "file"))
+    if (packajoozle.internal.Util.isfile (fullfile (src, "configure")))
       flags = "";
       if (isempty (getenv ("CC")))
         flags = [flags ' CC="' mkoctfile("-p", "CC") '"'];
@@ -1084,7 +1084,7 @@ function out = configure_make (desc, build_dir, verbose)
       jobs = nproc ("overridable");
     endif
 
-    if (exist (fullfile (src, "Makefile"), "file"))
+    if (packajoozle.internal.Util.isfile (fullfile (src, "Makefile")))
       [status, output] = shell (sprintf ("%s make --jobs %i --directory '%s'",
                                          scenv, jobs, src), verbose);
       packajoozle.internal.Util.filewrite (fullfile (log_dir, 'make.log'), output);

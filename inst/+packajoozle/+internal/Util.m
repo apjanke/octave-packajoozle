@@ -155,7 +155,7 @@ classdef Util
         if ! ok
           error ("rm_rf: Failed deleting dir %s: %s", path, msg);
         endif
-      elseif exist (path, "file")
+      elseif packajoozle.internal.Util.isfile (path)
         lastwarn("");
         delete (path);
         [w, w_id] = lastwarn;

@@ -90,7 +90,7 @@ function pkg_idx_struct = parse_pkg_idx (packdir)
 
   index_file = fullfile (packdir, "packinfo", "INDEX");
 
-  if (! exist (index_file, "file"))
+  if (! packajoozle.internal.Util.isfile (index_file))
     error ("could not find any INDEX file in directory %s, try 'pkj rebuild all' to generate missing INDEX files", packdir);
   endif
 

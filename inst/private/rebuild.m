@@ -52,7 +52,7 @@ function descriptions = rebuild (prefix, archprefix, list, files, verbose)
     if (verbose)
       printf ("pkj: recreating package description from %s\n", dirlist{k});
     endif
-    if (exist (descfile, "file"))
+    if (packajoozle.internal.Util.isfile (descfile))
       desc = get_description (descfile);
       desc.dir = fullfile (prefix, dirlist{k});
       desc.archprefix = fullfile (archprefix, [desc.name "-" desc.version]);

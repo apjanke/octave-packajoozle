@@ -62,7 +62,7 @@ function install (files, handle_deps, prefix, archprefix, verbose,
     for i = 1:length (files)
       tgz = files{i};
 
-      if (exist (tgz, "file"))
+      if (packajoozle.internal.Util.isfile (tgz))
         ## Create a temporary directory.
         tmpdir = tempname ();
         tmpdirs{end+1} = tmpdir;
@@ -102,9 +102,9 @@ function install (files, handle_deps, prefix, archprefix, verbose,
         dirlist = {".", "..", tgz};
       endif
 
-      if (exist (tgz, "file") || isfolder (tgz))
+      if (packajoozle.internal.Util.isfile (tgz) || isfolder (tgz))
         ## The two first entries of dirlist are "." and "..".
-        if (exist (tgz, "file"))
+        if (packajoozle.internal.Util.isfile (tgz))
           packdir = fullfile (tmpdir, dirlist{3});
         else
           packdir = fullfile (pwd (), dirlist{3});
@@ -293,7 +293,7 @@ function install (files, handle_deps, prefix, archprefix, verbose,
   ## Check if desc exists too because it's possible to get to this point
   ## without creating it such as giving an invalid filename for the package
   if (exist ("desc", "var")
-      && exist (fullfile (desc.dir, "packinfo", "NEWS"), "file"))
+      && packajoozle.internal.Util.isfile (fullfile (desc.dir, "packinfo", "NEWS")))
     printf (["For information about changes from previous versions " ...
              "of the %s package, run 'news %s'.\n"],
             desc.name, desc.name);
@@ -330,7 +330,7 @@ function verify_directory (dir)
 
   needed_files = {"COPYING", "DESCRIPTION"};
   for f = needed_files
-    if (! exist (fullfile (dir, f{1}), "file"))
+    if (! packajoozle.internal.Util.isfile (fullfile (dir, f{1})))
       error ("pkj: package is missing file: %s", f{1});
     endif
   endfor
@@ -341,7 +341,7 @@ endfunction
 function prepare_installation (desc, packdir)
 
   ## Is there a pre_install to call?
-  if (exist (fullfile (packdir, "pre_install.m"), "file"))
+  if (packajoozle.internal.Util.isfile (fullfile (packdir, "pre_install.m")))
     wd = pwd ();
     try
       cd (packdir);
@@ -380,7 +380,7 @@ function copy_built_files (desc, packdir, verbose)
   archdir = fullfile (packdir, "inst", getarch ());
 
   ## Get filenames.
-  if (exist (files, "file"))
+  if (packajoozle.internal.Util.isfile (files))
     [fid, msg] = fopen (files, "r");
     if (fid < 0)
       error ("pkj: couldn't open %s: %s", files, msg);
@@ -572,7 +572,7 @@ function copy_files (desc, packdir, global_install)
 
   ## Is there an INDEX file to copy or should we generate one?
   index_file = fullfile (packdir, "INDEX");
-  if (exist (index_file, "file"))
+  if (packajoozle.internal.Util.isfile (index_file))
     packinfo_copy_file ("INDEX", "required", packdir, packinfo, desc, octfiledir);
   else
     try
@@ -607,7 +607,7 @@ endfunction
 function packinfo_copy_file (filename, requirement, packdir, packinfo, desc, octfiledir)
 
   filepath = fullfile (packdir, filename);
-  if (! exist (filepath, "file") && strcmpi (requirement, "optional"))
+  if (! packajoozle.internal.Util.isfile (filepath) && strcmpi (requirement, "optional"))
     ## do nothing, it's still OK
   else
     [status, output] = copyfile (filepath, packinfo);
@@ -730,7 +730,7 @@ function create_pkgadddel (desc, packdir, nm, global_install)
 
     ## Add developer included PKG commands.
     packdirnm = fullfile (packdir, nm);
-    if (exist (packdirnm, "file"))
+    if (packajoozle.internal.Util.isfile (packdirnm))
       fid = fopen (packdirnm, "rt");
       if (fid >= 0)
         while (! feof (fid))
@@ -776,7 +776,7 @@ endfunction
 function finish_installation (desc, packdir, global_install)
 
   ## Is there a post-install to call?
-  if (exist (fullfile (packdir, "post_install.m"), "file"))
+  if (packajoozle.internal.Util.isfile (fullfile (packdir, "post_install.m")))
     wd = pwd ();
     try
       cd (packdir);
