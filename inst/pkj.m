@@ -434,11 +434,11 @@ endfunction
 function uninstall_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
   pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
-  if isempty (opts.install_place)
-    error (["pkj: you must specify -global, -local, or -place <name> for 'pkj uninstall'\n" ...
-      "pkj: Sorry about that. This is a bug that should be fixed.\n"]);
+  install_place = opts.install_place
+  if isempty (install_place)
+    install_place = pkgman.world.default_install_place;
   endif
-  pkgman.world.uninstall_packages_matching (pkgreqs, opts.install_place);
+  pkgman.world.uninstall_packages_matching (pkgreqs, install_place);
 endfunction
 
 function out = list_forge_packages (opts)

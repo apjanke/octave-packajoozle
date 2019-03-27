@@ -29,28 +29,55 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
     inst_dir_map = struct
     % Cellstr containing tags for this' instdirs
     search_order = {}
+    % Default location for install/uninstall operations
+    default_install_place = "user"
   endproperties
 
   methods (Static)
+
     function out = default ()
       % The default instdir world used by Octave; including "user" and "global"
       % InstallDirs. This is the world seen by the original `pkg` utility.
       out = packajoozle.internal.InstallDirWorld;
 
-      [prefix, arch_prefix] = pkg ("prefix");
-      meta_dir = fileparts (pkg ("local_list"));
-      user_dir = packajoozle.internal.InstallDir (meta_dir, prefix, arch_prefix, "user");
+      paths = packajoozle.internal.InstallDirWorld.default_paths;
+
+      # Standard user place
+      user_dir = packajoozle.internal.InstallDir (paths.user.index_file, ...
+        paths.user.prefix, paths.user.arch_prefix, "user");
       user_dir.package_list_var_name = "local_packages";
       out = out.register_installdir ("user", user_dir);
 
-      [prefix, arch_prefix] = pkg ("prefix", "-global");
-      meta_dir = fileparts (pkg ("global_list"));
-      global_dir = packajoozle.internal.InstallDir (meta_dir, prefix, arch_prefix, "global");
+      # Standard global place
+      global_dir = packajoozle.internal.InstallDir (paths.global.index_file, ...
+        paths.global.prefix, paths.global.arch_prefix, "global");
       #TODO: If global install location has been aliased to user install location,
       # this will break. Probably need to probe the package index file to see
-      # what's there
+      # what's there.
       global_dir.package_list_var_name = "global_packages";
       out = out.register_installdir ("global", global_dir);
+
+      # User-defined custom place, if set in this Octave session
+      [pfx,arch_pfx] = pkg('prefix');
+      if ! ismember (pfx, {user_dir.prefix global_dir.prefix})
+        # There's no `pkg` query to tell which index file is being used with the
+        # custom prefix. I guess it'd be the local one?
+        custom_dir = packajoozle.internal.InstallDir (paths.user.index_file, ...
+          pfx, arch_pfx, "custom");
+        out = out.register_installdir ("custom", custom_dir);
+        out.default_install_place = "custom";
+      endif
+    endfunction
+
+    function out = default_paths
+      out.global.prefix = fullfile (OCTAVE_HOME (), "share", "octave", "packages");
+      out.global.arch_prefix = fullfile (__octave_config_info__ ("libdir"), "octave",
+                             "packages");
+      out.global.index_file = fullfile (OCTAVE_HOME (), "share", "octave",
+                                     "octave_packages");
+      out.user.prefix = tilde_expand (fullfile ("~", "octave"));
+      out.user.arch_prefix = out.user.prefix;
+      out.user.index_file = tilde_expand (fullfile ("~", ".octave_packages"));
     endfunction
   endmethods
 
@@ -64,16 +91,18 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
 
     function out = disp (this)
       if isscalar (this)
-        str = {sprintf("%s: %s", class(this), strjoin(this.search_order, ", "))};
+        str = {sprintf("%s: %s (default=%s)", class(this), ...
+          strjoin(this.search_order, ", "), this.default_install_place)};
         for i_tag = 1:numel (this.search_order)
           tag = this.search_order{i_tag};
           inst_dir = this.get_installdir_by_tag (tag);
           str = [str; {
             ["  " tag ":"]
-            sprintf("    meta_dir: %s", inst_dir.meta_dir)
             sprintf("    prefix: %s", inst_dir.prefix)
             sprintf("    arch_prefix: %s", inst_dir.arch_prefix)
-            sprintf("    package_list_var_name: %s", inst_dir.package_list_var_name)
+            sprintf("    index_file: %s", inst_dir.index_file)
+            sprintf("    default package_list_var_name: %s", inst_dir.package_list_var_name)
+            sprintf("    actual package_list_var_name: %s", inst_dir.actual_package_list_var_name)
           }];
         endfor
         printf("%s", strjoin (str, "\n"));

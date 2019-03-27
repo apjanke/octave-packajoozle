@@ -35,19 +35,19 @@ classdef InstallDir
     prefix
     % The architecture-dependent directory. May be the same as prefix.
     arch_prefix
-    % Where pkg's metadata files are held
-    meta_dir
+    % The index file that holds a list of packages
+    index_file
     % The variable to save in the "octave_packages" file
     package_list_var_name = "octave_packages"
   endproperties
 
   properties (Dependent)
-    pkg_list_file
+    index_file
   endproperties
 
   methods
 
-    function this = InstallDir (meta_dir, prefix, arch_prefix, tag)
+    function this = InstallDir (index_file, prefix, arch_prefix, tag)
       if nargin == 0
         return
       endif
@@ -59,15 +59,28 @@ classdef InstallDir
         tag = "unlabelled";
       endif
       this.tag = tag;
-      this.meta_dir = meta_dir;
+      this.index_file = index_file;
       this.prefix = prefix;
       this.arch_prefix = arch_prefix;
     endfunction
 
-    function out = get.pkg_list_file (this)
-      out = fullfile (this.meta_dir, "octave_packages");
+    function out = actual_package_list_var_name (this)
+      if ! packajoozle.internal.Util.isfile (this.index_file)
+        out = this.package_list_var_name;
+        return
+      endif
+      s = load (this.index_file);
+      vars = fieldnames (s);
+      if numel (vars) == 1
+        out = vars{1};
+      elseif isempty (vars)
+        out = this.package_list_var_name;
+      else
+        error ('pkj:MultipleVarsInIndexFile', ['pkj: found multiple variables ' ...
+          'in index file %s; cannot determine which to use.'], this.index_file);
+      endif
     endfunction
-    
+
     function out = install_paths_for_pkg (this, pkgver)
       ver = char (pkgver.version);
       name_ver = [pkgver.name "-" ver];
@@ -96,8 +109,10 @@ classdef InstallDir
         out{i} = sprintf(["InstallDir: %s\n" ...
           "prefix:      %s\n" ...
           "arch_prefix: %s\n" ...
-          "package_list_var_name: %s"], ...
-          t.tag, t.prefix, t.arch_prefix, t.package_list_var_name);
+          "index_file:  %s\n" ...
+          "package_list_var_name: %s (actual = %s)"], ...
+          t.tag, t.prefix, t.arch_prefix, t.index_file, t.package_list_var_name, ...
+          t.actual_package_list_var_name);
       endfor
     endfunction
 
@@ -108,22 +123,22 @@ classdef InstallDir
 
     function out = get_package_list (this, format = "pkgver")
       # Gets list of instlled packages
-      if ! packajoozle.internal.Util.isfile (this.pkg_list_file)
+      if ! packajoozle.internal.Util.isfile (this.index_file)
         out = [];
         return
       endif
       # Now, for some reason, a 0-byte octave_packages file is appearing, and I don't
       # know what's writing it there. Octave, not Packajoozle, seems to be dropping
       # them. But regardless, it breaks load().
-      if file_is_zero_bytes (this.pkg_list_file)
+      if file_is_zero_bytes (this.index_file)
         out = [];
         return
       endif
-      s = load (this.pkg_list_file);
+      s = load (this.index_file);
       # Hack: take any field
       fields = fieldnames (s);
       if numel (fields) > 1
-        error ("Multiple fields in package list file: %s", this.pkg_list_file);
+        error ("Multiple fields in package list file: %s", this.index_file);
       endif
       descs = s.(fields{1});
       # Convert to output format
@@ -178,8 +193,8 @@ classdef InstallDir
 
     function save_pkg_list_to_file (this, list)
       eval (sprintf ("%s = list;", this.package_list_var_name));
-      packajoozle.internal.Util.mkdir (this.meta_dir);
-      save (this.pkg_list_file, this.package_list_var_name);
+      packajoozle.internal.Util.mkdir (fileparts (this.index_file));
+      save (this.index_file, this.package_list_var_name);
     endfunction
 
     function out = is_installed (this, pkgver)
