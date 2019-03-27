@@ -137,7 +137,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
       out = objvcat (c{:});
     endfunction
 
-    function out = list_all_installed_packages (this, format = "pkgver")
+    function out = list_installed_packages (this, format = "pkgver")
       # Returns list as PkgVers
       inst_dirs = this.get_all_installdirs;
       switch format
@@ -148,16 +148,25 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
           endfor
         case "desc"
           out = inst_dirs(1).get_package_list_descs;
+          out = this.decorate_descs (out, inst_dirs(1).tag);
           for i = 2:numel (inst_dirs)
-            out = [out inst_dirs(i).get_package_list_descs];
+            descs = inst_dirs(i).get_package_list_descs;
+            descs = this.decorate_descs (descs, inst_dirs(i).tag);
+            out = [out descs];
           endfor
         otherwise
-          error ("InstallDirWorld.list_all_installed_packages: invalid format: '%s'", format);
+          error ("InstallDirWorld.list_installed_packages: invalid format: '%s'", format);
       endswitch
+    endfunction
+    
+    function descs = decorate_descs (this, descs, inst_dir)
+      for i = 1:numel (descs)
+        descs{i}.inst_dir = inst_dir;
+      endfor      
     endfunction
 
     function out = descs_for_installed_package (this, pkgver)
-      descs = this.list_all_installed_packages ("desc");
+      descs = this.list_installed_packages ("desc");
       out = {};
       for i = 1:numel (descs)
         desc = descs{i};
@@ -183,24 +192,14 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
       endfor
     endfunction
 
-    function out = list_installed_matching (this, pkgreqs)
-      mustBeA (pkgreqs, "packajoozle.internal.PkgVerReq");
-      installed = this.list_all_installed_packages;
-      out = {};
-      for i = 1:numel (pkgreqs)
-        tf = pkgreqs(i).matches (installed);
-        if any (tf)
-          out{end+1} = installed(tf);
-        endif
-      endfor
-      out = objvcat (out{:});
-      out = unique (out);
+    function [out, unmatched_reqs] = list_installed_matching (this, pkgreqs)
+      [out, unmatched_reqs] = this.list_available_packages_matching (pkgreqs);
     endfunction
 
     % IPackageMetaSource implementation
 
     function out = list_available_packages (this)
-      out = this.list_all_installed_packages;
+      out = this.list_installed_packages;
     endfunction
 
     function out = get_package_description (this, pkgver)
@@ -223,7 +222,58 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
       out = unique (objvcat (out{:}));
     endfunction
 
+    function out = is_loaded (this, pkgvers)
+      pkgvers = makeItBeA ("packajoozle.internal.PkgVer");
+      out = false (size (pkgvers));
+      inst_dirs = this.get_all_installdirs;
+      for i = 1:numel (inst_dirs)
+        out = out | inst_dirs(i).is_loaded (pkgvers);
+      endfor
+    endfunction
+
+    function out = load_packages (this, pkgvers)
+      mustBeA (pkgvers, "packajoozle.internal.PkgVer");
+      installed = this.list_installed_packages;
+      missing = setdiff (pkgvers, installed);
+      if ! isempty (missing)
+        error ("pkj: cannot load packages: not installed: %s\n", dispstr (missing));
+      endif
+      # TODO: Resolve dependencies, add deps, and choose a load order based on dependencies
+      fprintf ("pkj: loading: %s\n", dispstr (pkgvers));
+      inst_dirs = this.get_all_installdirs;
+      for i_pkg = 1:numel (pkgvers)
+        pkgver = pkgvers(i_pkg);
+        found = false;
+        for i_inst_dir = 1:numel (inst_dirs)
+          if inst_dirs(i_inst_dir).is_installed (pkgver)
+            inst_dirs(i_inst_dir).load_package (pkgver);
+            found = true;
+            break
+          endif
+        endfor
+        if ! found
+          error ("pkj: internal error: couldn't actually find installation for %s", pkgver);
+        endif
+      endfor
+    endfunction
+
+    function [out, unmatched_reqs] = load_packages_matching (this, pkgreqs)
+      pkgreqs = makeItBeA (pkgreqs, "packajoozle.internal.PkgVerReq");
+      printf ("pkj: loading packages matching: %s\n", dispstr (pkgreqs));
+      # TODO: Handle dependencies
+      [pkgvers, unmatched_reqs] = this.list_installed_matching (pkgreqs);
+      if ! isempty (unmatched_reqs)
+        error ("pkj: no matching packages installed: %s\n", ...
+          strjoin (dispstrs (unmatched_reqs), ", "));
+      endif
+      printf( "load_packages_matching: matched: %s\n", dispstr (pkgvers));
+      this.load_packages (pkgvers);
+      out = pkgvers;
+    endfunction
+
     function out = unload_packages (this, pkgvers)
+      # TODO: Handle dependencies. Packages should be unloaded in reverse
+      # dependency order.
       unloaded = {};
       inst_dirs = this.get_all_installdirs;
       for i = 1:numel (inst_dir)
@@ -233,8 +283,31 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
         unloaded{end+1} = pkgvers(tf);
       endfor
       unloaded = unique(objvcat (unloaded{:}));
+      printf ("pkj: unloaded: %s", dispstr (unloaded));
       out.unloaded = unloaded;
       out.not_loaded_in_the_first_place = setdiff (pkgvers, unloaded);
+    endfunction
+
+    function out = unload_matching (this, pkgreqs)
+      installed = this.list_installed_matching (pkgreqs);
+      loaded = installed(this.is_loaded (installed));
+      out = this.unload_packages (loaded);
+    endfunction
+
+    function out = uninstall_packages_matching (this, pkgreqs, inst_dir_name)
+      # This method lives on World, and not InstallDir, so it can detect dependency
+      # breakage considering packages left in all places, not just the one where
+      # uninstallation is happening.
+      # TODO: Support uninstallation across multiple inst_dirs at the same time
+      # TODO: Dependency ordering.
+      narginchk(3, 3);
+      pkgreqs = makeItBeA (pkgreqs, "packajoozle.internal.PkgVerReq");
+      inst_dir = this.get_installdir_by_tag (inst_dir_name);
+      pkgvers = inst_dir.list_packages_matching (pkgreqs);
+      if any (inst_dir.is_loaded (pkgvers))
+        inst_dir.unload_packages (pkgvers);
+      endif
+      inst_dir.uninstall_packages (pkgvers);
     endfunction
 
   endmethods

@@ -27,6 +27,7 @@
 ## Author:  
 
 function x = makeItBeA (x, type)
+  narginchk (2, 2);
   if ! isa (x, type)
     x = feval (type, x);
   endif

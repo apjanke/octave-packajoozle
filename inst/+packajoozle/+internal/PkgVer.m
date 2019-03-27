@@ -90,7 +90,7 @@ classdef PkgVer
     endfunction
 
     function out = dispstr (this)
-      out = strjoin (dispstrs (this), "; ");
+      out = strjoin (dispstrs (this), ", ");
     endfunction
     
     function out = dispstrs (this)
@@ -134,6 +134,18 @@ classdef PkgVer
       out = this(ix);
     endfunction
 
+    function out = newest_of_each_package (this)
+      % The newest of the pkgvers for each package in this array
+      out = {};
+      names = this.names;
+      u_names = unique (names);
+      for i_pkg = 1:numel (u_names)
+        name = u_names(i_pkg);
+        out{end+1} = newest (this(strcmp (name, names)));
+      endfor
+      out = objvcat (out{:});
+    endfunction
+
     function [out,ix] = sort (this)
       %SORT Sorts by package name, and then by version
       
@@ -162,7 +174,7 @@ classdef PkgVer
 
     function out = setdiff (a, b)
       out = a;
-      out(ismember (a, b)) = [];
+      out = objdel (out, ismember (a, b));
     endfunction
 
     function out = intersect (a, b)

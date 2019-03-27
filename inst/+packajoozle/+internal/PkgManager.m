@@ -256,7 +256,8 @@ classdef PkgManager
         error ("pkj: already installed: %s\n", char (pkgver));
       endif
 
-      build_dir_parent = tempname (tempdir, "packajoozle/packajoozle-build-");
+      build_dir_parent = tempname (tempdir, ["packajoozle/packajoozle-build-" ...
+        pkgver.name "-"]);
       packajoozle.internal.Util.mkdir (build_dir_parent);
       #RAII.build_dir_parent = onCleanup (@() rm_rf_safe (build_dir_parent));
       say("build temp dir: %s", build_dir_parent);
@@ -359,7 +360,7 @@ classdef PkgManager
 
     function out = get_unsatisfied_deps_from_desc (this, desc)
       bad_deps = {};
-      installed = this.world.list_all_installed_packages;
+      installed = this.world.list_installed_packages;
       for i = 1:numel (desc.depends)
         dep = desc.depends{i};
         dep_req = packajoozle.internal.PkgVerReq (dep.package, ...
@@ -388,7 +389,7 @@ classdef PkgManager
       # Find packages to uninstall
       pkgvers = inst_dir.list_packages_matching (pkgreqs);
       printf ("pkj: uninstalling: %s\n", strjoin (dispstrs (pkgvers), ", "));
-
+      this.world.unload_packages (pkgvers);
       #TODO: Check that dependencies will still be satisfied after uninstallation
 
       # TODO: Check dependencies
@@ -466,29 +467,11 @@ classdef PkgManager
       for i = 1:numel (inst_dirs)
         inst_dir = inst_dirs(i);
         if inst_dir.is_installed (pkgver)
-          desc = inst_dir.get_installed_package_desc (pkgver);
-          if exist (desc.dir)
-            this.addpath_safe (desc.dir);
-          endif
-          if exist (desc.archprefix)
-            this.addpath_safe (desc.archprefix);
-          endif
+          inst_dir.load_package (pkgver);
           return
         endif
       endfor
       error ("pkj: package not installed: %s\n", char (pkgver));
-    endfunction
-
-    function addpath_safe (this, varargin)
-      % We have to do this becase PKG_ADD might raise errors
-      try
-        addpath (varargin{:});
-      catch err
-        warning (["pkj: error (probably from PKG_ADD) when adding directory to path:\n" ...
-          "  Dir: %s\n" ...
-          "  Error: %s\n"], ...
-          strjoin (varargin, ", "), err.message);
-      end_try_catch
     endfunction
 
     function rmpath_safe (this, varargin)
@@ -503,12 +486,8 @@ classdef PkgManager
       end_try_catch
     endfunction
 
-    function out = unload_packages_exact (this, pkgvers)
-      
-    endfunction
-
     function out = unload_packages (this, pkgreqs)
-      descs = this.world.list_all_installed_packages ("desc");
+      descs = this.world.list_installed_packages ("desc");
       # TODO: Pick packages and then sort in reverse dependency order
       out = {};
       for i_req = 1:numel (pkgreqs)
@@ -526,9 +505,6 @@ classdef PkgManager
         endfor
       endfor
       out = objvcat (out{:});
-    endfunction
-
-    function [out, pkg_dirs_on_path] = is_pkg_loaded (this, pkgver)
     endfunction
 
   endmethods

@@ -92,3 +92,5 @@ And possibly:
 * `loaded` – this field may or may not make it into the descs in the saved package index file, depending on when it was created with respect to their installation.
 
 This structure is defined by Octave's `pkg`, not by Packajoozle.
+
+As a hack, some of our functions may decorate it with other fields.

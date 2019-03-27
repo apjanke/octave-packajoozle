@@ -33,8 +33,8 @@
 classdef PkgVerReq
 
   properties
-    package
-    ver_filters
+    package = ""
+    ver_filters = packajoozle.internal.VerFilterSet;
   endproperties
 
   methods (Static)
@@ -60,18 +60,18 @@ classdef PkgVerReq
       endif
       if nargin == 1 && isa (pkg_name, "packajoozle.internal.PkgVer")
         this.package = pkg_name.name;
-        this.ver_filters = packajoozle.internal.VerFilterSet;
         return
       endif
       mustBeCharvec (pkg_name);
-      if nargin < 2
-        ver_filters = packajoozle.internal.VerFilterSet;
-      endif
-      if ! isa (ver_filters, "packajoozle.internal.VerFilterSet")
-        ver_filters = packajoozle.internal.VerFilterSet (ver_filters);
-      endif
       this.package = pkg_name;
-      this.ver_filters = ver_filters;
+      if nargin > 1
+        ver_filters = makeItBeA (ver_filters, "packajoozle.internal.VerFilterSet");
+        this.ver_filters = ver_filters;
+      endif
+    endfunction
+
+    function out = packages (this)
+      out = {this.package};
     endfunction
 
     function disp (this)
@@ -104,18 +104,36 @@ classdef PkgVerReq
       out = strs{1};
     endfunction
 
-    function out = matches (this, pkg_specs)
+    function out = matches (this, pkgvers)
       mustBeScalar (this);
-      if ! isempty (pkg_specs)
-        mustBeA (pkg_specs, "packajoozle.internal.PkgVer");
+      if ! isempty (pkgvers)
+        mustBeA (pkgvers, "packajoozle.internal.PkgVer");
       endif
-      out = false (size (pkg_specs));
-      for i = 1:numel (pkg_specs)
-        p = pkg_specs(i);
+      out = false (size (pkgvers));
+      for i = 1:numel (pkgvers)
+        p = pkgvers(i);
         if isequal (this.package, p.name)
           out(i) = this.ver_filters.matches (p.version);
         endif
       endfor
+    endfunction
+
+    function out = condense (this)
+      %CONDENSE Combine the version filters for each distinct package
+      out = {};
+      pkgs = packages (this);
+      u_pkgs = unique (pkgs);
+      for i_pkg = 1:numel (u_pkgs)
+        pkg = pkgs{i_pkg};
+        ix_pkg = find (strcmp (pkg, pkgs));
+        combined_filters = this(ix_pkg(1)).ver_filters;
+        for i_other = 2:numel (ix_pkg)
+          combined_filters = combine (combined_filters, this(ix_pkg(i_other)).ver_filters);
+        endfor
+        for_pkg = packajoozle.internal.PkgVerReq (pkg, combined_filters);
+        out{end+1} = for_pkg;
+      endfor
+      out = objvcat (out{:});
     endfunction
 
   endmethods

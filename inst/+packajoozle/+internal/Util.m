@@ -26,19 +26,34 @@ classdef Util
 
   methods (Static)
 
-    function out = isfolder (path)
-      %ISFOLDER Back-compatibility wrapper for isdir/isfolder
-      persistent octave_is_old = compare_versions (OCTAVE_VERSION, '5.0.0', '<');
-      if octave_is_old
-        out = isdir (path);
-      else
-        out = isfolder (path);
-      end
+    function out = isfileorfolder (path)
+      %ISFOLDER True if path exists and is a file or directory of any type
+      path = cellstr (path);
+      out = false (size (path));
+      for i = 1:numel (path)
+        st = stat (path{i});
+        out(i) = ! isempty (st);
+      endfor
     endfunction
 
     function out = isfile (path)
-      st = stat (path);
-      out = (! isempty (st)) && st.modestr(1) != 'd';
+      %ISFILE True if path exists and is a plain file (or at least not a directory)
+      path = cellstr (path);
+      out = false (size (path));
+      for i = 1:numel (path)
+        st = stat (path{i});
+        out(i) = (! isempty (st)) && st.modestr(1) != 'd';
+      endfor
+    endfunction
+
+    function out = isfolder (path)
+      %IFILE True if file exists and is a directory
+      path = cellstr (path);
+      out = false (size (path));
+      for i = 1:numel (path)
+        st = stat (path{i});
+        out(i) = (! isempty (st)) && st.modestr(1) == 'd';
+      endfor
     endfunction
 
     function out = parse_options (options, defaults)
@@ -149,6 +164,8 @@ classdef Util
     endfunction
 
     function rm_rf (path)
+      #TODO: Should this actually error if it fails, instead of just warn?
+      # Maybe a "strict" option for it?
       if exist (path, "dir")
         confirm_recursive_rmdir (0, "local");
         [ok, msg, msgid] = rmdir (path, "s");

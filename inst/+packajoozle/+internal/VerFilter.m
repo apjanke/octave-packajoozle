@@ -155,6 +155,13 @@ classdef VerFilter
             || (isequal (b.operator, ">=") && a.version > b.version);
       endswitch
     endfunction
+
+    function out = to_filter_set (this)
+      out = packajoozle.internal.VerFilterSet;
+      for i = 1:numel (this)
+        out.add_filter (this(i));
+      endfor
+    endfunction
     
   endmethods
 

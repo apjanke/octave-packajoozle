@@ -433,9 +433,12 @@ endfunction
 
 function uninstall_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
-  reqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
-  inst_dir = ifelse (opts.global, "global", "user");
-  pkgman.uninstall_packages (reqs);
+  pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
+  if isempty (opts.install_place)
+    error (["pkj: you must specify -global, -local, or -place <name> for 'pkj uninstall'\n" ...
+      "pkj: Sorry about that. This is a bug that should be fixed.\n"]);
+  endif
+  pkgman.world.uninstall_packages_matching (pkgreqs, opts.install_place);
 endfunction
 
 function out = list_forge_packages (opts)
@@ -483,7 +486,7 @@ function list_non_installed_packages_on_path (pkg_list_descs, opts)
   s.Name = {};
   s.Version = {};
   s.Dir = {};
-  s.Status = {};
+  s.RepoStatus = {};
   for i = 1:numel (dirs)
     d_on_path = dirs{i};
     if strncmp (d_on_path, matlabroot, numel (matlabroot)) ...
@@ -517,12 +520,12 @@ function list_non_installed_packages_on_path (pkg_list_descs, opts)
     s.Name{end+1} = name;
     s.Version{end+1} = version;
     s.Dir{end+1} = abbreviate_dir_path (d);
-    s.Status{end+1} = status_str;
+    s.RepoStatus{end+1} = status_str;
   endfor
 
   if ! isempty (s.Name)
     tbl = packajoozle.internal.qtable (s);
-    fprintf ("\nNon-installed packages on Octave load path:\n");
+    fprintf ("\nNon-installed packages on Octave load path:\n\n");
     prettyprint (tbl, "B");
   endif
 
@@ -531,7 +534,7 @@ endfunction
 
 function descs = list_installed_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
-  descs = pkgman.world.list_all_installed_packages ("desc");
+  descs = pkgman.world.list_installed_packages ("desc");
 
   ## Add loaded state info
   p = strrep (path (), '\', '/');
@@ -546,7 +549,7 @@ endfunction
 
 function display_pkg_desc_list (descs)
   if isempty (descs)
-    printf ("pkj: no packages installed\n");
+    printf ("No packages installed.\n");
     return
   endif
 
@@ -560,6 +563,7 @@ function display_pkg_desc_list (descs)
   endfor
   s.PackageName = name_with_load_indicator;
   s.Version = cellfun (@(x) {x.version}, descs);
+  s.Place = cellfun (@(x) {x.inst_dir}, descs);
   s.InstallationDir = cellfun (@(x) {x.dir}, descs);
 
   s.InstallationDir = abbreviate_dir_path (s.InstallationDir);
@@ -578,22 +582,9 @@ endfunction
 function out = load_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
   pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
-  inst_descs = list_installed_packages (opts);
-  inst_pkgvers = descs_to_pkgvers (inst_descs);
-  matched = {};
-  for i_pkgreq = 1:numel (pkgreqs)
-    pkgreq = pkgreqs(i_pkgreq);
-    tf = pkgreq.matches (inst_pkgvers);
-    if ! any (tf)
-      error ("pkj: no matching package installed: %s", char (pkgreq));
-    endif
-    matched{end+1} = inst_pkgvers(tf).newest;
-  endfor
-  matched = objvcat (matched{:});
-  pkgman.load_packages (matched);
+  pkgman.world.load_packages_matching (pkgreqs);
   # TODO: Different output and return value for packages that are already
   # loaded. The operation is idempotent, but the path taken may be relevant.
-  printf ("pkj: loaded packages: %s\n", strjoin (dispstrs (matched), " "));
 endfunction
 
 function out = unload_packages (opts)
@@ -684,7 +675,7 @@ function describe_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
   pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   if isempty (pkgreqs)
-    pkgvers = pkgman.world.list_all_installed_packages;
+    pkgvers = pkgman.world.list_installed_packages;
   else
     pkgvers = installed_packages_matching (pkgreqs, opts);
   endif
@@ -817,12 +808,13 @@ function opts = parse_inputs (args_in)
   opts.listversions = false;
   opts.help = false;
   opts.fail_fast = false;
+  install_places = {};
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
     "describe", "prefix", "local_list", "global_list", "build", "rebuild", ...
     "help", "test", "contents", "depdiagram", "review"};
-  valid_options = {"forge", "file", "nodeps", "local", "global", "forge", "verbose", ...
-    "listversions", "help", "devel", "fail-fast"};
+  valid_options = {"forge", "file", "nodeps", "forge", "verbose", ...
+    "listversions", "help", "devel", "fail-fast", };
   aliases = {
     "ls"      "list"
     "rm"      "uninstall"
@@ -834,7 +826,8 @@ function opts = parse_inputs (args_in)
   args = args_in;
 
   command = [];
-  for i = 1:numel (args)
+  i = 1;
+  while i <= numel (args)
     arg = args{i};
     [tf, loc] = ismember (arg, aliases(:,1));
     if tf
@@ -843,6 +836,21 @@ function opts = parse_inputs (args_in)
     if ismember (arg, opt_flags)
       opt = strrep (arg(2:end), "-", "_");
       opts.(opt) = true;
+      i += 1;
+    elseif isequal (arg, "-place")
+      install_places{end+1} = args{i+1};
+      i += 2;
+    elseif ismember (arg, {"-local" "-user"})
+      install_places{end+1} = "user";
+      opts.local = true;
+      i += 1;
+    elseif isequal (arg, "-global")
+      install_places{end+1} = "global";
+      opts.global = true;
+      i += 1;
+    elseif isequal (arg, "--")
+      opts.targets = [opts.targets args(i+1:end)];
+      i = numel (args) + 1;
     else
       if arg(1) == "-"
         error ("pkj: invalid option: %s", args{i});
@@ -854,11 +862,19 @@ function opts = parse_inputs (args_in)
         # The rest are targets
         opts.targets{end+1} = arg;
       endif
+      i += 1;
     endif
-  endfor
+  endwhile
 
+  if numel (install_places) > 1
+    error ("pkj: cannot specify multiple installation places\n");
+  endif
+  opts.install_place = [];
+  if ! isempty (install_places)
+    opts.install_place = install_places{1};
+  endif
   if ! isempty (command) && ! ismember (command, valid_commands)
-    error ("pkj: invalid command: %s. Valid commands are: %s", command, ...
+    error ("pkj: invalid command: %s. Valid commands are: %s\n", command, ...
       strjoin (valid_commands, ", "));
   endif
   opts.command = command;

@@ -37,14 +37,49 @@ classdef IPackageMetaSource
     % must be available to return description info via "get_package_description", though.
     % Returns an array of packajoozle.internal.PkgVer, or [].
     function out = list_available_packages (this)
-      error ("IPackageMetaSource.list_available_packages: this is an abstract method.");
+      error ("IPackageMetaSource.list_available_packages: BUG: this is an abstract method.");
     endfunction
 
     % Get the DESCRIPTION metadata for a single package/version.
     % Takes a scalar packajoozle.internal.PkgVer as input
     % Returns a scalar struct. Raises an error if pkgver is not available in this.
     function out = get_package_description (this, pkgver)
-      error ("IPackageMetaSource.get_package_description: this is an abstract method.");
+      error ("IPackageMetaSource.get_package_description: BUG: this is an abstract method.");
+    endfunction
+
+    function [out, unmatched_reqs] = list_available_packages_matching (this, pkgreqs)
+      pkgreqs = makeItBeA (pkgreqs, "packajoozle.internal.PkgVerReq");
+      pkgreqs = condense (pkgreqs);
+      available = this.list_available_packages;
+      out = {};
+      unmatched_reqs = emptyobj (packajoozle.internal.PkgVerReq);
+      for i = 1:numel (pkgreqs)
+        pkgreq = pkgreqs(i);
+        out{end+1} = available(pkgreq.matches (available));
+        if isempty (out{end})
+          unmatched_reqs(end+1) = pkgreq;
+        endif
+      endfor
+      out = unique (objvcat (out{:}));
+    endfunction
+
+    % Resolves a set of pkgreqs against this' packages, choosing the newest available
+    % package that meets the reqs.
+    % Returns a PkgVer array.
+    function out = resolve_newest_packages_matching (this, pkgreqs)
+      pkgreqs = makeItBeA (pkgreqs, "packajoozle.internal.PkgVerReq");
+      pkgreqs = condense (pkgreqs);
+      installed = this.list_available_packages_matching (pkgreqs);
+      out = {};
+      for i = 1:numel (pkgreqs)
+        pkgreq = pkgreqs(i);
+        ix = find (pkgreq.matches (installed))
+        if isempty (ix)
+          error ("no available package matching req %s", char (pkgreq));
+        endif
+        out{i} = installed(ix);
+      endfor
+      out = objvcat (out{:});
     endfunction
 
   endmethods

@@ -200,7 +200,7 @@ classdef InstallDir
     
     function out = loaded_packages (this)
       installed = this.get_package_list_descs;
-      out = installed(this.isloaded_installed);
+      out = installed(this.isloaded(installed));
     endfunction
 
     function out = is_loaded (this, pkgvers)
@@ -212,13 +212,49 @@ classdef InstallDir
           continue
         endif
         desc = this.get_installed_package_desc (pkgvers(i));
-        out(i) = any (ismember ({desc.dir desc.darchprefix}, load_path));
+        out(i) = any (ismember ({desc.dir desc.archprefix}, load_path));
       endfor
+    endfunction
+
+    function out = load_package (this, pkgver)
+      if this.is_installed (pkgver)
+        desc = this.get_installed_package_desc (pkgver);
+        if exist (desc.dir)
+          this.addpath_safe (desc.dir);
+        endif
+        if exist (desc.archprefix)
+          this.addpath_safe (desc.archprefix);
+        endif
+        return
+      else
+        error ("pkj: package not installed in %s: %s\n", this.tag, char (pkgver));
+      endif
+    endfunction
+
+    function addpath_safe (this, varargin)
+      % We have to do this becase PKG_ADD might raise errors
+      try
+        addpath (varargin{:});
+      catch err
+        # TODO: Decide if this should be an error instead of a warning. If it happens,
+        # it probably means the package was not loaded correctly, and we shoud error
+        # to indicate that, and caller can deal with it.
+        warning (["pkj: error (probably from PKG_ADD) when adding directory to path:\n" ...
+          "  Dir: %s\n" ...
+          "  Error: %s\n"], ...
+          strjoin (varargin, ", "), err.message);
+      end_try_catch
     endfunction
 
     function unload_packages (this, pkgvers)
       pkgvers = makeItBeA (pkgvers, "packajoozle.internal.PkgVer");
-      objfun (@(x) this.unload_package (x), pkgvers);
+      to_unload = pkgvers(this.is_loaded (pkgvers));
+      if ! isempty (to_unload)
+        printf("pkj: unloading: %s\n", dispstr (to_unload));
+      endif
+      for i = 1:numel (pkgvers)
+        this.unload_package (pkgvers(i));
+      endfor
     endfunction
 
     function out = unload_package (this, pkgver)
@@ -226,7 +262,7 @@ classdef InstallDir
       out.message = [];
       pkgver = makeItBeA (pkgver, "packajoozle.internal.PkgVer");
       mustBeScalar (pkgver);
-      if this.isloaded (pkgver)
+      if this.is_loaded (pkgver)
         desc = this.get_installed_package_desc (pkgver);
         for the_dir = {desc.dir desc.archprefix}
           the_dir = the_dir{1};
@@ -243,12 +279,83 @@ classdef InstallDir
       endif
     endfunction
 
+    function uninstall_packages (this, pkgspecs)
+
+      # Find packages to uninstall
+      if isa (pkgspecs, "packajoozle.internal.PkgVer")
+        pkgvers = pkgspecs;
+      elseif isa (pkgspecs, "packajoozle.internal.PkgVerReq")
+        pkgreqs = pkgspecs;
+        pkgvers = this.list_packages_matching (pkgreqs);
+      else
+        error (["InstallDir.uninstall_packages: invalid input: pkgspecs must be" ...
+          "a PkgVer or PkgVerReq; got a %s"], class (pkgspecs));
+      endif
+      printf ("pkj: uninstalling: %s from %s\n", dispstr (pkgvers), this.tag);
+
+      # TODO: Check dependencies
+      # Calculate remaining installed packages and see that their deps are still
+      # satisfied. This may actually have to be done by World, since packages
+      # can have dependencies across multiple install places (e.g. a user package
+      # depending on a global package)
+
+      this.unload_packages (pkgvers);
+      for i = 1:numel (pkgvers)
+        this.uninstall_one_package (pkgvers(i));
+      endfor
+      printf ("pkj: packages uninstalled\n");
+    endfunction
+
+    function uninstall_one_package (this, pkgver)
+      %UNINSTALL_ONE Uninstall a package
+      mustBeA (pkgver, "packajoozle.internal.PkgVer");
+      mustBeScalar (pkgver);
+
+      found = false;
+      if ! this.is_installed (pkgver)
+        error ("pkj: package %s is not installed in %s\n", char (pkgver), this.tag);
+      endif
+      
+      #TODO: Get desc for installed package
+      target = this.install_paths_for_pkg (pkgver);
+
+      # Run pre-uninstall hooks
+      uninstall_hook_file = fullfile (target.dir, "packinfo", "on_uninstall.m");
+      if packajoozle.internal.Util.isfile (uninstall_hook_file)
+        orig_pwd = pwd;
+        try
+          cd (fullfile (target.dir, "packinfo"));
+          on_uninstall (desc);
+          cd (orig_pwd);
+        catch err
+          cd (orig_pwd);
+          error ("pkj: error while running on_uninstall hook for %s: %s\n", ...
+            char (pkgver), err.message);
+        end_try_catch
+      endif
+
+      # Delete package installation directories
+      if ! packajoozle.internal.Util.isfolder (target.dir)
+        warning ("pkj: directory %s previously lost; marking %s as uninstalled\n", ...
+         target.dir, char (pkgver));
+      endif
+      dirs = {target.arch_dir target.dir};
+      for i = 1:numel (dirs)
+        if packajoozle.internal.Util.isfileorfolder (dirs{i})
+          packajoozle.internal.Util.rm_rf (dirs{i});
+        endif
+      endfor
+
+      # Update package index
+      this.record_uninstalled_package (pkgver);
+    endfunction
+
   endmethods
 
 endclassdef
 
 function out = is_on_octave_load_path (dir)
-  out = ismember (strsplit (path, pathsep));
+  out = ismember (dir, strsplit (path, pathsep));
 endfunction
 
 function out = descs_to_pkgvers (descs)

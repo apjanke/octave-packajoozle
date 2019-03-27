@@ -57,6 +57,8 @@ classdef VerFilterSet
         filters = packajoozle.internal.VerFilter(filters.version, "==");
       endif
       mustBeA (filters, "packajoozle.internal.VerFilter");
+      #TODO: Should we actually add them incrementally to check for subsumation instead
+      #of just assigning a list?
       this.filters = filters;
     endfunction
 
@@ -98,16 +100,41 @@ classdef VerFilterSet
       mustBeScalar (this);
       filter = makeItBeA (filter, "packajoozle.internal.VerFilter");
       for i_new = 1:numel (filter)
+        new_filter = filter(i_new);
+        tf_subsumed_by_new = [];
+        new_is_subsumed = false;
         for i_current = 1:numel (this.filters)
-          subsumed = false;
-          if this.filters(i).subsumes (filter(i_new))
-            subsumed = true;
-            break;
+          if this.filters(i).subsumes (new_filter)
+            new_is_subsumed = true;
+            #TODO: Check for subsumation going the other wah
+          endif
+          if new_filter.subsumes (this.filters(i))
+            tf_subsumed_by_new(i) = true;
           endif
         endfor
-        if ! subsumed
-          this.filters = objvcat (this.filters, filter(i_new));
+        if new_is_subsumed && ! any (tf_subsumed_by_new)
+          error (["VerFilterSet.add_filter: new filter both subsumes and is subsumed. " ...
+            "I don't know how to handle that situation.\n" ...
+            "New filter: %s\n" ...
+            "Existing filters: %s"], ...
+            char (new_filter), strjoin (dispstrs (this.filters), ", "));
         endif
+        if any (tf_subsumed_by_new)
+          this.filters = this.filters(~tf_subsumed_by_new);
+        endif
+        if ! new_is_subsumed
+          this.filters = objvcat (this.filters, new_filter);
+        endif
+      endfor
+    endfunction
+
+    function out = combine (a, b)
+      narginchk (2, 2);
+      out = a;
+      for i_b = 1:numel (b)
+        for i_filter_b = 1:numel (b(i_b).filters)
+          out.add_filter (b(i_b).filters(i_filter_b));
+        endfor
       endfor
     endfunction
 
