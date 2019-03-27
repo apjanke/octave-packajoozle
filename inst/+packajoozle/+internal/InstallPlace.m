@@ -55,7 +55,7 @@ classdef InstallPlace < handle
         arch_prefix = prefix;
       endif
       if nargin < 4 || isempty (index_file)
-        index_file = fullfile (prefix, 'octave-packages');
+        index_file = fullfile (prefix, 'octave_packages');
       endif
       this.tag = tag;
       this.prefix = prefix;
