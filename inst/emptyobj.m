@@ -14,8 +14,7 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {empty_obj = } emptyobj (obj)
-##
+## @deftypefn {Function File} {@code{empty_obj} =} emptyobj (@code{obj})
 ## Create an empty object from a nonempty one.
 ##
 ## This is a hack to create an empty object, since @code{repmat(obj, [0 0])}
