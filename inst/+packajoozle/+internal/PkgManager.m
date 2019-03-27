@@ -68,26 +68,26 @@ classdef PkgManager
       out = this.world.default_install_place;
     endfunction
     
-    function out = resolve_installdir (this, inst_dir)
-      if isempty (inst_dir)
-        inst_dir = this.default_installdir_tag;
+    function out = resolve_installdir (this, place)
+      if isempty (place)
+        place = this.default_installdir_tag;
       endif
-      if ischar (inst_dir)
-        out = this.world.get_installdir_by_tag (inst_dir);
+      if ischar (place)
+        out = this.world.get_installdir_by_tag (place);
       else
-        mustBeA (inst_dir, "packajoozle.internal.InstallPlace");
-        out = inst_dir;
+        mustBeA (place, "packajoozle.internal.InstallPlace");
+        out = place;
       endif
     endfunction
 
-    function out = install_forge_pkgs_devel (this, pkgreqs, inst_dir, opts)
+    function out = install_forge_pkgs_devel (this, pkgreqs, place, opts)
       % This is a separate method because we can't represent a devel/head
       % package with a Version object.
-      if nargin < 3; inst_dir = []; endif
+      if nargin < 3; place = []; endif
       if nargin < 4 || isempty (opts); opts = struct; endif
       opts = packajoozle.internal.Util.parse_options (opts, ...
         struct ("nodeps", false));
-      inst_dir = this.resolve_installdir (inst_dir);
+      place = this.resolve_installdir (place);
 
       # Ignore the versions in pkgreqs
       pkg_names = arrayfun (@(x) {x.package}, pkgreqs);
@@ -135,10 +135,10 @@ classdef PkgManager
       endfor
 
       for i = 1:numel (dist_files)
-        rslt = this.install_pkg_from_file_impl (dist_files{i}, inst_dir);
+        rslt = this.install_pkg_from_file_impl (dist_files{i}, place);
         if rslt.success
           printf ("Installed %s (DEVEL) from Octave Forge to %s pkg dir\n", ...
-            char (rslt.pkgver), inst_dir.tag);
+            char (rslt.pkgver), place.tag);
           this.display_user_messages (rslt);
         else
           printf ("Installation of %s (DEVEL) from Octave Forge failed: %s\n", ...
@@ -149,14 +149,14 @@ classdef PkgManager
       out = [out{:}];
     endfunction
 
-    function out = install_forge_pkgs (this, pkgreqs, inst_dir, opts)
-      if nargin < 3; inst_dir = []; endif
+    function out = install_forge_pkgs (this, pkgreqs, place, opts)
+      if nargin < 3; place = []; endif
       if nargin < 4 || isempty (opts); opts = struct; endif
       opts = packajoozle.internal.Util.parse_options (opts, ...
         struct ("nodeps", false, ...
           "devel", false));
 
-      inst_dir = this.resolve_installdir (inst_dir);
+      place = this.resolve_installdir (place);
 
       # Resolve requests
       c = cell (size (pkgreqs));
@@ -198,9 +198,9 @@ classdef PkgManager
       out = [rslts{:}];
     endfunction
 
-    function out = install_file_pkgs (this, files, inst_dir)
-      if nargin < 3; inst_dir = []; endif
-      inst_dir = this.resolve_installdir (inst_dir);
+    function out = install_file_pkgs (this, files, place)
+      if nargin < 3; place = []; endif
+      place = this.resolve_installdir (place);
 
       # TODO: Resolve dependencies
       # Consider all packages to be installed
@@ -208,7 +208,7 @@ classdef PkgManager
       rslts = {};
       for i = 1:numel (files)
         file = files{i};
-        rslts{i} = this.install_pkg_from_file (file, inst_dir);
+        rslts{i} = this.install_pkg_from_file (file, place);
       endfor
       out = [rslts{:}];
     endfunction
@@ -219,9 +219,9 @@ classdef PkgManager
       endfor
     endfunction
 
-    function out = install_forge_pkg_single (this, pkgver, inst_dir)
-      if nargin < 3; inst_dir = []; endif
-      inst_dir = this.resolve_installdir (inst_dir);
+    function out = install_forge_pkg_single (this, pkgver, place)
+      if nargin < 3; place = []; endif
+      place = this.resolve_installdir (place);
       mustBeA (pkgver, "packajoozle.internal.PkgVer");
       
       dist_tgz = this.forge.download_cached_pkg_distribution (pkgver);
@@ -229,7 +229,7 @@ classdef PkgManager
 
       if out.success
         printf ("Installed %s from Octave Forge to %s pkg dir\n", ...
-          char (pkgver), inst_dir.tag);
+          char (pkgver), place.tag);
         this.display_user_messages (out);
       else
         printf ("Installation of %s from Octave Forge failed: %s\n", ...
@@ -237,25 +237,25 @@ classdef PkgManager
       endif
     endfunction
 
-    function out = install_pkg_from_file (this, file, inst_dir)
-      if nargin < 3; inst_dir = []; endif
-      inst_dir = this.resolve_installdir (inst_dir);
-      rslt = this.install_pkg_from_file_impl (file, inst_dir);
+    function out = install_pkg_from_file (this, file, place)
+      if nargin < 3; place = []; endif
+      place = this.resolve_installdir (place);
+      rslt = this.install_pkg_from_file_impl (file, place);
       printf ("Installed %s from %s to %s pkg dir\n", ...
-        char (rslt.pkgver), file, inst_dir.tag);
+        char (rslt.pkgver), file, place.tag);
       this.display_user_messages (rslt);
       out = rslt;
     endfunction
 
-    function out = install_pkg_from_file_impl (this, file, inst_dir)
-      if nargin < 3; inst_dir = []; endif
-      inst_dir = this.resolve_installdir (inst_dir);
+    function out = install_pkg_from_file_impl (this, file, place)
+      if nargin < 3; place = []; endif
+      place = this.resolve_installdir (place);
 
       # Remove existing installation of same pkg/ver
       info = packajoozle.internal.PkgDistUtil.get_pkg_description_from_pkg_archive_file (file);
       pkgver = packajoozle.internal.PkgVer (info.name, info.version);
       out.pkgver = pkgver;
-      if inst_dir.is_installed (pkgver)
+      if place.is_installed (pkgver)
         error ("pkj: already installed: %s\n", char (pkgver));
       endif
 
@@ -273,7 +273,7 @@ classdef PkgManager
 
       # Inspect the package
 
-      target = inst_dir.install_paths_for_pkg (pkgver);
+      target = place.install_paths_for_pkg (pkgver);
       verify_directory (build_dir);
       desc_file = fullfile (build_dir, "DESCRIPTION");
       orig_desc = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (desc_file);
@@ -331,7 +331,7 @@ classdef PkgManager
       # Save package metadata to installdir indexes
 
       try
-        inst_dir.record_installed_package (desc, target);
+        place.record_installed_package (desc, target);
       catch err
         rm_rf_safe (target.arch_dir);
         rm_rf_safe (target.dir);
@@ -385,12 +385,12 @@ classdef PkgManager
       error ("PkgManager.uninstall_all_versions: this is not yet implemented")
     endfunction
 
-    function uninstall_packages (this, pkgreqs, inst_dir)
-      if nargin < 3; inst_dir = []; endif
-      inst_dir = this.resolve_installdir (inst_dir);
+    function uninstall_packages (this, pkgreqs, place)
+      if nargin < 3; place = []; endif
+      place = this.resolve_installdir (place);
 
       # Find packages to uninstall
-      pkgvers = inst_dir.list_packages_matching (pkgreqs);
+      pkgvers = place.list_packages_matching (pkgreqs);
       printf ("pkj: uninstalling: %s\n", strjoin (dispstrs (pkgvers), ", "));
       this.world.unload_packages (pkgvers);
       #TODO: Check that dependencies will still be satisfied after uninstallation
@@ -401,26 +401,26 @@ classdef PkgManager
 
       # Uninstall the packages if we're clear to proceed
       for i = 1:numel (pkgvers)
-        this.uninstall_one_package (pkgvers(i), inst_dir);
+        this.uninstall_one_package (pkgvers(i), place);
       endfor
       printf ("pkj: packages uninstalled\n");
     endfunction
 
-    function uninstall_one_package (this, pkgver, inst_dir)
+    function uninstall_one_package (this, pkgver, place)
       %UNINSTALL_ONE Uninstall a package
-      if nargin < 3; inst_dir = []; endif
-      inst_dir = this.resolve_installdir (inst_dir);
+      if nargin < 3; place = []; endif
+      place = this.resolve_installdir (place);
 
       mustBeA (pkgver, "packajoozle.internal.PkgVer");
       mustBeScalar (pkgver);
 
       found = false;
-      if ! inst_dir.is_installed (pkgver)
+      if ! place.is_installed (pkgver)
         error ("pkj: package %s is not installed\n", char (pkgver));
       endif
       
       #TODO: Get desc for installed package
-      target = inst_dir.install_paths_for_pkg (pkgver);
+      target = place.install_paths_for_pkg (pkgver);
 
       # Run pre-uninstall hooks
       if packajoozle.internal.Util.isfile (fullfile (target.dir, "packinfo", "on_uninstall.m"))
@@ -445,7 +445,7 @@ classdef PkgManager
       packajoozle.internal.Util.rm_rf (target.dir);
 
       # Update package index
-      inst_dir.record_uninstalled_package (pkgver);
+      place.record_uninstalled_package (pkgver);
 
     endfunction
     
@@ -466,11 +466,11 @@ classdef PkgManager
     endfunction
 
     function out = load_package (this, pkgver)
-      inst_dirs = this.world.get_all_installdirs;
-      for i = 1:numel (inst_dirs)
-        inst_dir = inst_dirs(i);
-        if inst_dir.is_installed (pkgver)
-          inst_dir.load_package (pkgver);
+      places = this.world.get_all_installdirs;
+      for i = 1:numel (places)
+        place = places(i);
+        if place.is_installed (pkgver)
+          place.load_package (pkgver);
           return
         endif
       endfor
@@ -605,9 +605,9 @@ function prepare_installation (desc, build_dir)
   endif
 
   ## If the directory "inst" doesn't exist, we create it.
-  inst_dir = fullfile (build_dir, "inst");
-  if (! myisfolder (inst_dir))
-    [status, msg] = mkdir (inst_dir);
+  place = fullfile (build_dir, "inst");
+  if (! myisfolder (place))
+    [status, msg] = mkdir (place);
     if (status != 1)
       packajoozle.internal.Util.rm_rf (desc.dir);
       error ("pkj: the 'inst' directory did not exist and could not be created: %s\n",
@@ -872,15 +872,15 @@ endfunction
 
 function create_pkgadddel (desc, build_dir, nm, target)
 
-  inst_dir = target.dir;
-  instpkg = fullfile (inst_dir, nm);
+  place = target.dir;
+  instpkg = fullfile (place, nm);
   instfid = fopen (instpkg, "at"); # append to support PKG_ADD at inst/
   ## If it exists, most of the PKG_* file should go into the
   ## architecture dependent directory so that the autoload/mfilename
   ## commands work as expected.  The only part that doesn't is the
   ## part in the main directory.
   archdir = target.arch_dir;
-  if myisfolder (archdir) && ! isequal (inst_dir, archdir)
+  if myisfolder (archdir) && ! isequal (place, archdir)
     archpkg = fullfile (archdir, nm);
     archfid = fopen (archpkg, "at");
   else

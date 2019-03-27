@@ -354,9 +354,9 @@ function prepare_installation (desc, packdir)
   endif
 
   ## If the directory "inst" doesn't exist, we create it.
-  inst_dir = fullfile (packdir, "inst");
-  if (! isfolder (inst_dir))
-    [status, msg] = mkdir (inst_dir);
+  place = fullfile (packdir, "inst");
+  if (! isfolder (place))
+    [status, msg] = mkdir (place);
     if (status != 1)
       rmdir (desc.dir, "s");
       error ("pkj: the 'inst' directory did not exist and could not be created: %s",

@@ -26,7 +26,7 @@
 classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
 
   properties (SetAccess = private)
-    inst_dir_map = struct
+    place_map = struct
     % Cellstr containing tags for this' instdirs
     search_order = {}
     % Default location for install/uninstall operations
@@ -100,14 +100,14 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
           strjoin(this.search_order, ", "), this.default_install_place)};
         for i_tag = 1:numel (this.search_order)
           tag = this.search_order{i_tag};
-          inst_dir = this.get_installdir_by_tag (tag);
+          place = this.get_installdir_by_tag (tag);
           str = [str; {
             ["  " tag ":"]
-            sprintf("    prefix: %s", inst_dir.prefix)
-            sprintf("    arch_prefix: %s", inst_dir.arch_prefix)
-            sprintf("    index_file: %s", inst_dir.index_file)
-            sprintf("    default package_list_var_name: %s", inst_dir.package_list_var_name)
-            sprintf("    actual package_list_var_name: %s", inst_dir.actual_package_list_var_name)
+            sprintf("    prefix: %s", place.prefix)
+            sprintf("    arch_prefix: %s", place.arch_prefix)
+            sprintf("    index_file: %s", place.index_file)
+            sprintf("    default package_list_var_name: %s", place.package_list_var_name)
+            sprintf("    actual package_list_var_name: %s", place.actual_package_list_var_name)
           }];
         endfor
         printf("%s", strjoin (str, "\n"));
@@ -142,14 +142,14 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       out = strs{1};
     endfunction
 
-    function this = register_installdir (this, tag, inst_dir)
-      mustBeA (inst_dir, "packajoozle.internal.InstallPlace");
+    function this = register_installdir (this, tag, place)
+      mustBeA (place, "packajoozle.internal.InstallPlace");
       if ismember (tag, this.search_order)
         warning ("InstallWorld.register_installdir: replacing existing instdir '%s'", tag);
       else
         this.search_order{end+1} = tag;
       endif
-      this.inst_dir_map.(tag) = inst_dir;
+      this.place_map.(tag) = place;
     endfunction
 
     function out = tags (this)
@@ -160,32 +160,32 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       if ! ismember (tag, this.search_order)
         error ("InstallWorld.get_installdir_by_tag: no such instdir: '%s'", tag);
       endif
-      out = this.inst_dir_map.(tag);
+      out = this.place_map.(tag);
     endfunction
 
     function out = get_all_installdirs (this)
       c = {};
       for i = 1:numel (this.search_order)
-        c{i} = this.inst_dir_map.(this.search_order{i});
+        c{i} = this.place_map.(this.search_order{i});
       endfor
       out = objvcat (c{:});
     endfunction
 
     function out = list_installed_packages (this, format = "pkgver")
       # Returns list as PkgVers
-      inst_dirs = this.get_all_installdirs;
+      places = this.get_all_installdirs;
       switch format
         case "pkgver"
-          out = inst_dirs(1).get_package_list;
-          for i = 2:numel (inst_dirs)
-            out = objvcat (out, inst_dirs(i).get_package_list);
+          out = places(1).get_package_list;
+          for i = 2:numel (places)
+            out = objvcat (out, places(i).get_package_list);
           endfor
         case "desc"
-          out = inst_dirs(1).get_package_list_descs;
-          out = this.decorate_descs (out, inst_dirs(1).tag);
-          for i = 2:numel (inst_dirs)
-            descs = inst_dirs(i).get_package_list_descs;
-            descs = this.decorate_descs (descs, inst_dirs(i).tag);
+          out = places(1).get_package_list_descs;
+          out = this.decorate_descs (out, places(1).tag);
+          for i = 2:numel (places)
+            descs = places(i).get_package_list_descs;
+            descs = this.decorate_descs (descs, places(i).tag);
             out = [out descs];
           endfor
         otherwise
@@ -193,9 +193,9 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       endswitch
     endfunction
     
-    function descs = decorate_descs (this, descs, inst_dir)
+    function descs = decorate_descs (this, descs, place)
       for i = 1:numel (descs)
-        descs{i}.inst_dir = inst_dir;
+        descs{i}.place = place;
       endfor      
     endfunction
 
@@ -247,11 +247,11 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
     endfunction
 
     function out = loaded_packages (this)
-      inst_dirs = this.get_all_installdirs;
+      places = this.get_all_installdirs;
       out = {};
-      for i = 1:numel (inst_dirs)
-        inst_dir = inst_dirs(i);
-        out{i} = inst_dir.loaded_packages;
+      for i = 1:numel (places)
+        place = places(i);
+        out{i} = place.loaded_packages;
       endfor
       out = unique (objvcat (out{:}));
     endfunction
@@ -259,9 +259,9 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
     function out = is_loaded (this, pkgvers)
       pkgvers = makeItBeA ("packajoozle.internal.PkgVer");
       out = false (size (pkgvers));
-      inst_dirs = this.get_all_installdirs;
-      for i = 1:numel (inst_dirs)
-        out = out | inst_dirs(i).is_loaded (pkgvers);
+      places = this.get_all_installdirs;
+      for i = 1:numel (places)
+        out = out | places(i).is_loaded (pkgvers);
       endfor
     endfunction
 
@@ -274,13 +274,13 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       endif
       # TODO: Resolve dependencies, add deps, and choose a load order based on dependencies
       fprintf ("pkj: loading: %s\n", dispstr (pkgvers));
-      inst_dirs = this.get_all_installdirs;
+      places = this.get_all_installdirs;
       for i_pkg = 1:numel (pkgvers)
         pkgver = pkgvers(i_pkg);
         found = false;
-        for i_inst_dir = 1:numel (inst_dirs)
-          if inst_dirs(i_inst_dir).is_installed (pkgver)
-            inst_dirs(i_inst_dir).load_package (pkgver);
+        for i_place = 1:numel (places)
+          if places(i_place).is_installed (pkgver)
+            places(i_place).load_package (pkgver);
             found = true;
             break
           endif
@@ -293,13 +293,13 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
 
     function [out, unmatched_reqs] = load_packages_matching (this, pkgreqs)
       pkgreqs = makeItBeA (pkgreqs, "packajoozle.internal.PkgVerReq");
+      printf ("pkj: load: looking for packages matching: %s\n", dispstr (pkgreqs));
       # TODO: Handle dependencies
       [pkgvers, unmatched_reqs] = this.list_installed_matching (pkgreqs);
       if ! isempty (unmatched_reqs)
-        error ("pkj: no matching packages installed: %s\n", ...
+        error ("pkj: load: no matching packages installed: %s\n", ...
           strjoin (dispstrs (unmatched_reqs), ", "));
       endif
-      printf( "load_packages_matching: matched: %s\n", dispstr (pkgvers));
       this.load_packages (pkgvers);
       out = pkgvers;
     endfunction
@@ -308,11 +308,11 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       # TODO: Handle dependencies. Packages should be unloaded in reverse
       # dependency order.
       unloaded = {};
-      inst_dirs = this.get_all_installdirs;
-      for i = 1:numel (inst_dir)
-        inst_dir = inst_dirs(i);
-        tf = inst_dir.is_loaded (pkgvers);
-        inst_dir.unload_packages (pkgvers(tf));
+      places = this.get_all_installdirs;
+      for i = 1:numel (place)
+        place = places(i);
+        tf = place.is_loaded (pkgvers);
+        place.unload_packages (pkgvers(tf));
         unloaded{end+1} = pkgvers(tf);
       endfor
       unloaded = unique(objvcat (unloaded{:}));
@@ -327,20 +327,20 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       out = this.unload_packages (loaded);
     endfunction
 
-    function out = uninstall_packages_matching (this, pkgreqs, inst_dir_name)
+    function out = uninstall_packages_matching (this, pkgreqs, place_name)
       # This method lives on World, and not InstallPlace, so it can detect dependency
       # breakage considering packages left in all places, not just the one where
       # uninstallation is happening.
-      # TODO: Support uninstallation across multiple inst_dirs at the same time
+      # TODO: Support uninstallation across multiple places at the same time
       # TODO: Dependency ordering.
       narginchk(3, 3);
       pkgreqs = makeItBeA (pkgreqs, "packajoozle.internal.PkgVerReq");
-      inst_dir = this.get_installdir_by_tag (inst_dir_name);
-      pkgvers = inst_dir.list_packages_matching (pkgreqs);
-      if any (inst_dir.is_loaded (pkgvers))
-        inst_dir.unload_packages (pkgvers);
+      place = this.get_installdir_by_tag (place_name);
+      pkgvers = place.list_packages_matching (pkgreqs);
+      if any (place.is_loaded (pkgvers))
+        place.unload_packages (pkgvers);
       endif
-      inst_dir.uninstall_packages (pkgvers);
+      place.uninstall_packages (pkgvers);
     endfunction
 
   endmethods

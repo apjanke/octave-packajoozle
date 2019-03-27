@@ -563,7 +563,7 @@ function display_pkg_desc_list (descs)
   endfor
   s.PackageName = name_with_load_indicator;
   s.Version = cellfun (@(x) {x.version}, descs);
-  s.Place = cellfun (@(x) {x.inst_dir}, descs);
+  s.Place = cellfun (@(x) {x.place}, descs);
   s.InstallationDir = cellfun (@(x) {x.dir}, descs);
 
   s.InstallationDir = abbreviate_dir_path (s.InstallationDir);
