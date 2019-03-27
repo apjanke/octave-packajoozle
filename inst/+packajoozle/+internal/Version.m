@@ -221,10 +221,10 @@ classdef Version
           max_n_els = max (max_n_els, numel (all_els{i}));
         endfor
         for i = 1:numel (A)
-          A(i).elements(end+1:max_n_els) = 0;
+          A(i).elements(numel(A(i).elements)+1:max_n_els) = 0;
         endfor
         for i = 1:numel (B)
-          B(i).elements(end+1:max_n_els) = 0;
+          B(i).elements(numel(B(i).elements)+1:max_n_els) = 0;
         endfor
       endif
     endfunction
