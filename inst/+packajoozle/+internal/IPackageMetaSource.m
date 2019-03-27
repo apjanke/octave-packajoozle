@@ -28,7 +28,7 @@
 ## Note: this is supposed to be an abstract class, but I couldn't get that to
 ## work in Octave 4.4.1
 
-classdef IPackageMetaSource
+classdef IPackageMetaSource < handle
 
   methods
 

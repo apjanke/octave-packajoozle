@@ -23,7 +23,7 @@
 ##
 ## @end deftypefn
 
-classdef InstallWorld < packajoozle.internal.IPackageMetaSource
+classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
 
   properties (SetAccess = private)
     inst_dir_map = struct
@@ -34,6 +34,11 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource
   endproperties
 
   methods (Static)
+
+    function out = shared
+      persistent instance = packajoozle.internal.InstallWorld.default;
+      out = instance;
+    endfunction
 
     function out = default ()
       % The default instdir world used by Octave; including "user" and "global"

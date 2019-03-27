@@ -26,7 +26,7 @@
 ##
 ## @end deftypefn
 
-classdef InstallPlace
+classdef InstallPlace < handle
 
   properties
     % A tag or name identifying this install dir

@@ -30,8 +30,7 @@ classdef PkgManager
 
   properties
     forge = packajoozle.internal.OctaveForgeClient
-    world = packajoozle.internal.InstallWorld.default
-    default_installdir_tag = "user"
+    world = packajoozle.internal.InstallWorld.shared
     verbose = false
   endproperties
 
@@ -65,6 +64,10 @@ classdef PkgManager
       endif
     endfunction
 
+    function out = default_installdir_tag (this)
+      out = this.world.default_install_place;
+    endfunction
+    
     function out = resolve_installdir (this, inst_dir)
       if isempty (inst_dir)
         inst_dir = this.default_installdir_tag;
