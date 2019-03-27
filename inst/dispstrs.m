@@ -15,7 +15,7 @@
 
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {strs =} dispstrs (@code{x})
+## @deftypefn {Function File} {@var{strs} =} dispstrs (@var{x})
 ##
 ## Create display strings for arbitrary array.
 ##
