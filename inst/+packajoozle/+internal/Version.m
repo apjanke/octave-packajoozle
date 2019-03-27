@@ -37,7 +37,7 @@ classdef Version
     version_regexp_pat = '[\d\.]+(?=\+\S*)?'
   endproperties
 
-  properties
+  properties (SetAccess = private)
     % The full string that represents this version
 		string = ""
     % The numeric elements in this version (double vector)
@@ -66,7 +66,7 @@ classdef Version
         this = ver_str;
         return;
       endif
-      s = packajoozle.internal.Version.parse_version_str (ver_str);
+      s = packajoozle.internal.Version.parse_version_str (ver_str)
       this.string = ver_str;
       this.elements = s.elements;
       this.suffix = s.suffix;
@@ -95,7 +95,7 @@ classdef Version
       if ! isscalar (this)
         error ("Version: char() only works on scalar Version objects");
       endif
-      out = this.string;
+      out = sprintf ("%s (%s %s)", this.string, mat2str(this.elements), this.suffix);
     endfunction
 
     function out = cmp (A, B)
@@ -103,7 +103,7 @@ classdef Version
       [A, B] = promote (A, B);
       packajoozle.internal.Util.mustBeCompatibleSizes (A, B);
 
-      [keys_a, keys_b] = proxykeys (A, B);
+      [keys_a, keys_b] = proxykeys (A, B)
       tf_lt = keys_a < keys_b;
       tf_eq = keys_a == keys_b;
       tf_gt = keys_a > keys_b;
@@ -111,6 +111,7 @@ classdef Version
       out(tf_lt) = -1;
       out(tf_eq) = 0;
       out(tf_gt) = 1;
+      fprintf("cmp (%s, %s) => %d\n", char (A), char (B), out);
     endfunction
 
     function out = lt (A, B)

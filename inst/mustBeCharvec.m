@@ -22,7 +22,7 @@
 ##
 ## @end deftypefn
 
-function mustBeCharvec (x)
+function x = mustBeCharvec (x)
   if ! (ischar (x) && (isrow (x) || isequal (size (x), [0 0])))
     name = inputname (1);
     if isempty (name)

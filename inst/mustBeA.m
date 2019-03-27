@@ -23,7 +23,7 @@
 ##
 ## @end deftypefn
 
-function mustBeA (x, type)
+function x = mustBeA (x, type)
   if ! isa (x, type)
     name = inputname (1);
     if isempty (name)

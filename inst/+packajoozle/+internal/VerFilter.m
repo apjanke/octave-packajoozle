@@ -31,6 +31,8 @@ classdef VerFilter
 
   properties (Constant, Hidden)
     valid_operators = { "<", "<=", "==", "!=", "~=" ">=", ">" }
+    ver_filter_pat = ['^\s*(<|<=|=|==|\!=|~=|>|>=)\s*(' ...
+      packajoozle.internal.Version.version_regexp_pat ')\s*$']
   endproperties
 
   properties
@@ -39,13 +41,19 @@ classdef VerFilter
   endproperties
 
   methods (Static)
+
+    function out = looks_like_ver_filter_str (strs)
+      strs = cellstr (strs);
+      [ix, tok] = regexp (strs, packajoozle.internal.VerFilter.ver_filter_pat);
+      out = ! cellfun (@(x) isempty(x), ix);
+    endfunction
+
     function out = parse_ver_filter (strs)
       strs = cellstr (strs);
       if isempty (strs)
         out = [];
         return
       endif
-      ver_pat = packajoozle.internal.Version.version_regexp_pat;
       c = cell (size (strs));
       for i = 1:numel (strs)
         str = strs{i};
@@ -53,8 +61,8 @@ classdef VerFilter
           out = packajoozle.internal.VerFilter (str);
           return
         endif
-        [ix, tok] = regexp (str, ['^\s*(<|<=|=|==|\!=|~=|>|>=)\s*(' ver_pat ')'], ...
-          "match", "tokens");
+        [ix, tok] = regexp (str, packajoozle.internal.VerFilter.ver_filter_pat, ...
+          "start", "tokens");
         if isempty (ix)
           error ("VerFilter: invalid version filter string: '%s'", str);
         endif
@@ -81,15 +89,41 @@ classdef VerFilter
 
   methods
 
-    function this = VerFilter (version, operator = "==")
+    function this = VerFilter (arg, operator = "==")
       if nargin == 0
         return
+      elseif nargin == 1
+        if isa (arg, "packajoozle.internal.Version")
+          mustBeScalar (arg);
+          this.version = arg;
+          this.operator = '==';
+        elseif ischar (arg)
+          str = mustBeCharvec (arg);
+          if packajoozle.internal.VerFilter.looks_like_ver_filter_str (str)
+            obj = packajoozle.internal.VerFilter.parse_ver_filter (str);
+            this.version = obj.version;
+            this.operator = obj.operator;
+          else
+            this.version = packajoozle.internal.Version (str);
+            this.operator = '==';   
+          endif
+        else
+          error ("Invalid arg: Expecting char or packajoozle.internal.Version, got a %s", ...
+            class (arg));
+        endif
+      else
+        this.version = makeItBeA (arg, "packajoozle.internal.Version");
+        mustBeCharvec (operator);
+        this.operator = packajoozle.internal.VerFilter.canonicalize_operator (operator);
       endif
-      version = packajoozle.internal.Version (version);
-      mustBeCharvec (operator);
-      operator = packajoozle.internal.VerFilter.canonicalize_operator (operator);
-      this.version = version;
-      this.operator = operator;
+    endfunction
+
+    function this = set.operator (this, operator)
+      this.operator = packajoozle.internal.VerFilter.canonicalize_operator (operator);
+    endfunction
+
+    function this = set.version (this, version)
+      this.version = makeItBeA (version, "packajoozle.internal.Version");
     endfunction
 
     function disp (this)
@@ -153,7 +187,10 @@ classdef VerFilter
         case ">"
           out = (isequal (b.operator, ">") && a.version >= b.version) ...
             || (isequal (b.operator, ">=") && a.version > b.version);
+        otherwise
+          error ("internal error: BUG: unexpected operator: %s", a.operator);
       endswitch
+      fprintf ("%s subsumes %s: %d\n", char(a), char(b), out);
     endfunction
 
     function out = to_filter_set (this)

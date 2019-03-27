@@ -37,7 +37,7 @@
 classdef VerFilterSet
 
   properties
-    filters = [];
+    filters = packajoozle.internal.VerFilter;
   endproperties
 
   methods
@@ -63,7 +63,7 @@ classdef VerFilterSet
     endfunction
 
     function out = disp (this)
-      disp (disptr (this));
+      disp (dispstr (this));
     endfunction
 
     function out = dispstr (this)
@@ -78,12 +78,7 @@ classdef VerFilterSet
     function out = dispstrs (this)
       out = cell (size (this));
       for i = 1:numel (this)
-        #TODO: Can this be eliminated by making the base filter set ">= 0.0.0"?
-        if isempty (this(i).filters)
-          out{i} = "[]";
-        else
-          out{i} = strjoin (dispstrs (this(i).filters), ", ");
-        endif
+        out{i} = strjoin (dispstrs (this(i).filters), ", ");
       endfor
     endfunction
 
@@ -96,23 +91,22 @@ classdef VerFilterSet
       out = strs{1};
     endfunction
 
-    function out = add_filter (this, filter)
+    function this = add_filter (this, filter)
       mustBeScalar (this);
       filter = makeItBeA (filter, "packajoozle.internal.VerFilter");
       for i_new = 1:numel (filter)
         new_filter = filter(i_new);
         tf_subsumed_by_new = [];
         new_is_subsumed = false;
-        for i_current = 1:numel (this.filters)
+        for i = 1:numel (this.filters)
           if this.filters(i).subsumes (new_filter)
             new_is_subsumed = true;
-            #TODO: Check for subsumation going the other wah
           endif
           if new_filter.subsumes (this.filters(i))
             tf_subsumed_by_new(i) = true;
           endif
         endfor
-        if new_is_subsumed && ! any (tf_subsumed_by_new)
+        if new_is_subsumed && any (tf_subsumed_by_new)
           error (["VerFilterSet.add_filter: new filter both subsumes and is subsumed. " ...
             "I don't know how to handle that situation.\n" ...
             "New filter: %s\n" ...
