@@ -253,7 +253,8 @@ classdef PkgReviewer < handle
             #this.bad ("Name in configure.ac AC_INIT(...) does not match DESCRIPTION");
           endif
           if ! isequal (ac_ver, desc.version)
-            this.bad ("Version in configure.ac AC_INIT(...) does not match version in DESCRIPTION");
+            this.bad (["Version in configure.ac AC_INIT(...) (%s) " ...
+              "does not match version in DESCRIPTION (%s)"], ac_ver, desc.version);
           endif
         endif
       endif
