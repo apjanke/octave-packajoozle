@@ -21,6 +21,10 @@
 ## Raises an error if the input @var{x} is not of the specified @var{type}
 ## or a subclass.
 ##
+## @var{label} is an optional input that determines how the input will be described in
+## error messages. If not supplied, @var{inputname (1)} is used, and if that is
+## empty, it falls back to "input".
+##
 ## @end deftypefn
 
 function x = mustBeA (x, type)

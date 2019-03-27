@@ -14,18 +14,25 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {} mustBeScalar (x)
+## @deftypefn {Function File} {@var{x} =} mustBeScalar (@var{x}, @var{label})
 ##
 ## Requires that input is scalar.
 ##
 ## Raises an error if the input @code{x} is not scalar, as determined by
 ## @code{isscalar (x)}.
 ##
+## @var{label} is an optional input that determines how the input will be described in
+## error messages. If not supplied, @var{inputname (1)} is used, and if that is
+## empty, it falls back to "input".
+##
 ## @end deftypefn
 
-function x = mustBeScalar (x)
+function x = mustBeScalar (x, label)
   if ! isscalar (x)
-    label = inputname (1);
+    if nargin < 2; label = []; endif
+    if isempty (label)
+      label = inputname (1);
+    endif
     if isempty (label)
       label = "input";
     endif

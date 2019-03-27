@@ -143,7 +143,7 @@
 ##
 ## @example
 ## pkj uninstall -global image
-## @example
+## @end example
 ##
 ## @noindent
 ## removes the @code{image} package from the global installation place.

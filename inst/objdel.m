@@ -14,16 +14,15 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
-
 ## -*- texinfo -*-
-## @deftypefn {Function File} {obj =} objdel (obj, ix)
+## @deftypefn {Function File} {@var{obj} =} objdel (@var{obj}, @var{ix})
 ##
 ## Deletes selected elements from an object array.
 ##
 ## This function just papers over the fact that Octave does not support
 ## the @code{obj(ix) = []} element deletion syntax for objects.
 ##
-## @code{ix} may be a logical or numeric index.
+## @var{ix} may be a logical or numeric index.
 ##
 ## @end deftypefn
 

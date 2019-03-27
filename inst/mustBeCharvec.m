@@ -14,21 +14,30 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {} mustBeCharvec (x)
+## @deftypefn {Function File} {@var{x} =} mustBeCharvec (@var{x}, @var{label})
 ##
 ## Requires that input is a char row vector (Octave's normal string representation).
 ##
-## Raises an error if the input @code{x} is not a char row vector.
+## Raises an error if the input @var{x} is not a char row vector.
+##
+## @var{label} is an optional input that determines how the input will be described in
+## error messages. If not supplied, @var{inputname (1)} is used, and if that is
+## empty, it falls back to "input".
+##
+## Returns @var{x} unmodified for convenience.
 ##
 ## @end deftypefn
 
-function x = mustBeCharvec (x)
+function x = mustBeCharvec (x, label)
   if ! (ischar (x) && (isrow (x) || isequal (size (x), [0 0])))
-    name = inputname (1);
-    if isempty (name)
-      name = "input";
+    if nargin < 2; label = []; endif
+    if isempty (label)
+      label = inputname (1);
+    endif
+    if isempty (label)
+      label = "input";
     endif
     error ("%s must be a char row vector; got a %s %s", ...
-      name, size2str (size (x)), class (x));
+      label, size2str (size (x)), class (x));
   endif
 endfunction

@@ -14,7 +14,7 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {@code{out} = } makeItBeA (@code{x}, @var{type})
+## @deftypefn {Function File} {@var{out} = } makeItBeA (@var{x}, @var{type})
 ##
 ## Converts input to given type if it is not one already.
 ##

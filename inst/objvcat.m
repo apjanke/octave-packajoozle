@@ -14,6 +14,21 @@
 ## You should have received a copy of the GNU General Public License
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
+## -*- texinfo -*-
+## @deftypefn {Function File} {@var{out} =} objdel (@var{x}, @dots{})
+##
+## Concatenates object array vectors.
+##
+## This function just papers over the fact that Octave does not support
+## the @code{[obj1 obj2]} concatenation syntax for objects.
+##
+## @var{x} may be an object of any type. The additional inputs may be any
+## type that is assignment compatible with @var{x}, but they will typically
+## just be more objects of the same type.
+##
+## @end deftypefn
+
+
 function out = objvcat (varargin)
   # Hack to concatenate object vectorss because Octave doesn't support it as of 5.1
   #
