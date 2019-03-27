@@ -293,7 +293,6 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
 
     function [out, unmatched_reqs] = load_packages_matching (this, pkgreqs)
       pkgreqs = makeItBeA (pkgreqs, "packajoozle.internal.PkgVerReq");
-      printf ("pkj: loading packages matching: %s\n", dispstr (pkgreqs));
       # TODO: Handle dependencies
       [pkgvers, unmatched_reqs] = this.list_installed_matching (pkgreqs);
       if ! isempty (unmatched_reqs)
