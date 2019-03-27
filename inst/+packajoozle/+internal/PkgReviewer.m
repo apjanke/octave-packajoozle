@@ -329,6 +329,10 @@ classdef PkgReviewer < handle
 
       # Ran all checks
       this.say ("All checks finished");
+
+      if this.ok
+        packajoozle.internal.Util.rm_rf (tmp_place_prefix);
+      endif
     endfunction
 
     function say (this, fmt, varargin)
