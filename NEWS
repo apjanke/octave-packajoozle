@@ -1,0 +1,9 @@
+
+===============================================================================
+packajoozle-0.1.0   Release Date: 2016-04-22   Release Manager: Andrew Janke
+===============================================================================
+
+ ** Initial alpha release of packajoozle
+ ** Supports versioned package installations, multiple installation directory
+    locations, expanded Octave Forge discovery, and `pkj review` for Forge
+    maintainers.
