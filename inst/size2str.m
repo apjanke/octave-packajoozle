@@ -14,11 +14,11 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {@code{out} =} size2str (@code{sz})
+## @deftypefn {Function File} {@var{out} =} size2str (@var{sz})
 ##
 ## Format an array size for display.
 ##
-## sz is an array of dimension sizes, in the format returned by @code{size}.
+## @var{sz} is an array of dimension sizes, in the format returned by @code{size}.
 ##
 ## Returns a char row vector.
 ##
