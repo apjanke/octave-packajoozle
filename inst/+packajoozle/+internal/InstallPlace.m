@@ -356,8 +356,8 @@ classdef InstallPlace < handle
 
       # Delete package installation directories
       if ! packajoozle.internal.Util.isfolder (target.dir)
-        warning ("pkj: directory %s previously lost; marking %s as uninstalled\n", ...
-         target.dir, char (pkgver));
+        warning ("pkj: directory %s previously removed; marking %s as uninstalled\n", ...
+          target.dir, char (pkgver));
       endif
       dirs = {target.arch_dir target.dir};
       for i = 1:numel (dirs)
