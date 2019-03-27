@@ -14,16 +14,16 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Class Constructor} {obj =} InstallDirWorld ()
+## @deftypefn {Class Constructor} {obj =} InstallWorld ()
 ##
-## A set of named InstallDirs.
+## A set of named InstallPlaces.
 ##
-## An InstallDirWorld represents the set of all InstallDirs known to an
+## An InstallWorld represents the set of all InstallPlaces known to an
 ## Octave installation/session, and the set of packages in this "world".
 ##
 ## @end deftypefn
 
-classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
+classdef InstallWorld < packajoozle.internal.IPackageMetaSource
 
   properties (SetAccess = private)
     inst_dir_map = struct
@@ -37,19 +37,19 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
 
     function out = default ()
       % The default instdir world used by Octave; including "user" and "global"
-      % InstallDirs. This is the world seen by the original `pkg` utility.
-      out = packajoozle.internal.InstallDirWorld;
+      % InstallPlaces. This is the world seen by the original `pkg` utility.
+      out = packajoozle.internal.InstallWorld;
 
-      paths = packajoozle.internal.InstallDirWorld.default_paths;
+      paths = packajoozle.internal.InstallWorld.default_paths;
 
       # Standard user place
-      user_dir = packajoozle.internal.InstallDir (paths.user.index_file, ...
+      user_dir = packajoozle.internal.InstallPlace (paths.user.index_file, ...
         paths.user.prefix, paths.user.arch_prefix, "user");
       user_dir.package_list_var_name = "local_packages";
       out = out.register_installdir ("user", user_dir);
 
       # Standard global place
-      global_dir = packajoozle.internal.InstallDir (paths.global.index_file, ...
+      global_dir = packajoozle.internal.InstallPlace (paths.global.index_file, ...
         paths.global.prefix, paths.global.arch_prefix, "global");
       #TODO: If global install location has been aliased to user install location,
       # this will break. Probably need to probe the package index file to see
@@ -62,7 +62,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
       if ! ismember (pfx, {user_dir.prefix global_dir.prefix})
         # There's no `pkg` query to tell which index file is being used with the
         # custom prefix. I guess it'd be the local one?
-        custom_dir = packajoozle.internal.InstallDir (paths.user.index_file, ...
+        custom_dir = packajoozle.internal.InstallPlace (paths.user.index_file, ...
           pfx, arch_pfx, "custom");
         out = out.register_installdir ("custom", custom_dir);
         out.default_install_place = "custom";
@@ -83,7 +83,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
 
   methods
 
-    function this = InstallDirWorld ()
+    function this = InstallWorld ()
       if nargin == 0
         return
       endif
@@ -138,9 +138,9 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
     endfunction
 
     function this = register_installdir (this, tag, inst_dir)
-      mustBeA (inst_dir, "packajoozle.internal.InstallDir");
+      mustBeA (inst_dir, "packajoozle.internal.InstallPlace");
       if ismember (tag, this.search_order)
-        warning ("InstallDirWorld.register_installdir: replacing existing instdir '%s'", tag);
+        warning ("InstallWorld.register_installdir: replacing existing instdir '%s'", tag);
       else
         this.search_order{end+1} = tag;
       endif
@@ -153,7 +153,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
 
     function out = get_installdir_by_tag (this, tag)
       if ! ismember (tag, this.search_order)
-        error ("InstallDirWorld.get_installdir_by_tag: no such instdir: '%s'", tag);
+        error ("InstallWorld.get_installdir_by_tag: no such instdir: '%s'", tag);
       endif
       out = this.inst_dir_map.(tag);
     endfunction
@@ -184,7 +184,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
             out = [out descs];
           endfor
         otherwise
-          error ("InstallDirWorld.list_installed_packages: invalid format: '%s'", format);
+          error ("InstallWorld.list_installed_packages: invalid format: '%s'", format);
       endswitch
     endfunction
     
@@ -235,7 +235,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
       pkgver = makeItBeA(pkgver, "packajoozle.internal.PkgVer");
       descs = this.descs_for_installed_package (pkgver);
       if isempty (descs)
-        error ("InstallDirWorld.get_package_description: package not installed: %s", ...
+        error ("InstallWorld.get_package_description: package not installed: %s", ...
           char (pkgver));
       endif
       out = descs{1};
@@ -324,7 +324,7 @@ classdef InstallDirWorld < packajoozle.internal.IPackageMetaSource
     endfunction
 
     function out = uninstall_packages_matching (this, pkgreqs, inst_dir_name)
-      # This method lives on World, and not InstallDir, so it can detect dependency
+      # This method lives on World, and not InstallPlace, so it can detect dependency
       # breakage considering packages left in all places, not just the one where
       # uninstallation is happening.
       # TODO: Support uninstallation across multiple inst_dirs at the same time

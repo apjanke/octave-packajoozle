@@ -434,7 +434,7 @@ endfunction
 function uninstall_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
   pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
-  install_place = opts.install_place
+  install_place = opts.install_place;
   if isempty (install_place)
     install_place = pkgman.world.default_install_place;
   endif

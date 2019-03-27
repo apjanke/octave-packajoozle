@@ -14,19 +14,19 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Class Constructor} {obj =} InstallDir ()
+## @deftypefn {Class Constructor} {obj =} InstallPlace ()
 ##
 ## A local directory where pkg package installations reside.
 ##
-## An InstallDir is a local filesystem directory hierarchy where pkg-installed
+## An InstallPlace is a local filesystem directory hierarchy where pkg-installed
 ## packages reside.
 ##
-## An InstallDir is actually multiple directories, including a base prefix,
+## An InstallPlace is actually multiple directories, including a base prefix,
 ## an arch-specific prefix, and maybe more.
 ##
 ## @end deftypefn
 
-classdef InstallDir
+classdef InstallPlace
 
   properties
     % A tag or name identifying this install dir
@@ -47,7 +47,7 @@ classdef InstallDir
 
   methods
 
-    function this = InstallDir (index_file, prefix, arch_prefix, tag)
+    function this = InstallPlace (index_file, prefix, arch_prefix, tag)
       if nargin == 0
         return
       endif
@@ -106,7 +106,7 @@ classdef InstallDir
       out = cell (size (this));
       for i = 1:numel (this)
         t = this(i);
-        out{i} = sprintf(["InstallDir: %s\n" ...
+        out{i} = sprintf(["InstallPlace: %s\n" ...
           "prefix:      %s\n" ...
           "arch_prefix: %s\n" ...
           "index_file:  %s\n" ...
@@ -148,7 +148,7 @@ classdef InstallDir
         case "pkgver"
           out = descs_to_pkgvers (descs);
         otherwise
-          error ("InstallDir.get_package_list: Invalid format: '%s'", format);
+          error ("InstallPlace.get_package_list: Invalid format: '%s'", format);
       endswitch
     endfunction
 
@@ -303,7 +303,7 @@ classdef InstallDir
         pkgreqs = pkgspecs;
         pkgvers = this.list_packages_matching (pkgreqs);
       else
-        error (["InstallDir.uninstall_packages: invalid input: pkgspecs must be" ...
+        error (["InstallPlace.uninstall_packages: invalid input: pkgspecs must be" ...
           "a PkgVer or PkgVerReq; got a %s"], class (pkgspecs));
       endif
       printf ("pkj: uninstalling: %s from %s\n", dispstr (pkgvers), this.tag);
