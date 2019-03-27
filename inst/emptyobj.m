@@ -26,5 +26,6 @@
 ## Author:  Andrew Janke
 
 function empty_obj = emptyobj (obj)
+  %EMPTYOBJ Produce an empty object array from a nonempty one
   empty_obj = obj([]);
 endfunction

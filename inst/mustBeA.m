@@ -14,11 +14,11 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {} mustBeA (x, type)
+## @deftypefn {Function File} {@var{x} =} mustBeA (@var{x}, @var{type})
 ##
 ## Requires that input is of a given type.
 ##
-## Raises an error if the input @code{x} is not of the specified @code{type}
+## Raises an error if the input @var{x} is not of the specified @var{type}
 ## or a subclass.
 ##
 ## @end deftypefn

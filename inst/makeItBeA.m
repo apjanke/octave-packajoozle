@@ -14,12 +14,12 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {out = } makeItBeA (x, type)
+## @deftypefn {Function File} {@code{out} = } makeItBeA (@code{x}, @var{type})
 ##
 ## Converts input to given type if it is not one already.
 ##
 ## Ensures that the input x is of the given type. If it is not already that
-## type (as indicated by isa (x, type)), it is converted by calling
+## type (as indicated by @code{isa (x, type))}, it is converted by calling
 ## the one-argument constructor for type.
 ##
 ## @end deftypefn
