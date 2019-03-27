@@ -338,7 +338,7 @@ function varargout = pkj (varargin)
       endif
     case "add-place"
       add_place (opts);
-    case "show-world"
+    case "world"
       if nargout > 0
         varargout = {show_world(opts)};
       else
@@ -448,7 +448,7 @@ endfunction
 
 function out = show_world (opts)
   if ! isempty (opts.targets)
-    error ("pkj: show-world does not take arguments\n");
+    error ("pkj: world does not take arguments\n");
   endif
   world = packajoozle.internal.InstallWorld.shared;
   if nargout > 0
@@ -872,7 +872,7 @@ function opts = parse_inputs (args_in)
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
     "describe", "prefix", "default-place", "build", "rebuild", ...
-    "help", "test", "contents", "depdiagram", "review", "show-world", ...
+    "help", "test", "contents", "depdiagram", "review", "world", ...
     "add-place"};
   valid_options = {"forge", "file", "nodeps", "forge", "verbose", ...
     "listversions", "help", "devel", "fail-fast", };
