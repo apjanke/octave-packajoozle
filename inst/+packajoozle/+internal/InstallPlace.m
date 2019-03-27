@@ -14,15 +14,16 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Class Constructor} {obj =} InstallPlace (index_file, prefix, arch_prefix, tag)
+## @deftypefn {Class Constructor} {obj =} InstallPlace (tag, prefix, arch_prefix, index_file)
 ##
 ## A local directory where pkg package installations reside.
 ##
 ## An InstallPlace is a local filesystem directory hierarchy where pkg-installed
 ## packages reside.
 ##
-## An InstallPlace is actually multiple directories, including a base prefix,
-## an arch-specific prefix, and maybe more.
+## An InstallPlace is actually multiple paths, including a base prefix
+## and an arch-specific prefix, and possibly a custom arbitrary index file
+## location.
 ##
 ## @end deftypefn
 
@@ -41,27 +42,25 @@ classdef InstallPlace < handle
     package_list_var_name = "octave_packages"
   endproperties
 
-  properties (Dependent)
-    index_file
-  endproperties
-
   methods
 
-    function this = InstallPlace (index_file, prefix, arch_prefix, tag)
+    function this = InstallPlace (tag, prefix, arch_prefix, index_file)
       if nargin == 0
         return
       endif
       narginchk (2, 4);
+      mustBeNonempty (tag);
+      mustBeNonempty (prefix);
       if nargin < 3 || isempty (arch_prefix)
         arch_prefix = prefix;
       endif
-      if nargin < 4 || isempty (tag)
-        tag = "unlabelled";
+      if nargin < 4 || isempty (index_file)
+        index_file = fullfile (prefix, 'octave-packages');
       endif
       this.tag = tag;
-      this.index_file = index_file;
       this.prefix = prefix;
       this.arch_prefix = arch_prefix;
+      this.index_file = index_file;
     endfunction
 
     function out = actual_package_list_var_name (this)

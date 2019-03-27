@@ -427,16 +427,16 @@ function add_place (opts)
   if numel (opts.targets) >= 3
     arch_prefix = opts.targets{3};
   else
-    arch_prefix = prefix;
+    arch_prefix = [];
   endif
   if numel (opts.targets) >= 4
     index_file = opts.targets{4};
   else
-    index_file = fullfile (prefix, "octave-packages");
+    index_file = [];
   endif
   world = packajoozle.internal.InstallWorld.shared;
-  place = packajoozle.internal.InstallPlace (index_file, ...
-    prefix, arch_prefix, name);
+  place = packajoozle.internal.InstallPlace (name, ...
+    prefix, arch_prefix, index_file);
   world.register_install_place (name, place);
   fprintf(["Added new install place:\n" ...
     "  Name: %s\n" ...

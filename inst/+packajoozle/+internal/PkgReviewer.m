@@ -262,6 +262,7 @@ classdef PkgReviewer < handle
       # TODO: Turn these pkj() calls into object calls
       # TODO: Install to a temporary InstallPlace so we don't muck around with the
       # user's regular installed packages.
+      place_tmp_prefix = tempname (tempdir, "packajoozle/pkj-review/places/place-");
 
       this.say ("Installing package")
       pkgman = packajoozle.internal.PkgManager;

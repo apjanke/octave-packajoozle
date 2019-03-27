@@ -51,14 +51,14 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       paths = packajoozle.internal.InstallWorld.default_paths;
 
       # Standard user place
-      user_dir = packajoozle.internal.InstallPlace (paths.user.index_file, ...
-        paths.user.prefix, paths.user.arch_prefix, "user");
+      user_dir = packajoozle.internal.InstallPlace ("user", ...
+        paths.user.prefix, paths.user.arch_prefix, paths.user.index_file);
       user_dir.package_list_var_name = "local_packages";
       out = out.register_install_place ("user", user_dir);
 
       # Standard global place
-      global_dir = packajoozle.internal.InstallPlace (paths.global.index_file, ...
-        paths.global.prefix, paths.global.arch_prefix, "global");
+      global_dir = packajoozle.internal.InstallPlace ("global", ...
+        paths.global.prefix, paths.global.arch_prefix, paths.global.index_file);
       #TODO: If global install location has been aliased to user install location,
       # this will break. Probably need to probe the package index file to see
       # what's there.
@@ -70,8 +70,8 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       if ! ismember (pfx, {user_dir.prefix global_dir.prefix})
         # There's no `pkg` query to tell which index file is being used with the
         # custom prefix. I guess it'd be the local one?
-        custom_dir = packajoozle.internal.InstallPlace (paths.user.index_file, ...
-          pfx, arch_pfx, "custom");
+        custom_dir = packajoozle.internal.InstallPlace ("custom", ...
+          pfx, arch_pfx, paths.user.index_file);
         out = out.register_install_place ("custom", custom_dir);
         out.default_install_place = "custom";
       endif
