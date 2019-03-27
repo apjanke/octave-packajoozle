@@ -29,6 +29,9 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
     place_map = struct
     % Cellstr containing tags for this' instdirs
     search_order = {}
+  endproperties
+
+  properties
     % Default location for install/uninstall operations
     default_install_place = "user"
   endproperties
@@ -51,7 +54,7 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       user_dir = packajoozle.internal.InstallPlace (paths.user.index_file, ...
         paths.user.prefix, paths.user.arch_prefix, "user");
       user_dir.package_list_var_name = "local_packages";
-      out = out.register_installdir ("user", user_dir);
+      out = out.register_install_place ("user", user_dir);
 
       # Standard global place
       global_dir = packajoozle.internal.InstallPlace (paths.global.index_file, ...
@@ -60,7 +63,7 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       # this will break. Probably need to probe the package index file to see
       # what's there.
       global_dir.package_list_var_name = "global_packages";
-      out = out.register_installdir ("global", global_dir);
+      out = out.register_install_place ("global", global_dir);
 
       # User-defined custom place, if set in this Octave session
       [pfx,arch_pfx] = pkg('prefix');
@@ -69,7 +72,7 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
         # custom prefix. I guess it'd be the local one?
         custom_dir = packajoozle.internal.InstallPlace (paths.user.index_file, ...
           pfx, arch_pfx, "custom");
-        out = out.register_installdir ("custom", custom_dir);
+        out = out.register_install_place ("custom", custom_dir);
         out.default_install_place = "custom";
       endif
     endfunction
@@ -94,6 +97,13 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       endif
     endfunction
 
+    function set.default_install_place (this, place)
+      if ! ismember (place, this.tags)
+        error ("InstallWorld: set.default_install_place: not a defined place: %s", place);
+      endif
+      this.default_install_place = place;
+    endfunction
+
     function out = disp (this)
       if isscalar (this)
         str = {sprintf("%s: %s (default=%s)", class(this), ...
@@ -110,7 +120,7 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
             sprintf("    actual package_list_var_name: %s", place.actual_package_list_var_name)
           }];
         endfor
-        printf("%s", strjoin (str, "\n"));
+        printf("%s\n", strjoin (str, "\n"));
       else
         disp (dispstr (this));
       endif
@@ -142,10 +152,14 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       out = strs{1};
     endfunction
 
-    function this = register_installdir (this, tag, place)
+    function this = register_install_place (this, tag, place)
       mustBeA (place, "packajoozle.internal.InstallPlace");
+      if ! isequal (tag, place.tag)
+        error ("inconsistent tags: %s vs %s", tag, place.tag);
+      endif
       if ismember (tag, this.search_order)
-        warning ("InstallWorld.register_installdir: replacing existing instdir '%s'", tag);
+        warning ("pkj: replacing existing install place '%s' with %s\n", ...
+          tag, place.prefix);
       else
         this.search_order{end+1} = tag;
       endif

@@ -14,7 +14,7 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Class Constructor} {obj =} InstallPlace ()
+## @deftypefn {Class Constructor} {obj =} InstallPlace (index_file, prefix, arch_prefix, tag)
 ##
 ## A local directory where pkg package installations reside.
 ##
@@ -106,10 +106,11 @@ classdef InstallPlace < handle
       out = cell (size (this));
       for i = 1:numel (this)
         t = this(i);
-        out{i} = sprintf(["InstallPlace: %s\n" ...
-          "prefix:      %s\n" ...
-          "arch_prefix: %s\n" ...
-          "index_file:  %s\n" ...
+        out{i} = sprintf([...
+          "InstallPlace: %s\n" ...
+          "prefix:       %s\n" ...
+          "arch_prefix:  %s\n" ...
+          "index_file:   %s\n" ...
           "package_list_var_name: %s (actual = %s)"], ...
           t.tag, t.prefix, t.arch_prefix, t.index_file, t.package_list_var_name, ...
           t.actual_package_list_var_name);
@@ -267,8 +268,8 @@ classdef InstallPlace < handle
       if ! isempty (to_unload)
         printf("pkj: unloading: %s\n", dispstr (to_unload));
       endif
-      for i = 1:numel (pkgvers)
-        this.unload_package (pkgvers(i));
+      for i = 1:numel (to_unload)
+        this.unload_package (to_unload(i));
       endfor
     endfunction
 
@@ -302,11 +303,15 @@ classdef InstallPlace < handle
       elseif isa (pkgspecs, "packajoozle.internal.PkgVerReq")
         pkgreqs = pkgspecs;
         pkgvers = this.list_packages_matching (pkgreqs);
+        if isempty (pkgvers)
+          printf ("pkj: no matching packages found in %s for uninstallation\n", this.tag);
+          return
+        endif
       else
         error (["InstallPlace.uninstall_packages: invalid input: pkgspecs must be" ...
           "a PkgVer or PkgVerReq; got a %s"], class (pkgspecs));
       endif
-      printf ("pkj: uninstalling: %s from %s\n", dispstr (pkgvers), this.tag);
+      printf ("pkj: uninstalling from %s: %s\n", this.tag, dispstr (pkgvers));
 
       # TODO: Check dependencies
       # Calculate remaining installed packages and see that their deps are still
@@ -318,7 +323,7 @@ classdef InstallPlace < handle
       for i = 1:numel (pkgvers)
         this.uninstall_one_package (pkgvers(i));
       endfor
-      printf ("pkj: packages uninstalled\n");
+      printf ("pkj: packages uninstalled OK\n");
     endfunction
 
     function uninstall_one_package (this, pkgver)

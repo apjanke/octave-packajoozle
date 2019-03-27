@@ -66,7 +66,7 @@ classdef Version
         this = ver_str;
         return;
       endif
-      s = packajoozle.internal.Version.parse_version_str (ver_str)
+      s = packajoozle.internal.Version.parse_version_str (ver_str);
       this.string = ver_str;
       this.elements = s.elements;
       this.suffix = s.suffix;
@@ -95,7 +95,7 @@ classdef Version
       if ! isscalar (this)
         error ("Version: char() only works on scalar Version objects");
       endif
-      out = sprintf ("%s (%s %s)", this.string, mat2str(this.elements), this.suffix);
+      out = this.string;
     endfunction
 
     function out = cmp (A, B)

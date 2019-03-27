@@ -15,7 +15,7 @@
 
 ## -*- texinfo -*-
 ## @deftypefn  {} {} pkj @var{command} @var{pkg_name}
-## @deftypefnx {} {} pkj @var{command} @var{option} @var{pkg_name}
+## @deftypefnx {} {} pkj @var{command} [@var{option ...}] @var{pkg_name}
 ## @deftypefnx {} {[@var{out1}, @dots{}] =} pkj (@var{command}, @dots{} )
 ## Manage or query packages (groups of add-on functions) for Octave.
 ##
@@ -41,20 +41,30 @@
 ##
 ## @noindent
 ## installs the package found in the file @file{image-1.0.0.tar.gz}.  The
-## file containing the package can be an url, e.g.
+## file containing the package can be a URL, e.g.
 ##
 ## @example
 ## pkj install 'http://somewebsite.org/image-1.0.0.tar.gz'
 ## @end example
 ##
 ## @noindent
-## installs the package found in the given url.  This
+## installs the package found in the given URL.  This
 ## requires an internet connection and the cURL library.
+##
+## If the named file does not exist, it is checked against the list of Octave
+## Forge packages, and if it's a Forge package, that is used. For Forge
+## packages, you may also give version selectors, like so:
+##
+## @example
+## pkj install io@@2.4.12
+## pkj install io@@<2.2
+## pkj install io@@>=2.0.0
+## @end example
 ##
 ## @noindent
 ## @emph{Security risk}: no verification of the package is performed
 ## before the installation.  It has the same security issues as manually
-## downloading the package from the given url and installing it.
+## downloading the package from the given URL and installing it.
 ##
 ## @noindent
 ## @emph{No support}: the GNU Octave community is not responsible for
@@ -62,7 +72,7 @@
 ## reporting bugs you need to contact the maintainers of the installed
 ## package directly (see the @file{DESCRIPTION} file of the package).
 ##
-## The @var{option} variable can contain options that affect the manner
+## The @var{option} arguments can contain options that affect the manner
 ## in which a package is installed.  These options can be one or more of:
 ##
 ## @table @code
@@ -71,17 +81,22 @@
 ## is possible to install a package even when it depends on another package
 ## which is not installed on the system.  @strong{Use this option with care.}
 ##
-## @item -local
-## A local installation (package available only to current user) is forced,
-## even if the user has system privileges.
+## @item -user
+## A user-local installation (package available only to current user) is selected.
+## This is usually the default, unless you have a custom prefix defined.
 ##
 ## @item -global
-## A global installation (package available to all users) is forced, even if
-## the user doesn't normally have system privileges.
+## A global installation (package available to all users) is selected.
+##
+## @item -place <name>
+## The package is installed to the selected place. This can place name may
+## be one of "global", "user", "custom", or the name of a place that was
+## added with the @code{add-place} command.
 ##
 ## @item -forge
-## Install a package directly from the Octave Forge repository.  This
-## requires an internet connection and the cURL library.
+## Forces the argument to be interpreted as a package from the Octave Forge
+## repository.  This requires an internet connection and the cURL library.
+## Usually, this is detected by default so the -forge option is not required.
 ##
 ## @example
 ## pkj install -forge io
@@ -97,21 +112,21 @@
 ## Octave Forge repository and installing it.
 ##
 ## @item -verbose
-## The package manager will print the output of all commands as
+## The package manager will print the output of all actions as
 ## they are performed.
 ## @end table
 ##
 ## @item update
-## Check installed Octave Forge packages against repository and update any
+## Check installed Octave Forge packages against the repository and update any
 ## outdated items.  This requires an internet connection and the cURL library.
 ## Usage:
 ##
 ## @example
-## pkg update
+## pkj update
 ## @end example
 ##
 ## @noindent
-## To update a single package use @code{pkj install -forge}.
+## To update a single package use @code{pkj install -forge <name>}.
 ##
 ## @item uninstall
 ## Uninstall named packages.  For example,
@@ -121,16 +136,25 @@
 ## @end example
 ##
 ## @noindent
-## removes the @code{image} package from the system.  If another installed
+## removes the @code{image} package from the default installation place. 
+## If another installed
 ## package depends on the @code{image} package an error will be issued.
 ## The package can be uninstalled anyway by using the @option{-nodeps} option.
+##
+## @example
+## pkj uninstall -global image
+## @example
+##
+## @noindent
+## removes the @code{image} package from the global installation place.
 ##
 ## @item load
 ## Add named packages to the path.  After loading a package it is
 ## possible to use the functions provided by the package.  For example,
 ##
 ## @example
-## pkg load image
+## pkj load image
+## pkj load image@2.8.1
 ## @end example
 ##
 ## @noindent
@@ -234,59 +258,21 @@
 ## pkj test io nan
 ## @end example
 ##
-## @item prefix
-## Set the installation prefix directory.  For example,
+## @item default-place
+## Set the default place where packages will be installed to or uninstalled
+## from. The place is identified by name, and may be one of @code{"global"},
+## @code{"user"}, or (if you have one defined via @code{pkg}), @code{"custom"}.
+##
+## The duration of this setting is an Octave session, or until you 
+## @code{"clear classes"}.
+##
+## If you do not set a default place with @code{default-place}, the default
+## default place is either @code{"custom"} (if you have one defined),
+## or @code{"user"}.
 ##
 ## @example
-## pkj prefix ~/my_octave_packages
-## @end example
-##
-## @noindent
-## sets the installation prefix to @file{~/my_octave_packages}.
-## Packages will be installed in this directory.
-##
-## It is possible to get the current installation prefix by requesting an
-## output argument.  For example:
-##
-## @example
-## pfx = pkj ("prefix")
-## @end example
-##
-## The location in which to install the architecture dependent files can be
-## independently specified with an addition argument.  For example:
-##
-## @example
-## pkj prefix ~/my_octave_packages ~/my_arch_dep_pkgs
-## @end example
-##
-## @item local_list
-## Set the file in which to look for information on locally
-## installed packages.  Locally installed packages are those that are
-## available only to the current user.  For example:
-##
-## @example
-## pkj local_list ~/.octave_packages
-## @end example
-##
-## It is possible to get the current value of local_list with the following:
-##
-## @example
-## pkj local_list
-## @end example
-##
-## @item global_list
-## Set the file in which to look for information on globally
-## installed packages.  Globally installed packages are those that are
-## available to all users.  For example:
-##
-## @example
-## pkj global_list /usr/share/octave/octave_packages
-## @end example
-##
-## It is possible to get the current value of global_list with the following:
-##
-## @example
-## pkj global_list
+## pkj default-place global
+## pkj default-place user
 ## @end example
 ##
 ## @item build
@@ -344,6 +330,20 @@ function varargout = pkj (varargin)
 
   # Do something
   switch opts.command
+    case "default-place"
+      if nargout > 0
+        varargout = {default_place(opts)};
+      else
+        default_place (opts);
+      endif
+    case "add-place"
+      add_place (opts);
+    case "show-world"
+      if nargout > 0
+        varargout = {show_world(opts)};
+      else
+        show_world (opts);
+      endif
     case "install"
       install_type = detect_install_type (opts);
       switch install_type
@@ -398,6 +398,66 @@ function varargout = pkj (varargin)
   endif
 endfunction
 
+function out = default_place (opts)
+  world = packajoozle.internal.InstallWorld.shared;
+  if isempty (opts.targets)
+    if nargout == 0
+      disp (world.default_install_place);
+    else
+      out = world.default_install_place;
+    endif
+    return
+  elseif numel (opts.targets) > 1
+    error ("pkj: default-place only takes a single argument\n");
+  end
+  place = opts.targets{1};
+  if ! ismember (place, world.tags)
+    error ("pkj: no such place defined: %s. defined places: %s\n", ...
+      place, strjoin (world.tags, ", "));
+  endif
+  world.default_install_place = place;
+  fprintf ("pkj: set default install place to %s\n", place);
+endfunction
+
+function add_place (opts)
+  if numel (opts.targets) < 2
+    error ("pkj: add-place takes at least 2 arguments\n");
+  endif
+  [name, prefix] = opts.targets{1:2};
+  if numel (opts.targets) >= 3
+    arch_prefix = opts.targets{3};
+  else
+    arch_prefix = prefix;
+  endif
+  if numel (opts.targets) >= 4
+    index_file = opts.targets{4};
+  else
+    index_file = fullfile (prefix, "octave-packages");
+  endif
+  world = packajoozle.internal.InstallWorld.shared;
+  place = packajoozle.internal.InstallPlace (index_file, ...
+    prefix, arch_prefix, name);
+  world.register_install_place (name, place);
+  fprintf(["Added new install place:\n" ...
+    "  Name: %s\n" ...
+    "  Prefix: %s\n" ...
+    "  Arch Prefix: %s\n" ...
+    "  Index File: %s\n"], ...
+    name, prefix, arch_prefix, index_file);
+endfunction
+
+function out = show_world (opts)
+  if ! isempty (opts.targets)
+    error ("pkj: show-world does not take arguments\n");
+  endif
+  world = packajoozle.internal.InstallWorld.shared;
+  if nargout > 0
+    out = evalc ('disp (world)');
+  else
+    disp (world);  
+  endif
+endfunction
+
 function install_type = detect_install_type (opts)
   if opts.forge
     install_type = "forge";
@@ -418,9 +478,9 @@ function out = install_forge_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
   pkgman_opts.nodeps = opts.nodeps;
   if opts.devel
-    out = pkgman.install_forge_pkgs_devel (reqs, [], pkgman_opts);
+    out = pkgman.install_forge_pkgs_devel (reqs, opts.install_place, pkgman_opts);
   else
-    out = pkgman.install_forge_pkgs (reqs, [], pkgman_opts);
+    out = pkgman.install_forge_pkgs (reqs, opts.install_place, pkgman_opts);
   endif
 endfunction
 
@@ -811,8 +871,9 @@ function opts = parse_inputs (args_in)
   install_places = {};
 
   valid_commands = {"install", "update", "uninstall", "load", "unload", "list", ...
-    "describe", "prefix", "local_list", "global_list", "build", "rebuild", ...
-    "help", "test", "contents", "depdiagram", "review"};
+    "describe", "prefix", "default-place", "build", "rebuild", ...
+    "help", "test", "contents", "depdiagram", "review", "show-world", ...
+    "add-place"};
   valid_options = {"forge", "file", "nodeps", "forge", "verbose", ...
     "listversions", "help", "devel", "fail-fast", };
   aliases = {

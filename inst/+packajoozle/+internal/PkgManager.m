@@ -70,13 +70,12 @@ classdef PkgManager
     
     function out = resolve_installdir (this, place)
       if isempty (place)
-        place = this.default_installdir_tag;
+        place = this.world.default_install_place;
       endif
       if ischar (place)
         out = this.world.get_installdir_by_tag (place);
       else
-        mustBeA (place, "packajoozle.internal.InstallPlace");
-        out = place;
+        out = mustBeA (place, "packajoozle.internal.InstallPlace");
       endif
     endfunction
 
@@ -187,13 +186,25 @@ classdef PkgManager
       endif
 
       # Install selected packages
-      tf_installed = this.world.is_installed (need_installed);
+
+      # TODO: We need to treat explicitly-requested installs and dependencies
+      # separately: added dependencies can be resolved against the world, but
+      # each explicitly requested package should be installed into the particular
+      # selected place. For now, we'll just check if everything is installed
+      # in the selected place
+      tf_installed = place.is_installed (need_installed);
+      already_installed = need_installed(tf_installed);
       to_install = need_installed(~tf_installed);
-      printf ("pkj: installing: %s\n", strjoin (dispstrs (to_install), ", "));
+      if ! isempty (already_installed)
+        printf ("pkj: already installed in %s: %s\n", place.tag, dispstr (already_installed));
+      endif
+      if ! isempty (to_install)
+        printf ("pkj: installing to %s: %s\n", place.tag, dispstr (to_install));
+      endif
       rslts = {};
       for i = 1:numel (to_install)
         pkgver = to_install(i);
-        rslts{i} = this.install_forge_pkg_single (pkgver);
+        rslts{i} = this.install_forge_pkg_single (pkgver, place);
       endfor
       out = [rslts{:}];
     endfunction
@@ -225,7 +236,7 @@ classdef PkgManager
       mustBeA (pkgver, "packajoozle.internal.PkgVer");
       
       dist_tgz = this.forge.download_cached_pkg_distribution (pkgver);
-      out = this.install_pkg_from_file_impl (dist_tgz);
+      out = this.install_pkg_from_file_impl (dist_tgz, place);
 
       if out.success
         printf ("Installed %s from Octave Forge to %s pkg dir\n", ...
@@ -256,7 +267,7 @@ classdef PkgManager
       pkgver = packajoozle.internal.PkgVer (info.name, info.version);
       out.pkgver = pkgver;
       if place.is_installed (pkgver)
-        error ("pkj: already installed: %s\n", char (pkgver));
+        error ("pkj: already installed in %s: %s\n", place.tag, char (pkgver));
       endif
 
       build_dir_parent = tempname (tempdir, ["packajoozle/packajoozle-build-" ...
@@ -388,65 +399,14 @@ classdef PkgManager
     function uninstall_packages (this, pkgreqs, place)
       if nargin < 3; place = []; endif
       place = this.resolve_installdir (place);
-
-      # Find packages to uninstall
-      pkgvers = place.list_packages_matching (pkgreqs);
-      printf ("pkj: uninstalling: %s\n", strjoin (dispstrs (pkgvers), ", "));
-      this.world.unload_packages (pkgvers);
-      #TODO: Check that dependencies will still be satisfied after uninstallation
-
-      # TODO: Check dependencies
-      # Calculate remaining installed packages and see that their deps are still
-      # satisfied
-
-      # Uninstall the packages if we're clear to proceed
-      for i = 1:numel (pkgvers)
-        this.uninstall_one_package (pkgvers(i), place);
-      endfor
-      printf ("pkj: packages uninstalled\n");
+      place.uninstall_packages (pkgreqs);
     endfunction
 
     function uninstall_one_package (this, pkgver, place)
       %UNINSTALL_ONE Uninstall a package
       if nargin < 3; place = []; endif
       place = this.resolve_installdir (place);
-
-      mustBeA (pkgver, "packajoozle.internal.PkgVer");
-      mustBeScalar (pkgver);
-
-      found = false;
-      if ! place.is_installed (pkgver)
-        error ("pkj: package %s is not installed\n", char (pkgver));
-      endif
-      
-      #TODO: Get desc for installed package
-      target = place.install_paths_for_pkg (pkgver);
-
-      # Run pre-uninstall hooks
-      if packajoozle.internal.Util.isfile (fullfile (target.dir, "packinfo", "on_uninstall.m"))
-        orig_pwd = pwd;
-        try
-          cd (fullfile (target.dir, "packinfo"));
-          on_uninstall (desc);
-          cd (orig_pwd);
-        catch err
-          cd (orig_pwd);
-          error ("pkj: error while running on_uninstall hook for %s: %s\n", ...
-            char (pkgver), err.message);
-        end_try_catch
-      endif
-
-      # Delete package installation directories
-      if ! myisfolder (target.dir)
-        warning ("pkj: directory %s previously lost; marking %s as uninstalled\n", ...
-         target.dir, char (pkgver));
-      endif
-      packajoozle.internal.Util.rm_rf (target.arch_dir);
-      packajoozle.internal.Util.rm_rf (target.dir);
-
-      # Update package index
-      place.record_uninstalled_package (pkgver);
-
+      place.uninstall_one_package (pkgver);
     endfunction
     
     function out = load_packages (this, pkgver)

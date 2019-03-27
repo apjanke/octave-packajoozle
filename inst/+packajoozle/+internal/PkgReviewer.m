@@ -260,6 +260,8 @@ classdef PkgReviewer < handle
 
       # Install and BIST test it
       # TODO: Turn these pkj() calls into object calls
+      # TODO: Install to a temporary InstallPlace so we don't muck around with the
+      # user's regular installed packages.
 
       this.say ("Installing package")
       pkgman = packajoozle.internal.PkgManager;

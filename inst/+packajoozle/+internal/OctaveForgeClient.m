@@ -127,7 +127,7 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
     endfunction
 
     function cached_file = download_cached_pkg_distribution (this, pkgver)
-      mustBeA (pkgver, "packajoozle.internal.PkgVer")
+      mustBeA (pkgver, "packajoozle.internal.PkgVer");
       tgz_file = sprintf ("%s-%s.tar.gz", pkgver.name, char (pkgver.version));
       url = [this.forge_url "/download/" tgz_file];
       cache_dir = fullfile (this.download_cache_dir, "distributions");
