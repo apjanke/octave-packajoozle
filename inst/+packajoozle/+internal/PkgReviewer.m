@@ -262,16 +262,15 @@ classdef PkgReviewer < handle
       # TODO: Turn these pkj() calls into object calls
       # TODO: Install to a temporary InstallPlace so we don't muck around with the
       # user's regular installed packages.
-      place_tmp_prefix = tempname (tempdir, "packajoozle/pkj-review/places/place-");
+      tmp_place_prefix = tempname (tempdir, "packajoozle/pkj-review/places/place-");
+      printf ("pkj: review: installing under %s\n", tmp_place_prefix);
+      packajoozle.internal.Util.mkdir (tmp_place_prefix);
+      tmp_place = packajoozle.internal.InstallPlace ("tmp-pkj-review", tmp_place_prefix);
 
       this.say ("Installing package")
       pkgman = packajoozle.internal.PkgManager;
-      pkgreq = packajoozle.internal.PkgVerReq (pkgver);
-      if ! isempty (pkgman.world.list_installed_matching (pkgreq))
-        error ("pkj: review: Cannot install %s: it is already installed\n", char (pkgver));
-      endif
       lastwarn("");
-      inst_rslt = pkj ("install", "-file", tgz_file);
+      inst_rslt = pkgman.install_file_pkgs (tgz_file, tmp_place);
       [msg, msgid] = lastwarn ();
       if ! isempty (msg)
         this.bad ("Warnings during package installation: %s", msg);
@@ -284,7 +283,7 @@ classdef PkgReviewer < handle
       this.say ("Loading package");
       try
         lastwarn("");
-        pkgman.load_packages (pkgver);
+        tmp_place.load_package (pkgver);
         [msg, msgid] = lastwarn ();
         if ! isempty (msg)
           this.bad ("Warnings during package loading: %s", msg);
@@ -303,26 +302,28 @@ classdef PkgReviewer < handle
 
       this.say ("Unloading package");
       try
-        pkgman.unload_packages (pkgreq);
+        lastwarn("");
+        tmp_place.unload_packages (pkgver);
       catch err
         this.bad ("Error while unloading package: %s", err.message);
       end_try_catch
+      [msg, msgid] = lastwarn ();
+      if ! isempty (msg)
+        this.bad ("Warnings during package unloading: %s", msg);
+      endif
 
-      #TODO: Implement this in PkgManager
-      #loaded = pkgman.list_loaded_packages
-      #if ismember (pkgver, loaded)
-      #  out.errors{end+1} = sprintf ("Package did not unload cleanly");
-      #endif
+      if tmp_place.is_loaded (pkgver)
+        this.bad ("Package did not unload cleanly; it is still on the path");
+      endif
 
       this.say ("Uninstalling package");
       try
-        pkgman.uninstall_one_package (pkgver);
+        tmp_place.uninstall_packages (pkgver);
       catch err
-        this.bad ("Package failed uninstalling: %s", err.message);
+        this.bad ("Error while uninstalling package: %s", err.message);
       end_try_catch
-      installed = pkgman.world.list_installed_matching (pkgreq);
-      if ! isempty (installed)
-        this.bad ("Package did not unload cleanly");
+      if tmp_place.is_installed (pkgver)
+        this.bad ("Package did not uninstall cleanly");
       endif
 
       # Ran all checks

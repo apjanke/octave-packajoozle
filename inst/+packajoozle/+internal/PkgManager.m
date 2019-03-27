@@ -211,6 +211,7 @@ classdef PkgManager
 
     function out = install_file_pkgs (this, files, place)
       if nargin < 3; place = []; endif
+      files = cellstr (files);
       place = this.resolve_installdir (place);
 
       # TODO: Resolve dependencies
