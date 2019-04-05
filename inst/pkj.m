@@ -154,7 +154,7 @@
 ##
 ## @example
 ## pkj load image
-## pkj load image@2.8.1
+## pkj load image@@2.8.1
 ## @end example
 ##
 ## @noindent
