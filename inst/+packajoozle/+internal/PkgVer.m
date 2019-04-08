@@ -162,6 +162,11 @@ classdef PkgVer
     endfunction
 
     function [out,ix] = unique (this)
+      if isempty (this)
+        out = this;
+        ix = [];
+        return
+      endif
       out = this(1);
       ix = 1;
       for i = 2:numel (this)
