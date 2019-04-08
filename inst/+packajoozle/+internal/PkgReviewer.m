@@ -187,8 +187,15 @@ classdef PkgReviewer < handle
         if ! isscalar (forge_target)
           error ("review_package: only a single target is allowed; got %d", numel (forge_target));
         endif
-        pkgver = forge_target;
-        this.verb ("downloading release from Octave Forge")
+        pkgreq = forge_target;
+        forge = packajoozle.internal.OctaveForgeClient;
+        latest_ver = forge.get_latest_matching_pkg_version (pkgreq);
+        if isempty (latest_ver)
+          error ("No Octave Forge release found matching request: %s\n", char (pkgreq));
+        endif
+        pkgver = packajoozle.internal.PkgVer (pkgreq.package, latest_ver);
+        this.verb ("reviewing release %s", char (pkgver));
+        this.verb ("downloading release from Octave Forge");
         dist_file = this.forge.download_cached_pkg_distribution (pkgver);
         [~, tgz_basename] = fileparts (dist_file);
         packajoozle.internal.Util.copyfile (dist_file, tmp_dir);
