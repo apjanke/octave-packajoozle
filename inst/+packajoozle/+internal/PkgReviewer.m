@@ -197,7 +197,7 @@ classdef PkgReviewer < handle
         this.verb ("reviewing release %s", char (pkgver));
         this.verb ("downloading release from Octave Forge");
         dist_file = this.forge.download_cached_pkg_distribution (pkgver);
-        [~, tgz_basename] = fileparts (dist_file);
+        tgz_basename = my_basename (dist_file);
         packajoozle.internal.Util.copyfile (dist_file, tmp_dir);
         tgz_file = fullfile (tmp_dir, tgz_basename);        
       endif
