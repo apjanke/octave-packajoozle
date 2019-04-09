@@ -115,15 +115,14 @@ classdef PkgReviewer < handle
       [status, output] = system ("make release");
       if status != 0
         this.bad("'make release' failed. make output:\n%s", output);
-      endif      
-      desc_file = fullfile (repo_dir, "DESCRIPTION");
-      desc = packajoozle.internal.PkgDistUtil.parse_pkg_description_file (desc_file);
+      endif
+      desc = packajoozle.internal.PkgDistUtil.parse_pkg_description_file ("DESCRIPTION");
       pkgver = packajoozle.internal.PkgVer (desc.name, desc.version);
       this.pkgver = pkgver;
       this.verb ("looking for distribution tarball")
       expected_tarball_basename = sprintf ("%s-%s.tar.gz", desc.name, desc.version);
-      if packajoozle.internal.Util.isfile (fullfile (repo_dir, expected_tarball_basename))
-        built_dist_file = fullfile (repo_dir, expected_tarball_basename);
+      if packajoozle.internal.Util.isfile (expected_tarball_basename)
+        built_dist_file = expected_tarball_basename;
       else
         this.so_so ("expected dist file %s not created by 'make dist' in root of repo", ...
           expected_tarball_basename);
@@ -148,7 +147,8 @@ classdef PkgReviewer < handle
       this.verb ("found dist tarball at %s", built_dist_file);
       packajoozle.internal.Util.copyfile (built_dist_file, this.tmp_dir);
       tgz_file = fullfile (this.tmp_dir, expected_tarball_basename);
-      dist_file = built_dist_file;
+      # dist_file is the path to the dist archive file, from the perspective of the caller
+      dist_file = fullfile (repo_dir, built_dist_file);
       ok = true;
     endfunction
 
