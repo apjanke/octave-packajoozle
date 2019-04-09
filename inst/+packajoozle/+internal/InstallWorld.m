@@ -68,10 +68,11 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
       # User-defined custom place, if set in this Octave session
       [pfx,arch_pfx] = pkg('prefix');
       if ! ismember (pfx, {user_dir.prefix global_dir.prefix})
-        # There's no `pkg` query to tell which index file is being used with the
-        # custom prefix. I guess it'd be the local one?
+        # I _think_ 'pkg local_list' is the right call to get the index file for the
+        # custom prefix.
+        custom_index_file = pkg('local_list');
         custom_dir = packajoozle.internal.InstallPlace ("custom", ...
-          pfx, arch_pfx, paths.user.index_file);
+          pfx, arch_pfx, custom_index_file);
         out = out.register_install_place ("custom", custom_dir);
         out.default_install_place = "custom";
       endif
