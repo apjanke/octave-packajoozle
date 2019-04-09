@@ -68,7 +68,7 @@ classdef PkgReviewer < handle
       this.errors{end+1} = sprintf (fmt, varargin{:});
       if this.fail_fast
         this.display_results;
-        error ("Package review failed");
+        error ("Package review failed for %s.", char (this.pkg_spec));
       endif
     endfunction
 
@@ -78,6 +78,7 @@ classdef PkgReviewer < handle
     endfunction
 
     function display_results (this)
+      fprintf ("\n"); # To maker results more visible in case error messages are really long
       if this.ok
         fprintf ("Package review passed for %s.\n", char (this.pkg_spec));
         if ! isempty (this.warnings)
