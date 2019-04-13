@@ -73,6 +73,7 @@ classdef InstallWorld < packajoozle.internal.IPackageMetaSource & handle
         custom_index_file = pkg('local_list');
         custom_dir = packajoozle.internal.InstallPlace ("custom", ...
           pfx, arch_pfx, custom_index_file);
+        custom_dir.package_list_var_name = "local_packages";
         out = out.register_install_place ("custom", custom_dir);
         out.default_install_place = "custom";
       endif
