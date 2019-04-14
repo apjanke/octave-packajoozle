@@ -328,6 +328,12 @@ classdef PkgManager
           desc.name, err.message);
       end_try_catch
 
+      # Tidy up the installation
+
+      if dir_is_empty (target.arch_dir)
+        rm_rf_safe (target.arch_dir);
+      endif
+
       # Validate the installation
 
       if dirempty (target.dir, {"packinfo", "doc"}) ...
@@ -508,6 +514,9 @@ endfunction
 % ======================================================
 % My special functions
 
+function out = dir_is_empty (path)
+  out = isempty (packajoozle.internal.Util.readdir (path));
+endfunction
 
 % ======================================================
 %
