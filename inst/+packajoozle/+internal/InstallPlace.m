@@ -84,8 +84,7 @@ classdef InstallPlace < handle
       ver = char (pkgver.version);
       name_ver = [pkgver.name "-" ver];
       out.dir = fullfile (this.prefix, name_ver);
-      arch = packajoozle.internal.Util.get_system_arch;
-      out.arch_dir = fullfile (this.arch_prefix, arch, name_ver);
+      out.arch_dir = fullfile (this.arch_prefix, name_ver);
     endfunction
 
     function disp (this)

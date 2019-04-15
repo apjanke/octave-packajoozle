@@ -64,6 +64,12 @@ classdef PkgManager
       endif
     endfunction
 
+    function verb (this, fmt, varargin)
+      if this.verbose
+        fprintf (fmt, varargin{:});
+      endif
+    endfunction
+
     function out = default_installdir_tag (this)
       out = this.world.default_install_place;
     endfunction
@@ -274,8 +280,11 @@ classdef PkgManager
       build_dir_parent = tempname (tempdir, ["packajoozle/packajoozle-build-" ...
         pkgver.name "-"]);
       packajoozle.internal.Util.mkdir (build_dir_parent);
+      # Build dir cleanup disabled while we're still dbugging pkj
+      # This probably needs to be conditionalized to only rm it on a clean, successful
+      # build, anyway.
       #RAII.build_dir_parent = onCleanup (@() rm_rf_safe (build_dir_parent));
-      say("build temp dir: %s", build_dir_parent);
+      this.verb("build temp dir: %s", build_dir_parent);
       files = unpack (file, build_dir_parent);
       kids = packajoozle.internal.Util.readdir (build_dir_parent);
       if numel (kids) > 1
@@ -316,7 +325,6 @@ classdef PkgManager
       # Install the built package
 
       packajoozle.internal.Util.mkdir (target.dir);
-      packajoozle.internal.Util.mkdir (target.arch_dir);
       copy_files_from_build_to_inst (desc, target, build_dir);
       create_pkgadddel (desc, build_dir, "PKG_ADD", target);
       create_pkgadddel (desc, build_dir, "PKG_DEL", target);
@@ -327,12 +335,6 @@ classdef PkgManager
         warning ("pkj: failed creating lookfor cache for %s: %s\n", ...
           desc.name, err.message);
       end_try_catch
-
-      # Tidy up the installation
-
-      if dir_is_empty (target.arch_dir)
-        rm_rf_safe (target.arch_dir);
-      endif
 
       # Validate the installation
 
@@ -510,13 +512,6 @@ function rm_rf_safe (path)
   end_try_catch
 endfunction
 
-
-% ======================================================
-% My special functions
-
-function out = dir_is_empty (path)
-  out = isempty (packajoozle.internal.Util.readdir (path));
-endfunction
 
 % ======================================================
 %
@@ -703,30 +698,33 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
   % Copy built files from the build dir (build_dir) to the final install_dir
 
   install_dir = target.dir;
-  octfiledir = target.arch_dir;
+  arch = packajoozle.internal.Util.get_system_arch;
+  octfiledir = fullfile(target.arch_dir, arch);
 
   packajoozle.internal.Util.mkdir (install_dir);
 
   ## Copy the files from "inst" to installdir.
-  instdir = fullfile (build_dir, "inst");
-  if (! dirempty (instdir))
-    [status, output] = copyfile (fullfile (instdir, "*"), desc.dir);
+  build_instdir = fullfile (build_dir, "inst");
+  if (! dirempty (build_instdir))
+    [status, msg] = copyfile (fullfile (build_instdir, "*"), install_dir);
     if (status != 1)
-      packajoozle.internal.Util.rm_rf (desc.dir);
+      packajoozle.internal.Util.rm_rf (install_dir);
       error ("pkj: couldn't copy files to the installation directory '%s': %s\n", ...
-        desc.dir, output);
+        install_dir, msg);
     endif
-    if (myisfolder (fullfile (desc.dir, getarch ()))
-        && ! strcmp (canonicalize_file_name (fullfile (desc.dir, getarch ())),
-                     canonicalize_file_name (octfiledir)))
-      packajoozle.internal.Util.mkdir (octfiledir)
-      [ok, output] = movefile (fullfile (desc.dir, getarch (), "*"), octfiledir);
-      packajoozle.internal.Util.rm_rf (fullfile (desc.dir, getarch ()));
-      if ! ok
-        packajoozle.internal.Util.rm_rf (desc.dir);
-        packajoozle.internal.Util.rm_rf (octfiledir);
-        error ("pkj: couldn't copy files to the installation oct-file directory '%s': %s\n", ...
-          octfiledir, desc.dir);
+    original_arch_dir = fullfile (install_dir, arch);
+    if (myisfolder (original_arch_dir))
+      if ! isequal (canonicalize_file_name (original_arch_dir),
+                     canonicalize_file_name (octfiledir))
+        packajoozle.internal.Util.mkdir (octfiledir);
+        [ok, msg] = movefile (fullfile (original_arch_dir, "*"), octfiledir);
+        if ! ok
+          packajoozle.internal.Util.rm_rf (octfiledir);
+          packajoozle.internal.Util.rm_rf (install_dir);
+          error ("pkj: couldn't move oct-files to the installation oct-file directory '%s': %s\n", ...
+            octfiledir, msg);
+        endif
+        packajoozle.internal.Util.rm_rf (original_arch_dir);
       endif
     endif
 
