@@ -15,7 +15,7 @@
 ## along with this program; If not, see <http://www.gnu.org/licenses/>.
 
 ## -*- texinfo -*-
-## @deftypefn {Function File} {@var{out} =} objdel (@var{x}, @dots{})
+## @deftypefn {Function File} {@var{out} =} objvcat (@var{x}, @dots{})
 ##
 ## Concatenates object array vectors.
 ##
