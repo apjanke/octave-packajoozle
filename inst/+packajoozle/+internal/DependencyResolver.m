@@ -103,6 +103,9 @@ classdef DependencyResolver
       % outstanding dependencies. (Or maybe that just gets built into the state of
       % DependencyResolver.)
 
+      % TODO: Dynamic indentation of the debug output to correspond to how deep
+      % the current search path is.
+      
       narginchk (2, 3);
       if nargin < 3 || isempty (opts); opts = struct; endif
       pkgvers = makeItBeA (pkgvers, "packajoozle.internal.PkgVer");
@@ -166,6 +169,9 @@ classdef DependencyResolver
             % Available in source?
             ix = find (dep.matches (avail));
             if ! isempty (ix)
+              % TODO: This should actually try all of the candidates, in order
+              % from newest to oldest, and see if a solution can be found with any
+              % of them.
               candidates = avail(ix);
               picked = newest (candidates);
               this.emit ("    satisfied by package found in source: %s; adding dep", char (picked));
