@@ -44,7 +44,7 @@ classdef PkgManager
       ix = find (str == '@');
       if ! isempty (ix)
         if numel (ix) > 1
-          error ("parse_forge_target: Too many @s in target: '%s'\n", str);
+          error ("pkj: Too many @s in target: '%s'\n", str);
         endif
         pkg_name = str(1:ix-1);
         ver_filter_str = str(ix+1:end);
@@ -52,7 +52,7 @@ classdef PkgManager
         out = packajoozle.internal.PkgVerReq (pkg_name, ver_filter);
         return
       endif
-      error ("parse_forge_target: Invalid forge target string: '%s'\n", str);
+      error ("pkj: Invalid forge target string: '%s'\n", str);
     endfunction
   endmethods
 
@@ -120,7 +120,7 @@ classdef PkgManager
             %sc_opts = "--shallow";
             sc_opts = "";
           otherwise
-            error ("PkgManager.install_forge_pkgs_devel: unsupported source control type: %s", ...
+            error ("pkj: unsupported source control type: %s", ...
               meta.repo_type);
         endswitch
         clone_cmd = sprintf ("%s clone %s '%s' '%s'", ...
@@ -298,7 +298,7 @@ classdef PkgManager
       ix_slash = find (url == "/");
       base_file = url(ix_slash(end):end);
       if isempty (base_file)
-        error ("URL does not contain a file name: '%s'", url);
+        error ("pkj: URL does not contain a file name: '%s'", url);
       endif
       temp_archive_file = fullfile (my_temp_dir, base_file);
       urlwrite (url, temp_archive_file);
@@ -382,7 +382,7 @@ classdef PkgManager
 
       if isdirempty (target.dir, {"packinfo", "doc"}) ...
         && isdirempty (target.arch_dir)
-        warning ("empty package installation: %s\n", desc.name);
+        warning ("pkj: empty package installation: %s\n", desc.name);
         rm_rf_safe (target.arch_dir);
         rm_rf_safe (target.dir);
         out.success = false;
@@ -444,7 +444,7 @@ classdef PkgManager
     endfunction
 
     function uninstall_all_versions (this, pkg_name)
-      error ("PkgManager.uninstall_all_versions: this is not yet implemented")
+      error ("pkj: PkgManager.uninstall_all_versions is not yet implemented")
     endfunction
 
     function uninstall_packages (this, pkgreqs, place)
