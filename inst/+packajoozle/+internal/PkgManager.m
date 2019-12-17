@@ -380,8 +380,8 @@ classdef PkgManager
 
       # Validate the installation
 
-      if dirempty (target.dir, {"packinfo", "doc"}) ...
-        && dirempty (target.arch_dir)
+      if isdirempty (target.dir, {"packinfo", "doc"}) ...
+        && isdirempty (target.arch_dir)
         warning ("empty package installation: %s\n", desc.name);
         rm_rf_safe (target.arch_dir);
         rm_rf_safe (target.dir);
@@ -745,7 +745,7 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
 
   ## Copy the files from "inst" to installdir.
   build_instdir = fullfile (build_dir, "inst");
-  if (! dirempty (build_instdir))
+  if (! isdirempty (build_instdir))
     [status, msg] = copyfile (fullfile (build_instdir, "*"), install_dir);
     if (status != 1)
       packajoozle.internal.Util.rm_rf (install_dir);
@@ -794,14 +794,14 @@ function copy_files_from_build_to_inst (desc, target, build_dir)
 
   ## Is there a doc/ directory that needs to be installed?
   docdir = fullfile (build_dir, "doc");
-  if (myisfolder (docdir) && ! dirempty (docdir))
+  if (myisfolder (docdir) && ! isdirempty (docdir))
     [status, output] = copyfile (docdir, desc.dir);
   endif
 
   ## Is there a bin/ directory that needs to be installed?
   ## FIXME: Need to treat architecture dependent files in bin/
   bindir = fullfile (build_dir, "bin");
-  if (myisfolder (bindir) && ! dirempty (bindir))
+  if (myisfolder (bindir) && ! isdirempty (bindir))
     [status, output] = copyfile (bindir, desc.dir);
   endif
 
@@ -1247,7 +1247,7 @@ function [out1, out2] = installed_packages (local_list, global_list, pkgname = {
 
 endfunction
 
-function tf = dirempty (path, ignore_files = {})
+function tf = isdirempty (path, ignore_files = {})
   if ! myisfolder (path)
     tf = false;
     return;
