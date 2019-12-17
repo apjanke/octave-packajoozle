@@ -120,7 +120,7 @@ classdef PkgManager
             %sc_opts = "--shallow";
             sc_opts = "";
           otherwise
-            error ("pkj: unsupported source control type: %s", ...
+            error ("pkj: unsupported source control type: %s\n", ...
               meta.repo_type);
         endswitch
         clone_cmd = sprintf ("%s clone %s '%s' '%s'", ...
@@ -298,7 +298,7 @@ classdef PkgManager
       ix_slash = find (url == "/");
       base_file = url(ix_slash(end):end);
       if isempty (base_file)
-        error ("pkj: URL does not contain a file name: '%s'", url);
+        error ("pkj: URL does not contain a file name: '%s'\n", url);
       endif
       temp_archive_file = fullfile (my_temp_dir, base_file);
       urlwrite (url, temp_archive_file);

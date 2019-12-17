@@ -333,7 +333,7 @@ function varargout = pkj (varargin)
   # Check requirements
   if opts.forge
     if (! __octave_config_info__ ("CURL_LIBS"))
-      error ("pkj: can't download from Octave Forge without the cURL library");
+      error ("pkj: can't download from Octave Forge without the cURL library\n");
     endif
   endif
 
@@ -363,7 +363,7 @@ function varargout = pkj (varargin)
         case "url"
           rslt = install_urls (opts);
         otherwise
-          error ("pkj: internal error: invalid install_type: '%s'", install_type);
+          error ("pkj: internal error: invalid install_type: '%s'\n", install_type);
       endswitch
       varargout = {rslt};
     case "list"
@@ -399,9 +399,9 @@ function varargout = pkj (varargin)
     case "review"
       review_package (opts);
     case ""
-      error ("pkj: you must supply a command");
+      error ("pkj: you must supply a command\n");
     otherwise
-      error ("pkj: the %s command is not yet implemented", opts.command);
+      error ("pkj: the %s command is not yet implemented\n", opts.command);
   endswitch
   
   if nargout == 0
@@ -529,9 +529,9 @@ function out = list_forge_packages (opts)
 
   if opts.listversions
     if isempty (opts.targets)
-      error ("pkj: you must supply a package name with 'list -forge -listversions'");
+      error ("pkj: you must supply a package name with 'list -forge -listversions'\n");
     elseif numel (opts.targets) > 1
-      error ("pkj: only a single package name with 'list -forge -listversions' is allowed");
+      error ("pkj: only a single package name with 'list -forge -listversions' is allowed\n");
     else
       vers = forge.list_versions_for_package (opts.targets{1});
       if nargout == 0
@@ -710,14 +710,14 @@ function test_packages (opts)
   pkgreqs = packajoozle.internal.OctaveForgeClient.parse_forge_targets (opts.targets);
   pkgvers = installed_packages_matching (pkgreqs, opts);
   if isempty (pkgvers)
-    error ("pkj: no matching packages installed");
+    error ("pkj: no matching packages are installed\n");
   endif
   for i = 1:numel (pkgvers)
     pkgver = pkgvers(i);
     printf ("pkj: testing package %s\n", char (pkgver));
     descs = pkgman.world.descs_for_installed_package (pkgver);
     if isempty (descs)
-      error ("pkj: not installed: %s", char (pkgver));
+      error ("pkj: not installed: %s\n", char (pkgver));
     endif
     if numel (descs) > 1
       # I just don't want to handle this case
@@ -743,7 +743,7 @@ function review_package (opts)
   reviewer.verbose = opts.verbose;
   reviewer.fail_fast = opts.fail_fast;
   if ! isscalar (opts.targets)
-    error ("pkj: review command takes exactly 1 target; got %d", ...
+    error ("pkj: review command takes exactly 1 target; got %d\n", ...
       numel (opts.targets));
   endif
   reviewer.review_package (opts.targets{1});
@@ -942,7 +942,7 @@ function opts = parse_inputs (args_in)
       i = numel (args) + 1;
     else
       if arg(1) == "-"
-        error ("pkj: invalid option: %s", args{i});
+        error ("pkj: invalid option: %s\n", args{i});
       endif
       if isempty (command)
         # First non-option arg is command
