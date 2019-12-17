@@ -98,6 +98,15 @@
 ## repository.  This requires an internet connection and the cURL library.
 ## Usually, this is detected by default so the -forge option is not required.
 ##
+## @item -file
+## Forces the argument to be interpreted as a path to a local file.
+## Usually, this is detected by default so the -file option is not required.
+##
+## @item -url
+## Forces the argument to be interpreted as a URL.
+## Usually, this is detected by default so the -url option is not required.
+##
+## @item 
 ## @example
 ## pkj install -forge io
 ## pkj install -forge io@@2.4.9
@@ -351,6 +360,8 @@ function varargout = pkj (varargin)
           rslt = install_forge_packages (opts);
         case "file"
           rslt = install_files (opts);
+        case "url"
+          rslt = install_urls (opts);
         otherwise
           error ("pkj: internal error: invalid install_type: '%s'", install_type);
       endswitch
@@ -463,11 +474,18 @@ function install_type = detect_install_type (opts)
     install_type = "forge";
   elseif opts.file
     install_type = "file";
+  elseif opts.url
+    install_type = "url";
   else
     install_type = "forge";
     for i = 1:numel (opts.targets)
       if packajoozle.internal.Util.isfile (opts.targets{i})
         install_type = "file";
+        return
+      endif
+      if looks_like_url (opts.targets{i})
+        install_type = "url";
+        return
       endif
     endfor
   endif
@@ -487,9 +505,14 @@ endfunction
 function out = install_files (opts)
   files = opts.targets;
   pkgman = packajoozle.internal.PkgManager;
-  out = pkgman.install_file_pkgs (files);
+  out = pkgman.install_file_pkgs (files, opts.install_place);
 endfunction
 
+function out = install_urls (opts)
+  urls = opts.targets;
+  pkgman = packajoozle.internal.PkgManager;
+  out = pkgman.install_url_pkgs (urls, opts.install_place);
+endfunction
 
 function uninstall_packages (opts)
   pkgman = packajoozle.internal.PkgManager;
@@ -854,12 +877,17 @@ function out = descs_to_pkgvers (descs)
   out = objvcat (out{:});
 endfunction
 
+function out = looks_like_url (str)
+  out = ! isempty (regexp (str, '^[A-Za-z][A-Za-z]+://'));
+endfunction
+
 function opts = parse_inputs (args_in)
   opts = struct;
   opts.command = [];
   opts.targets = {};
   opts.forge = false;
   opts.file = false;
+  opts.url = false;
   opts.nodeps = false;
   opts.local = false;
   opts.global = false;
@@ -875,7 +903,7 @@ function opts = parse_inputs (args_in)
     "help", "test", "contents", "depdiagram", "review", "world", ...
     "add-place"};
   valid_options = {"forge", "file", "nodeps", "forge", "verbose", ...
-    "listversions", "help", "devel", "fail-fast", };
+    "listversions", "help", "devel", "fail-fast", "url"};
   aliases = {
     "ls"      "list"
     "rm"      "uninstall"
@@ -901,7 +929,7 @@ function opts = parse_inputs (args_in)
     elseif isequal (arg, "-place")
       install_places{end+1} = args{i+1};
       i += 2;
-    elseif ismember (arg, {"-local" "-user"})
+    elseif ismember (arg, {"-local", "-user"})
       install_places{end+1} = "user";
       opts.local = true;
       i += 1;

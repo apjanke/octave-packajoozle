@@ -225,8 +225,22 @@ classdef PkgManager
 
       rslts = {};
       for i = 1:numel (files)
-        file = files{i};
-        rslts{i} = this.install_pkg_from_file (file, place);
+        rslts{i} = this.install_pkg_from_file (files{i}, place);
+      endfor
+      out = [rslts{:}];
+    endfunction
+
+    function out = install_url_pkgs (this, urls, place)
+      if nargin < 3; place = []; endif
+      urls = cellstr (urls);
+      place = this.resolve_installdir (place);
+
+      # TODO: Resolve dependencies
+      # Consider all packages to be installed
+
+      rslts = {};
+      for i = 1:numel (urls)
+        rslts{i} = this.install_pkg_from_archive_url (urls{i}, place);
       endfor
       out = [rslts{:}];
     endfunction
@@ -255,6 +269,16 @@ classdef PkgManager
       endif
     endfunction
 
+    function out = install_pkg_from_archive_url (this, url, place)
+      if nargin < 3; place = []; endif
+      place = this.resolve_installdir (place);
+      rslt = this.install_pkg_from_archive_url_impl (url, place);
+      printf ("Installed %s from %s to %s pkg dir\n", ...
+        char (rslt.pkgver), url, place.tag);
+      this.display_user_messages (rslt);
+      out = rslt;
+    endfunction
+    
     function out = install_pkg_from_file (this, file, place)
       if nargin < 3; place = []; endif
       place = this.resolve_installdir (place);
@@ -265,6 +289,24 @@ classdef PkgManager
       out = rslt;
     endfunction
 
+    function out = install_pkg_from_archive_url_impl (this, url, place)
+      my_temp_dir = tempname;
+      mkdir (my_temp_dir);
+      % TODO: We really should use the filename from Content-Disposition in the
+      % HTTP response to decide what to save it as. Instead, we'll just assume
+      % that there's a filename at the end of the URL.
+      ix_slash = find (url == "/");
+      base_file = url(ix_slash(end):end);
+      if isempty (base_file)
+        error ("URL does not contain a file name: '%s'", url);
+      endif
+      temp_archive_file = fullfile (my_temp_dir, base_file);
+      urlwrite (url, temp_archive_file);
+      out = this.install_pkg_from_file_impl (temp_archive_file, place);
+      delete (temp_archive_file);
+      rmdir (my_temp_dir);
+    endfunction
+    
     function out = install_pkg_from_file_impl (this, file, place)
       if nargin < 3; place = []; endif
       place = this.resolve_installdir (place);
@@ -543,14 +585,12 @@ endfunction
 
 ## Make sure the package contains the essential files.
 function verify_directory (dir)
-
   needed_files = {"COPYING", "DESCRIPTION"};
   for f = needed_files
     if (! packajoozle.internal.Util.isfile (fullfile (dir, f{1})))
       error ("pkj: package is missing file: %s\n", f{1});
     endif
   endfor
-
 endfunction
 
 
@@ -592,13 +632,13 @@ function copy_built_files (desc, build_dir, verbose)
   endif
 
   ## Copy files to "inst" and "inst/arch" (this is instead of 'make install').
-  files = fullfile (src, "FILES");
+  files_file = fullfile (src, "FILES");
   instdir = fullfile (build_dir, "inst");
   archdir = fullfile (build_dir, "inst", packajoozle.internal.Util.get_system_arch ());
 
   ## Get filenames.
-  if (packajoozle.internal.Util.isfile (files))
-    filenames = chomp (fileread (files));
+  if (packajoozle.internal.Util.isfile (files_file))
+    filenames = chomp (fileread (files_file));
     filenames = strtrim (ostrsplit (filenames, "\n"));
     delete_idx = [];
     for i = 1:length (filenames)
