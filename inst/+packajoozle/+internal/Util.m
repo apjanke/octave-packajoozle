@@ -97,6 +97,7 @@ classdef Util
     endfunction
     
     function filewrite (out_file, txt)
+      %FILEWRITE Writes input as entirety of file's contents
       [fid, msg] = fopen (out_file, 'w');
       if fid < 0
         error ("filewrite: Failed opening file for writing:\n  File: %s\n  Error: %s", ...
@@ -123,6 +124,43 @@ classdef Util
     function out = posixtime2datenum (posix_time)
       persistent unix_epoch_datenum = datenum('1/1/1970');
       out = (posix_time / (60 * 60 * 24)) + unix_epoch_datenum;
+    endfunction
+    
+    function out = utcnow ()
+      %UTCNOW Current time in UTC, as a datenum
+      %
+      % Might only be precise to the second.
+      
+      % TODO: Add support for %N nanoseconds on Linux
+      
+      % Octave itself doesn't seem to provide a now() that supports UTC or time zones,
+      % so we'll have to hack up a different discovery method.
+      % Some other Octave code gets around this by temporarily setting the $TZ
+      % environment variable, but I think that's bad practice: you're not technically
+      % allowed to change environment variables inside a multithreaded program.
+      if isunix
+        % Unix
+        [ret,str] = system ('date -u +"%Y-%m-%d %H:%M:%S"');
+        if ret != 0
+          error('Error while calling the "date" command');
+        endif
+        str(end) = []; % chomp
+        out = datenum(str);
+      else
+        % Windows
+        [ret,str] = system ('wmic path win32_utctime get /format:list ^| findstr "="')
+        lines = regexp (str, '\r?\n', 'split');
+        s = struct;
+        for i_lines = 1:numel(lines)
+          tok = regexp (line, "=", "split")
+          if numel (tok) != 2
+            error ("Error parsing win32_utctime output. Line: '%s'", line);
+          endif
+          [name, val_str] = tok{:};
+          s.(name) = str2double (val_str);
+        endfor
+        out = datenum (s.Year, s.Month, s.Day, s.Hour, s.Minute. s.Second);
+      endif
     endfunction
 
     function out = urlwrite (url, localfile)

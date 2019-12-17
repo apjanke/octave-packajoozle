@@ -111,11 +111,12 @@ classdef OctaveForgeClient < packajoozle.internal.IPackageMetaSource
       cached_file = fullfile (cache_dir, tag);
       if packajoozle.internal.Util.isfile (cached_file)
         [st, err, msg] = stat (cached_file);
+        % Note that the file stat times are all in UTC
         mtime = packajoozle.internal.Util.posixtime2datenum (st.mtime);
         expiry_time = mtime + this.cached_meta_ttl;
-        if now < expiry_time
+        now_utc = packajoozle.internal.Util.utcnow;
+        if now_utc < expiry_time
           # Cache hit
-          out = cached_file;
           return
         else
           delete (cached_file);
