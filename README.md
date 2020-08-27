@@ -23,11 +23,8 @@ Compared to Octave’s `pkg`, Packajoozle’s `pkj` also provides:
 
 ## Installation
 
-* Clone the repo.
-  * `git clone https://github.com/apjanke/octave-packajoozle`
-* Add its `inst` dir to your Octave path
-  * `cd /path/to/octave-packajoozle/inst`
-  * `addpath (pwd)`
+    pkg install https://github.com/apjanke/octave-packajoozle/archive/master.zip
+    pkg load packajoozle
 
 ## Usage
 
@@ -78,7 +75,7 @@ You can also do `pkj test <package>` to run the tests in a package, but I haven�
 
 Packajoozle `pkj` is pretty well compatible with `pkg`.
 
-The `pkj` command is back-compatible with the `pkg` command at the interace level.
+The `pkj` command is back-compatible with the `pkg` command at the interface level.
 Generally, any `pkg ...` command you run will do the same thing when you run it as `pkj ...` instead.
 It’s just that `pkj` supports more commands, options, and package specifier forms over and above what `pkg` does, so more things will work in `pkj` than `pkg`.
 
